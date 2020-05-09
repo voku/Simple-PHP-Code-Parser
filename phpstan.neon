@@ -1,0 +1,19 @@
+parameters:
+    reportUnmatchedIgnoredErrors: false
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    level: max
+    paths:
+        - %currentWorkingDirectory%/src/
+    excludes_analyse:
+        - %currentWorkingDirectory%/vendor/*
+        - %currentWorkingDirectory%/tests/*
+    autoload_files:
+        - %currentWorkingDirectory%/vendor/autoload.php
+    ignoreErrors:
+        - '#Binary operation "\."#'
+        - '#should be compatible with#'
+        - '#undefined property PhpParser\\Node::\$name#'
+        - '#undefined property PhpParser\\Node\\Expr#'
+        - '#PhpFileHelper::parseDocTypeObject\(\) should return array#'
+        - '#PHPConst::getConstValue\(\) expects PhpParser\\Node\\Const_, PhpParser\\Node\\Arg given#'

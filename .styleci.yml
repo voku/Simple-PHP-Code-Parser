@@ -1,0 +1,15 @@
+preset: psr2
+
+enabled:
+  - unused_use
+  - include
+  - self_accessor
+  - single_quote
+  - ordered_use
+
+disabled:
+  - indentation
+
+finder:
+  not-name:
+    - Utf8GlobalPart3Test.php

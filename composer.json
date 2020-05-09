@@ -1,0 +1,43 @@
+{
+    "name": "voku/simple-php-code-parser",
+    "description": "",
+    "type": "library",
+    "keywords": [
+        "php"
+    ],
+    "homepage": "https://github.com/voku/Simple-PHP-Code-Parser",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lars Moelleken",
+            "homepage": "http://www.moelleken.org/"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "phpdocumentor/reflection-docblock": "~5.1",
+        "nikic/php-parser": "~4.4",
+        "vimeo/psalm": "~3.11"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~6.0 || ~7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "voku\\": "src/voku/"
+        },
+        "files": [
+            "src/voku/SimplePhpParser/Model/types/ArrayArray.php",
+            "src/voku/SimplePhpParser/Model/types/ArrayFloat.php",
+            "src/voku/SimplePhpParser/Model/types/ArrayInt.php",
+            "src/voku/SimplePhpParser/Model/types/ArrayString.php",
+            "src/voku/SimplePhpParser/Model/types/BooleanFalse.php",
+            "src/voku/SimplePhpParser/Model/types/BooleanTrue.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "voku\\tests\\": "tests/"
+        }
+    }
+}
