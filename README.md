@@ -9,9 +9,15 @@
 
 # ❤ Simple PHP Code Parser
 
-This code is mostly copy&pasted from [JetBrains/phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs/tree/master/tests) ;)
+You can simple scan a string, a file or a full directory. This code is mostly copy&pasted from [JetBrains/phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs/tree/master/tests) ;)
 
-You can simple scan a string, a file or a full directory.
+### Install via "composer require"
+
+```shell
+composer require voku/simple-php-code-parser
+```
+
+### Quick Start
 
 Parse a string:
 ```php
@@ -44,3 +50,19 @@ $phpClasses = $phpCode->getClasses();
 
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
+
+### Support
+
+For support and donations please visit [Github](https://github.com/voku/simple_html_dom/) | [Issues](https://github.com/voku/simple_html_dom/issues) | [PayPal](https://paypal.me/moelleken) | [Patreon](https://www.patreon.com/voku).
+
+For status updates and release announcements please visit [Releases](https://github.com/voku/simple_html_dom/releases) | [Twitter](https://twitter.com/suckup_de) | [Patreon](https://www.patreon.com/voku/posts).
+
+For professional support please contact [me](https://about.me/voku).
+
+### Thanks
+
+- Thanks to [GitHub](https://github.com) (Microsoft) for hosting the code and a good infrastructure including Issues-Managment, etc.
+- Thanks to [IntelliJ](https://www.jetbrains.com) as they make the best IDEs for PHP and they gave me an open source license for PhpStorm!
+- Thanks to [Travis CI](https://travis-ci.com/) for being the most awesome, easiest continous integration tool out there!
+- Thanks to [StyleCI](https://styleci.io/) for the simple but powerfull code style check.
+- Thanks to [PHPStan](https://github.com/phpstan/phpstan) && [Psalm](https://github.com/vimeo/psalm) for relly great Static analysis tools and for discover bugs in the code!
