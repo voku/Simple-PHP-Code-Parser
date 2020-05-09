@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/voku/Simple-PHP-Code-Parser.svg?branch=master)](https://travis-ci.org/voku/Simple-PHP-Code-Parser)
 [![Coverage Status](https://coveralls.io/repos/github/voku/Simple-PHP-Code-Parser/badge.svg?branch=master)](https://coveralls.io/github/voku/Simple-PHP-Code-Parser?branch=master)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/3290fdc35c8f49ad9abdf053582466eb)](https://www.codacy.com/app/voku/Simple-PHP-Code-Parser?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=voku/Simple-PHP-Code-Parser&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/2feaf2a179a24a5fac99cbf67e72df2f)](https://www.codacy.com/manual/voku/Simple-PHP-Code-Parser?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=voku/Simple-PHP-Code-Parser&amp;utm_campaign=Badge_Grade)
 [![Latest Stable Version](https://poser.pugx.org/voku/Simple-PHP-Code-Parser/v/stable)](https://packagist.org/packages/voku/Simple-PHP-Code-Parser) 
 [![Total Downloads](https://poser.pugx.org/voku/Simple-PHP-Code-Parser/downloads)](https://packagist.org/packages/voku/Simple-PHP-Code-Parser) 
 [![License](https://poser.pugx.org/voku/Simple-PHP-Code-Parser/license)](https://packagist.org/packages/voku/Simple-PHP-Code-Parser)
