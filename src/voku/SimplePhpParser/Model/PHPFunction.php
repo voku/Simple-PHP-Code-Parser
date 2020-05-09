@@ -70,11 +70,13 @@ class PHPFunction extends BasePHPElement
     {
         $this->name = $this->getFQN($node);
 
-        try {
-            $reflectionFunction = new ReflectionFunction($this->name);
-            $this->readObjectFromReflection($reflectionFunction);
-        } catch (\ReflectionException $e) {
-            // ignore
+        if (\function_exists($this->name)) {
+            try {
+                $reflectionFunction = new ReflectionFunction($this->name);
+                $this->readObjectFromReflection($reflectionFunction);
+            } catch (\ReflectionException $e) {
+                // ignore
+            }
         }
 
         if ($node->returnType) {

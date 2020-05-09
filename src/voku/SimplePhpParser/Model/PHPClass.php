@@ -28,12 +28,13 @@ class PHPClass extends BasePHPClass
     {
         $this->name = $this->getFQN($node);
 
-        try {
-            \assert(\class_exists($this->name));
-            $reflectionClass = new ReflectionClass($this->name);
-            $this->readObjectFromReflection($reflectionClass);
-        } catch (\ReflectionException $e) {
-            // ignore
+        if (\class_exists($this->name)) {
+            try {
+                $reflectionClass = new ReflectionClass($this->name);
+                $this->readObjectFromReflection($reflectionClass);
+            } catch (\ReflectionException $e) {
+                // ignore
+            }
         }
 
         $this->collectTags($node);

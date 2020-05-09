@@ -23,12 +23,13 @@ class PHPInterface extends BasePHPClass
     {
         $this->name = $this->getFQN($node);
 
-        try {
-            \assert(\interface_exists($this->name));
-            $reflectionInterface = new ReflectionClass($this->name);
-            $this->readObjectFromReflection($reflectionInterface);
-        } catch (\ReflectionException $e) {
-            // ignore
+        if (\interface_exists($this->name)) {
+            try {
+                $reflectionInterface = new ReflectionClass($this->name);
+                $this->readObjectFromReflection($reflectionInterface);
+            } catch (\ReflectionException $e) {
+                // ignore
+            }
         }
 
         $this->collectTags($node);
