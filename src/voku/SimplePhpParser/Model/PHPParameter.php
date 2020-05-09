@@ -83,7 +83,11 @@ class PHPParameter extends BasePHPElement
 
         $type = $parameter->getType();
         if ($type !== null) {
-            $this->type = $type . '';
+            if (\method_exists($type, 'getName')) {
+                $this->type = $type->getName();
+            } else {
+                $this->type = $type . '';
+            }
         }
 
         $this->is_vararg = $parameter->isVariadic();
