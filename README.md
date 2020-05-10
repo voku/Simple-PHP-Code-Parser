@@ -66,3 +66,4 @@ For professional support please contact [me](https://about.me/voku).
 - Thanks to [Travis CI](https://travis-ci.com/) for being the most awesome, easiest continous integration tool out there!
 - Thanks to [StyleCI](https://styleci.io/) for the simple but powerfull code style check.
 - Thanks to [PHPStan](https://github.com/phpstan/phpstan) && [Psalm](https://github.com/vimeo/psalm) for relly great Static analysis tools and for discover bugs in the code!
+w

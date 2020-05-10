@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -103,7 +104,7 @@ class PHPParameter extends BasePHPElement
      *
      * @return void
      */
-    protected function checkParameter(FunctionLike $node, Param $parameter)
+    protected function checkParameter(FunctionLike $node, Param $parameter): void
     {
         if ($node->getDocComment() !== null) {
             try {

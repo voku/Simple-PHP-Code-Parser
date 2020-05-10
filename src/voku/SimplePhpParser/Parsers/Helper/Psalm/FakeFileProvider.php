@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers\Helper\Psalm;
 
 use function microtime;
@@ -49,7 +49,7 @@ class FakeFileProvider extends \Psalm\Internal\Provider\FileProvider
      *
      * @return void
      */
-    public function setContents($file_path, $file_contents)
+    public function setContents($file_path, $file_contents): void
     {
         $this->fake_files[$file_path] = $file_contents;
     }
@@ -75,7 +75,7 @@ class FakeFileProvider extends \Psalm\Internal\Provider\FileProvider
      * @return void
      * @psalm-suppress InvalidPropertyAssignmentValue because microtime is needed for cache busting
      */
-    public function registerFile($file_path, $file_contents)
+    public function registerFile($file_path, $file_contents): void
     {
         $this->fake_files[$file_path] = $file_contents;
         $this->fake_file_times[$file_path] = \microtime(true);

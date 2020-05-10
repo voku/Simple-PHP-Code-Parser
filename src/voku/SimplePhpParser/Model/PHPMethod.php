@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -33,7 +34,7 @@ class PHPMethod extends PHPFunction
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null)
+    public function readObjectFromPhpNode($node, $dummy = null): PHPFunction
     {
         $doc = $node->getDocComment();
         if ($doc) {
@@ -88,7 +89,7 @@ class PHPMethod extends PHPFunction
      *
      * @return $this
      */
-    public function readObjectFromReflection($method)
+    public function readObjectFromReflection($method): PHPFunction
     {
         $this->name = $method->name;
 

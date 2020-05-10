@@ -15,7 +15,10 @@
     ],
     "require": {
         "php": ">=7.1.0",
+        "ext-simplexml": "*",
+        "phpdocumentor/type-resolver": "~1.1|~1.0",
         "phpdocumentor/reflection-docblock": "~4.3|~5.1",
+        "phpdocumentor/reflection-common": "~2.1",
         "nikic/php-parser": "~4.4",
         "vimeo/psalm": "~3.11"
     },

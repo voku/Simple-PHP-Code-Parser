@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers;
@@ -24,6 +25,13 @@ final class PhpCodeParser
         return self::getPhpFiles($code);
     }
 
+    /**
+     * @param string $path
+     *
+     * @return PhpCodeContainer
+     *
+     * @noinspection PhpUnusedParameterInspection
+     */
     public static function getPhpFiles(string $path): PhpCodeContainer
     {
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
@@ -72,7 +80,7 @@ final class PhpCodeParser
         string $pathOrCode,
         NodeVisitorAbstract $visitor,
         callable $fileCondition
-    ) {
+    ): void {
         $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
         $nameResolver = new NameResolver(null, ['preserveOriginalNames' => true]);
 

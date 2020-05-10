@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
@@ -12,7 +14,7 @@ class PHPDefineConstant extends PHPConst
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null)
+    public function readObjectFromPhpNode($node, $dummy = null): PHPConst
     {
         $constName = $this->getConstantFQN($node, $node->args[0]->value->value);
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
@@ -32,7 +34,7 @@ class PHPDefineConstant extends PHPConst
      *
      * @return $this
      */
-    public function readObjectFromReflection($constant)
+    public function readObjectFromReflection($constant): PHPConst
     {
         if (\is_string($constant[0])) {
             $this->name = \utf8_encode($constant[0]);

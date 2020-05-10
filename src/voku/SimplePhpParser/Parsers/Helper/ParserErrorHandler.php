@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
@@ -15,7 +16,7 @@ final class ParserErrorHandler implements ErrorHandler
      *
      * @return void
      */
-    public function handleError(Error $error)
+    public function handleError(Error $error): void
     {
         $error->setRawMessage($error->getRawMessage() . "\n" . $error->getFile());
     }

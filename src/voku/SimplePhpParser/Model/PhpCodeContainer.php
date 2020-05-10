@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -38,7 +39,7 @@ class PhpCodeContainer
      *
      * @return void
      */
-    public function addConstant(PHPConst $constant)
+    public function addConstant(PHPConst $constant): void
     {
         $this->constants[$constant->name] = $constant;
     }
@@ -56,7 +57,7 @@ class PhpCodeContainer
      *
      * @return void
      */
-    public function addFunction(PHPFunction $function)
+    public function addFunction(PHPFunction $function): void
     {
         $this->functions[$function->name] = $function;
     }
@@ -66,7 +67,7 @@ class PhpCodeContainer
      *
      * @return PHPClass|null
      */
-    public function getClass(string $name)
+    public function getClass(string $name): ?PHPClass
     {
         if (\array_key_exists($name, $this->classes) && $this->classes[$name] !== null) {
             return $this->classes[$name];
@@ -88,7 +89,7 @@ class PhpCodeContainer
      *
      * @return void
      */
-    public function addClass(PHPClass $class)
+    public function addClass(PHPClass $class): void
     {
         $this->classes[$class->name ?: \md5(\serialize($class))] = $class;
     }
@@ -98,7 +99,7 @@ class PhpCodeContainer
      *
      * @return PHPInterface|null
      */
-    public function getInterface(string $name)
+    public function getInterface(string $name): ?PHPInterface
     {
         if (\array_key_exists($name, $this->interfaces) && $this->interfaces[$name] !== null) {
             return $this->interfaces[$name];
@@ -120,7 +121,7 @@ class PhpCodeContainer
      *
      * @return void
      */
-    public function addInterface(PHPInterface $interface)
+    public function addInterface(PHPInterface $interface): void
     {
         $this->interfaces[$interface->name] = $interface;
     }

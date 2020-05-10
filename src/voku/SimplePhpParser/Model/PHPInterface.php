@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -19,7 +20,7 @@ class PHPInterface extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null)
+    public function readObjectFromPhpNode($node, $dummy = null): self
     {
         $this->name = $this->getFQN($node);
 

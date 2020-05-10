@@ -9,7 +9,7 @@ namespace voku\tests;
  */
 final class ParserTest extends \PHPUnit\Framework\TestCase
 {
-    public function testSimple()
+    public function testSimple(): void
     {
         $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();
@@ -17,7 +17,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
     }
 
-    public function testSimpleStringInput()
+    public function testSimpleStringInput(): void
     {
         $code = '
         <?php
@@ -36,7 +36,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    public function testGetMethodsInfo()
+    public function testGetMethodsInfo(): void
     {
         $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
@@ -14,7 +15,7 @@ final class Utils
      *
      * @return array
      */
-    public static function flattenArray(array $arr, bool $group)
+    public static function flattenArray(array $arr, bool $group): array
     {
         return \iterator_to_array(new RecursiveIteratorIterator(new RecursiveArrayIterator($arr)), $group);
     }

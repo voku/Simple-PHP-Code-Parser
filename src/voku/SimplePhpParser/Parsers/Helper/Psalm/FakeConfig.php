@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers\Helper\Psalm;
 
 use Psalm\Config;

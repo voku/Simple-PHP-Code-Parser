@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -50,7 +51,7 @@ trait PHPDocElement
      *
      * @return void
      */
-    protected function collectTags(Node $node)
+    protected function collectTags(Node $node): void
     {
         if ($node->getDocComment() !== null) {
             try {

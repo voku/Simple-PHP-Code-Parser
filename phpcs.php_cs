@@ -28,13 +28,13 @@ return PhpCsFixer\Config::create()
                                 'combine_consecutive_issets'                    => true,
                                 'combine_consecutive_unsets'                    => true,
                                 'combine_nested_dirname'                        => true,
-                                // 'compact_nullable_typehint'                  => true, // PHP >= 7.1
+                                'compact_nullable_typehint'                     => true,
                                 'concat_space'                                  => [
                                     'spacing' => 'one',
                                 ],
                                 'date_time_immutable'                           => false,
                                 'declare_equal_normalize'                       => true,
-                                'declare_strict_types'                          => false, // some tests need declare_strict_types === 0
+                                'declare_strict_types'                          => true,
                                 'dir_constant'                                  => true,
                                 'elseif'                                        => true,
                                 'encoding'                                      => true,
@@ -65,11 +65,9 @@ return PhpCsFixer\Config::create()
                                 'indentation_type'                              => true,
                                 'line_ending'                                   => true,
                                 'linebreak_after_opening_tag'                   => false,
-                                /*                                                         // Requires PHP >= 7.1
                                 'list_syntax'                                   => [
                                     'syntax' => 'short',
                                 ],
-                                */
                                 'logical_operators'                             => true,
                                 'lowercase_cast'                                => true,
                                 'lowercase_constants'                           => true,
@@ -134,7 +132,7 @@ return PhpCsFixer\Config::create()
                                 'no_useless_return'                             => true,
                                 'no_whitespace_before_comma_in_array'           => true,
                                 'no_whitespace_in_blank_line'                   => true,
-                                'non_printable_character'                       => false, // needed for some tests
+                                'non_printable_character'                       => true,
                                 'normalize_index_brace'                         => true,
                                 'not_operator_with_space'                       => false,
                                 'not_operator_with_successor_space'             => false,
@@ -209,7 +207,7 @@ return PhpCsFixer\Config::create()
                                 'static_lambda'                                 => true,
                                 'strict_comparison'                             => true,
                                 'strict_param'                                  => true,
-                                'string_line_ending'                            => false, // bug for e.g. "'<xonxxx=1'"
+                                'string_line_ending'                            => true,
                                 'switch_case_semicolon_to_colon'                => true,
                                 'switch_case_space'                             => true,
                                 'ternary_operator_spaces'                       => true,
@@ -218,7 +216,7 @@ return PhpCsFixer\Config::create()
                                 'trim_array_spaces'                             => true,
                                 'unary_operator_spaces'                         => true,
                                 'visibility_required'                           => true,
-                                // 'void_return'                                   => true, // PHP >= 7.1
+                                'void_return'                                   => true,
                                 'whitespace_after_comma_in_array'               => true,
                                 'yoda_style'                                    => [
                                     'equal'            => false,

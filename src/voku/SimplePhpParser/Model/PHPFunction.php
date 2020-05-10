@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
@@ -66,7 +67,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null)
+    public function readObjectFromPhpNode($node, $dummy = null): self
     {
         $this->name = $this->getFQN($node);
 
@@ -113,7 +114,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromReflection($function)
+    public function readObjectFromReflection($function): self
     {
         $this->name = $function->name;
 
@@ -132,7 +133,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return void
      */
-    protected function checkDeprecationTag(FunctionLike $node)
+    protected function checkDeprecationTag(FunctionLike $node): void
     {
         if ($node->getDocComment() !== null) {
             try {
@@ -153,7 +154,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return void
      */
-    protected function checkReturnTag(FunctionLike $node)
+    protected function checkReturnTag(FunctionLike $node): void
     {
         if ($node->getDocComment() !== null) {
             try {

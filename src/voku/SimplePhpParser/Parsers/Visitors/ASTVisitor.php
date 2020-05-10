@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Visitors;
@@ -37,7 +38,7 @@ final class ASTVisitor extends NodeVisitorAbstract
      *
      * @return void
      */
-    public function enterNode(Node $node)
+    public function enterNode(Node $node): void
     {
         if ($node instanceof Function_) {
             $function = (new PHPFunction())->readObjectFromPhpNode($node);
