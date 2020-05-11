@@ -7,7 +7,8 @@ namespace voku\tests;
 /**
  * @return Dummy
  */
-function foo(int $foo = 0) {
+function foo(int $foo = 0)
+{
     return new Dummy();
 }
 
