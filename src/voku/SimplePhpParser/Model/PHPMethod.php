@@ -101,6 +101,15 @@ class PHPMethod extends PHPFunction
             $this->parameters[$param->name] = $param;
         }
 
+        $returnType = $method->getReturnType();
+        if ($returnType !== null) {
+            if (\method_exists($returnType, 'getName')) {
+                $this->returnType = $returnType->getName();
+            } else {
+                $this->returnType = $returnType . '';
+            }
+        }
+
         if ($method->isProtected()) {
             $access = 'protected';
         } elseif ($method->isPrivate()) {
