@@ -14,5 +14,4 @@
 /phpstan.neon export-ignore
 /phpcs.php_cs export-ignore
 /phpunit.xml export-ignore
-/package.json export-ignore
 /psalm.xml export-ignore

@@ -5,15 +5,8 @@ composer.lock
 # php (phpunit)
 build/logs/
 
-# gitbook
-_book/
-
 # phpcs fixer
 .php_cs.cache
-
-# node
-node_modules/
-npm-debug.log
 
 # PhpStorm
 .idea/

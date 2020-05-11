@@ -10,6 +10,3 @@ enabled:
 disabled:
   - indentation
 
-finder:
-  not-name:
-    - Utf8GlobalPart3Test.php
