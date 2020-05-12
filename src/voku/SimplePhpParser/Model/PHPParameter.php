@@ -54,10 +54,13 @@ class PHPParameter extends BasePHPElement
     public function readObjectFromPhpNode($parameter, $node = null): self
     {
         if ($node) {
+            $this->checkForPhpDocErrors($node);
+
             $this->checkParameter($node, $parameter);
         }
 
         $this->name = $parameter->var->name . '';
+
         if ($parameter->type !== null) {
             if (empty($parameter->type->name)) {
                 if (!empty($parameter->type->parts)) {
@@ -67,7 +70,9 @@ class PHPParameter extends BasePHPElement
                 $this->type = $parameter->type->name;
             }
         }
+
         $this->is_vararg = $parameter->variadic;
+
         $this->is_passed_by_ref = $parameter->byRef;
 
         return $this;
@@ -106,9 +111,10 @@ class PHPParameter extends BasePHPElement
      */
     protected function checkParameter(FunctionLike $node, Param $parameter): void
     {
-        if ($node->getDocComment() !== null) {
+        $docComment = $node->getDocComment();
+        if ($docComment !== null) {
             try {
-                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($node->getDocComment()->getText());
+                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
 
                 $parsedParamTags = $phpDoc->getTagsByName('param');
 
@@ -175,7 +181,7 @@ class PHPParameter extends BasePHPElement
                     }
                 }
             } catch (\Exception $e) {
-                $this->parseError = $e->getMessage();
+                $this->parseError .= $e . "\n";
             }
         }
     }

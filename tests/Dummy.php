@@ -79,4 +79,19 @@ final class Dummy extends \stdClass
             'variableName'      => [null],
         ];
     }
+
+    /**
+     * @param $parsedParamTag
+     *
+     * @return array
+     *
+     * @psalm-return array{parsedParamTagStr: string, variableName: null[]|string}
+     */
+    public static function withEmptyParamTypePhpDoc($parsedParamTag)
+    {
+        return [
+            'parsedParamTagStr' => 'foo',
+            'variableName'      => [null],
+        ];
+    }
 }

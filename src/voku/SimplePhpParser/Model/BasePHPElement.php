@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Node;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
 
@@ -56,7 +57,11 @@ abstract class BasePHPElement
         // init
         $fqn = '';
 
-        if (\property_exists($node, 'namespacedName')) {
+        if (
+            $node instanceof \PhpParser\Node
+            &&
+            \property_exists($node, 'namespacedName')
+        ) {
             if ($node->namespacedName === null) {
                 $fqn = $node->name->parts[0];
             } else {
@@ -67,5 +72,54 @@ abstract class BasePHPElement
         }
 
         return \rtrim($fqn, '\\');
+    }
+
+    /**
+     * @param Node $nodeClone
+     *
+     * @return void
+     */
+    protected function checkForPhpDocErrors(Node $nodeClone): void
+    {
+        foreach ($nodeClone->getComments() as $comment) {
+            if ($comment instanceof \PhpParser\Comment\Doc) {
+                try {
+                    $parsed_docblock = \Psalm\DocComment::parsePreservingLength($comment);
+
+                    foreach ($parsed_docblock['specials'] as $type_key => $type_tokens) {
+                        $type_token = \trim(\array_values($type_tokens)[0]);
+
+                        $nonEmptyTypeKeys = [
+                            'param',
+                            'psalm-param',
+                            'phpstan-param',
+                            'return',
+                            'psalm-return',
+                            'phpstan-return',
+                            'var',
+                            'psalm-var',
+                            'phpstan-var',
+                            'property',
+                            'psalm-property',
+                            'phpstan-property',
+                        ];
+
+                        if (
+                            (
+                                !$type_token
+                                ||
+                                \strpos($type_token, '$') === 0
+                            )
+                            &&
+                            \in_array($type_key, $nonEmptyTypeKeys, true)
+                        ) {
+                            throw new \Exception('Empty type: ' . \print_r($parsed_docblock, true));
+                        }
+                    }
+                } catch (\Exception $e) {
+                    $this->parseError .= $e . "\n";
+                }
+            }
+        }
     }
 }

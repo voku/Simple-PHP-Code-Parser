@@ -36,51 +36,87 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param Node $node
      *
-     * @return void
+     * @return int|Node|null
      */
-    public function enterNode(Node $node): void
+    public function enterNode(Node $node)
     {
-        if ($node instanceof Function_) {
-            $function = (new PHPFunction())->readObjectFromPhpNode($node);
-            $this->phpCode->addFunction($function);
-        } elseif ($node instanceof Const_) {
-            $constant = (new PHPConst())->readObjectFromPhpNode($node);
-            if ($constant->parentName === null) {
-                $this->phpCode->addConstant($constant);
-            } elseif ($this->phpCode->getClass($constant->parentName) !== null) {
-                $this->phpCode->getClass($constant->parentName)->constants[$constant->name] = $constant;
-            } else {
-                $interface = $this->phpCode->getInterface($constant->parentName);
-                if ($interface) {
-                    $interface->constants[$constant->name] = $constant;
+        // init
+        $nodeClone = clone $node;
+
+        switch (true) {
+            case $nodeClone instanceof Function_:
+
+                $function = (new PHPFunction())->readObjectFromPhpNode($nodeClone);
+                $this->phpCode->addFunction($function);
+
+                break;
+
+            case $nodeClone instanceof Const_:
+
+                $constant = (new PHPConst())->readObjectFromPhpNode($nodeClone);
+                if ($constant->parentName === null) {
+                    $this->phpCode->addConstant($constant);
+                } elseif ($this->phpCode->getClass($constant->parentName) !== null) {
+                    $this->phpCode->getClass($constant->parentName)->constants[$constant->name] = $constant;
+                } else {
+                    $interface = $this->phpCode->getInterface($constant->parentName);
+                    if ($interface) {
+                        $interface->constants[$constant->name] = $constant;
+                    }
                 }
-            }
-        } elseif ($node instanceof FuncCall) {
-            if (
-                $node->name instanceof Node\Name
-                &&
-                $node->name->parts[0] === 'define'
-            ) {
-                $constant = (new PHPDefineConstant())->readObjectFromPhpNode($node);
-                $this->phpCode->addConstant($constant);
-            }
-        } elseif ($node instanceof ClassMethod) {
-            $method = (new PHPMethod())->readObjectFromPhpNode($node);
-            if ($this->phpCode->getClass($method->parentName) !== null) {
-                $this->phpCode->getClass($method->parentName)->methods[$method->name] = $method;
-            } else {
-                $interface = $this->phpCode->getInterface($method->parentName);
-                if ($interface !== null) {
-                    $interface->methods[$method->name] = $method;
+
+                break;
+
+            case $nodeClone instanceof FuncCall:
+
+                if (
+                    $nodeClone->name instanceof Node\Name
+                    &&
+                    $nodeClone->name->parts[0] === 'define'
+                ) {
+                    $constant = (new PHPDefineConstant())->readObjectFromPhpNode($nodeClone);
+                    $this->phpCode->addConstant($constant);
                 }
-            }
-        } elseif ($node instanceof Interface_) {
-            $interface = (new PHPInterface())->readObjectFromPhpNode($node);
-            $this->phpCode->addInterface($interface);
-        } elseif ($node instanceof Class_) {
-            $class = (new PHPClass())->readObjectFromPhpNode($node);
-            $this->phpCode->addClass($class);
+
+                break;
+
+            case $nodeClone instanceof ClassMethod:
+
+                $method = (new PHPMethod())->readObjectFromPhpNode($nodeClone);
+                if ($this->phpCode->getClass($method->parentName) !== null) {
+                    $this->phpCode->getClass($method->parentName)->methods[$method->name] = $method;
+                } else {
+                    $interface = $this->phpCode->getInterface($method->parentName);
+                    if ($interface !== null) {
+                        $interface->methods[$method->name] = $method;
+                    }
+                }
+
+                break;
+
+            case $nodeClone instanceof Interface_:
+
+                $interface = (new PHPInterface())->readObjectFromPhpNode($nodeClone);
+                $this->phpCode->addInterface($interface);
+
+                break;
+
+            case $nodeClone instanceof Class_:
+
+                $class = (new PHPClass())->readObjectFromPhpNode($nodeClone);
+                $this->phpCode->addClass($class);
+
+                break;
+
+            default:
+
+                // DEBUG
+                //\var_dump($nodeClone);
+
+                break;
         }
+
+        return $node;
     }
 
     /**
@@ -125,9 +161,11 @@ final class ASTVisitor extends NodeVisitorAbstract
                 $interfaces[] = $this->phpCode->getInterface($interface)->parentInterfaces;
             }
         }
+
         if ($class->parentClass === null) {
             return $interfaces;
         }
+
         if ($this->phpCode->getClass($class->parentClass) !== null) {
             $inherited = $this->combineImplementedInterfaces($this->phpCode->getClass($class->parentClass));
             $interfaces[] = Utils::flattenArray($inherited, false);

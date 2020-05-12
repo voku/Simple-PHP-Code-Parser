@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-use Exception;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\FunctionLike;
@@ -69,6 +68,8 @@ class PHPFunction extends BasePHPElement
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
+        $this->checkForPhpDocErrors($node);
+
         $this->name = $this->getFQN($node);
 
         if (\function_exists($this->name)) {
@@ -86,13 +87,13 @@ class PHPFunction extends BasePHPElement
             } elseif (\property_exists($node->returnType, 'name')) {
                 $this->returnType = $node->returnType->name;
             } elseif ($node->returnType instanceof \PhpParser\Node\NullableType) {
-                $node->returnType->type->toString();
+                $this->returnType = $node->returnType->type->toString();
             }
         }
 
-        $doc = $node->getDocComment();
-        if ($doc) {
-            $phpDoc = PhpFileHelper::createDocBlockInstance()->create($doc->getText());
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
             $this->summary = $phpDoc->getSummary();
             $this->description = (string) $phpDoc->getDescription();
         }
@@ -135,16 +136,17 @@ class PHPFunction extends BasePHPElement
      */
     protected function checkDeprecationTag(FunctionLike $node): void
     {
-        if ($node->getDocComment() !== null) {
+        $docComment = $node->getDocComment();
+        if ($docComment !== null) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($node->getDocComment()->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
                 if (empty($phpDoc->getTagsByName('deprecated'))) {
                     $this->is_deprecated = false;
                 } else {
                     $this->is_deprecated = true;
                 }
-            } catch (Exception $e) {
-                $this->parseError = $e->getMessage();
+            } catch (\Exception $e) {
+                $this->parseError .= $e . "\n";
             }
         }
     }
@@ -156,9 +158,10 @@ class PHPFunction extends BasePHPElement
      */
     protected function checkReturnTag(FunctionLike $node): void
     {
-        if ($node->getDocComment() !== null) {
+        $docComment = $node->getDocComment();
+        if ($docComment !== null) {
             try {
-                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($node->getDocComment()->getText());
+                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
 
                 $parsedReturnTag = $phpDoc->getTagsByName('return');
 
@@ -190,8 +193,8 @@ class PHPFunction extends BasePHPElement
 
                     $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
                 }
-            } catch (Exception $e) {
-                $this->parseError = $e->getMessage();
+            } catch (\Exception $e) {
+                $this->parseError .= $e . "\n";
             }
         }
     }

@@ -82,7 +82,13 @@ final class PhpCodeParser
         callable $fileCondition
     ): void {
         $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
-        $nameResolver = new NameResolver(null, ['preserveOriginalNames' => true]);
+        $nameResolver = new NameResolver(
+            new ParserErrorHandler(),
+            [
+                'preserveOriginalNames' => true,
+            ]
+        );
+        $parentConnector = new ParentConnector();
 
         if (\is_file($pathOrCode)) {
             $phpCodeIterator = [new SplFileInfo($pathOrCode)];
@@ -122,7 +128,7 @@ final class PhpCodeParser
             }
 
             $traverser = new NodeTraverser();
-            $traverser->addVisitor(new ParentConnector());
+            $traverser->addVisitor($parentConnector);
             $traverser->addVisitor($nameResolver);
             $traverser->addVisitor($visitor);
             $traverser->traverse($parsedCode);

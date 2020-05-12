@@ -22,6 +22,8 @@ class PHPInterface extends BasePHPClass
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
+        $this->checkForPhpDocErrors($node);
+
         $this->name = $this->getFQN($node);
 
         if (\interface_exists($this->name)) {

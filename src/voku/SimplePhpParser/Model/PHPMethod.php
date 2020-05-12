@@ -36,11 +36,17 @@ class PHPMethod extends PHPFunction
      */
     public function readObjectFromPhpNode($node, $dummy = null): PHPFunction
     {
-        $doc = $node->getDocComment();
-        if ($doc) {
-            $phpDoc = PhpFileHelper::createDocBlockInstance()->create($doc->getText());
-            $this->summary = $phpDoc->getSummary();
-            $this->description = (string) $phpDoc->getDescription();
+        $this->checkForPhpDocErrors($node);
+
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            try {
+                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
+                $this->summary = $phpDoc->getSummary();
+                $this->description = (string) $phpDoc->getDescription();
+            } catch (\Exception $e) {
+                $this->parseError .= $e . "\n";
+            }
         }
 
         $this->parentName = $this->getFQN($node->getAttribute('parent'));
@@ -53,7 +59,7 @@ class PHPMethod extends PHPFunction
             } elseif (\property_exists($node->returnType, 'name')) {
                 $this->returnType = $node->returnType->name;
             } elseif ($node->returnType instanceof \PhpParser\Node\NullableType) {
-                $node->returnType->type->toString();
+                $this->returnType = $node->returnType->type->toString();
             }
         }
 

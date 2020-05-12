@@ -38,8 +38,12 @@ class PHPConst extends BasePHPElement
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
+        $this->checkForPhpDocErrors($node);
+
         $this->name = $this->getConstantFQN($node, $node->name->name);
+
         $this->value = $this->getConstValue($node);
+
         $this->type = $node->getType();
 
         $this->collectTags($node);

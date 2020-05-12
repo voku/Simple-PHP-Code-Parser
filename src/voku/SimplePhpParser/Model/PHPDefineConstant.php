@@ -16,12 +16,15 @@ class PHPDefineConstant extends PHPConst
      */
     public function readObjectFromPhpNode($node, $dummy = null): PHPConst
     {
+        $this->checkForPhpDocErrors($node);
+
         $constName = $this->getConstantFQN($node, $node->args[0]->value->value);
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
             $constName = \strtoupper($constName);
         }
 
         $this->name = $constName;
+
         $this->value = $this->getConstValue($node->args[1]);
 
         $this->collectTags($node);

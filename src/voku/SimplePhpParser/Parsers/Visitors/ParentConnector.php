@@ -30,14 +30,18 @@ final class ParentConnector extends NodeVisitorAbstract
     /**
      * @param Node $node
      *
-     * @return void
+     * @return int|Node|null
      */
-    public function enterNode(Node $node): void
+    public function enterNode(Node $node)
     {
-        if (!empty($this->stack)) {
-            $node->setAttribute('parent', $this->stack[\count($this->stack) - 1]);
+        $stackCount = \count($this->stack);
+        if ($stackCount > 0) {
+            $node->setAttribute('parent', $this->stack[$stackCount - 1]);
         }
+
         $this->stack[] = $node;
+
+        return $node;
     }
 
     /**

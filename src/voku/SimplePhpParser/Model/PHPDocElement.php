@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-use Exception;
 use phpDocumentor\Reflection\DocBlock\Tag;
 use PhpParser\Node;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
@@ -53,21 +52,24 @@ trait PHPDocElement
      */
     protected function collectTags(Node $node): void
     {
-        if ($node->getDocComment() !== null) {
+        $docComment = $node->getDocComment();
+        if ($docComment !== null) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($node->getDocComment()->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
+
                 $tags = $phpDoc->getTags();
                 foreach ($tags as $tag) {
                     $this->tagNames[] = $tag->getName();
                 }
+
                 $this->links = $phpDoc->getTagsByName('link');
                 $this->see = $phpDoc->getTagsByName('see');
                 $this->sinceTags = $phpDoc->getTagsByName('since');
                 $this->deprecatedTags = $phpDoc->getTagsByName('deprecated');
                 $this->removedTags = $phpDoc->getTagsByName('removed');
                 $this->hasInternalMetaTag = $phpDoc->hasTag('meta');
-            } catch (Exception $e) {
-                $this->parseError = $e->getMessage();
+            } catch (\Exception $e) {
+                $this->parseError .= $e . "\n";
             }
         }
     }

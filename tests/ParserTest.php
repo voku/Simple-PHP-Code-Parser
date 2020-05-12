@@ -9,12 +9,21 @@ namespace voku\tests;
  */
 final class ParserTest extends \PHPUnit\Framework\TestCase
 {
-    public function testSimple(): void
+    public function testSimpleOneClass(): void
     {
         $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
+    }
+
+    public function testSimpleDirectory(): void
+    {
+        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
+        static::assertSame(Dummy2::class, $phpClasses[Dummy2::class]->name);
     }
 
     public function testSimpleStringInput(): void
@@ -34,6 +43,29 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             'a:3:{s:22:"voku\tests\SimpleClass";O:35:"voku\SimplePhpParser\Model\PHPClass":13:{s:11:"parentClass";N;s:10:"interfaces";a:0:{}s:7:"methods";a:0:{}s:9:"constants";a:0:{}s:4:"name";s:22:"voku\tests\SimpleClass";s:10:"parseError";N;s:5:"links";a:0:{}s:3:"see";a:0:{}s:9:"sinceTags";a:0:{}s:14:"deprecatedTags";a:0:{}s:11:"removedTags";a:0:{}s:8:"tagNames";a:0:{}s:18:"hasInternalMetaTag";b:0;}s:32:"613fb2e8d460c8384f4d268dc00e3ed9";O:35:"voku\SimplePhpParser\Model\PHPClass":13:{s:11:"parentClass";N;s:10:"interfaces";a:0:{}s:7:"methods";a:0:{}s:9:"constants";a:0:{}s:4:"name";s:0:"";s:10:"parseError";N;s:5:"links";a:0:{}s:3:"see";a:0:{}s:9:"sinceTags";a:0:{}s:14:"deprecatedTags";a:0:{}s:11:"removedTags";a:0:{}s:8:"tagNames";a:0:{}s:18:"hasInternalMetaTag";b:0;}s:23:"voku\tests\AnotherClass";O:35:"voku\SimplePhpParser\Model\PHPClass":13:{s:11:"parentClass";N;s:10:"interfaces";a:0:{}s:7:"methods";a:0:{}s:9:"constants";a:0:{}s:4:"name";s:23:"voku\tests\AnotherClass";s:10:"parseError";N;s:5:"links";a:0:{}s:3:"see";a:0:{}s:9:"sinceTags";a:0:{}s:14:"deprecatedTags";a:0:{}s:11:"removedTags";a:0:{}s:8:"tagNames";a:0:{}s:18:"hasInternalMetaTag";b:0;}}',
             \serialize($phpClasses)
         );
+    }
+
+    public function testSimpleBrokenPhpDocStringInput(): void
+    {
+        $code = '
+        <?php
+        /** 
+         * @property $foo 
+         */
+        abstract class Foo { 
+            /**
+             * @psalm-return
+             */
+            public function foo() { return []; }
+        }
+        ';
+
+        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame('Foo', $phpClasses['Foo']->name);
+        static::assertContains('Empty type', $phpClasses['Foo']->parseError);
+        static::assertContains('Empty type', $phpClasses['Foo']->methods['foo']->parseError);
     }
 
     public function testGetMethodsInfo(): void
@@ -135,6 +167,25 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDoc'       => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
                             'typeFromPhpDocSimple' => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
                             'typeFromPhpDocPslam'  => 'phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => '',
+                        'typeMaybeWithComment' => 'array',
+                        'typeFromPhpDoc'       => 'array',
+                        'typeFromPhpDocSimple' => 'array',
+                        'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
+                    ],
+                ],
+                'withEmptyParamTypePhpDoc' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'parsedParamTag' => [
+                            'type'                 => '',
+                            'typeMaybeWithComment' => '$parsedParamTag',
+                            'typeFromPhpDoc'       => '',
+                            'typeFromPhpDocSimple' => '',
+                            'typeFromPhpDocPslam'  => '',
                         ],
                     ],
                     'returnTypes' => [
