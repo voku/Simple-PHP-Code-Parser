@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-class PhpCodeContainer
+class ParserContainer
 {
     /**
      * @var PHPConst[]
@@ -101,7 +101,11 @@ class PhpCodeContainer
      */
     public function getInterface(string $name): ?PHPInterface
     {
-        if (\array_key_exists($name, $this->interfaces) && $this->interfaces[$name] !== null) {
+        if (
+            \array_key_exists($name, $this->interfaces)
+            &&
+            $this->interfaces[$name] !== null
+        ) {
             return $this->interfaces[$name];
         }
 

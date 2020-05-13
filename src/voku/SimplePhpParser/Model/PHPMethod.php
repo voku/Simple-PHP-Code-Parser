@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\ClassMethod;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
 {
@@ -36,22 +37,43 @@ class PHPMethod extends PHPFunction
      */
     public function readObjectFromPhpNode($node, $dummy = null): PHPFunction
     {
-        $this->checkForPhpDocErrors($node);
-
-        $docComment = $node->getDocComment();
-        if ($docComment) {
-            try {
-                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
-                $this->summary = $phpDoc->getSummary();
-                $this->description = (string) $phpDoc->getDescription();
-            } catch (\Exception $e) {
-                $this->parseError .= $e . "\n";
-            }
-        }
+        $this->prepareNode($node);
 
         $this->parentName = $this->getFQN($node->getAttribute('parent'));
 
         $this->name = $node->name->name;
+
+        if (
+            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            &&
+            \method_exists($this->parentName, $this->name)
+        ) {
+            try {
+                $reflectionMethod = new \ReflectionMethod($this->parentName, $this->name);
+                $this->readObjectFromReflection($reflectionMethod);
+            } catch (\ReflectionException $e) {
+                if ($this->usePhpReflection() === true) {
+                    throw $e;
+                }
+
+                // ignore
+            }
+        }
+
+        if ($this->usePhpReflection() === true) {
+            return $this;
+        }
+
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            try {
+                $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
+                $this->summary = $phpDoc->getSummary();
+                $this->description = (string) $phpDoc->getDescription();
+            } catch (\Exception $e) {
+                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            }
+        }
 
         if ($node->returnType) {
             if (\method_exists($node->returnType, 'toString')) {
@@ -64,19 +86,20 @@ class PHPMethod extends PHPFunction
         }
 
         $this->collectTags($node);
+
         $this->checkDeprecationTag($node);
-        $this->checkReturnTag($node);
+
+        $nodeDoc = $node->getDocComment();
+        if ($nodeDoc) {
+            $this->readPhpDoc($nodeDoc->getText());
+        }
 
         if (\strncmp($this->name, 'PS_UNRESERVE_PREFIX_', 20) === 0) {
             $this->name = \substr($this->name, \strlen('PS_UNRESERVE_PREFIX_'));
         }
 
-        foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter())->readObjectFromPhpNode($parameter, $node);
-            $this->parameters[$param->name] = $param;
-        }
-
         $this->is_final = $node->isFinal();
+
         $this->is_static = $node->isStatic();
 
         if ($node->isPrivate()) {
@@ -85,6 +108,11 @@ class PHPMethod extends PHPFunction
             $this->access = 'protected';
         } else {
             $this->access = 'public';
+        }
+
+        foreach ($node->getParams() as $parameter) {
+            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromPhpNode($parameter, $node);
+            $this->parameters[$param->name] = $param;
         }
 
         return $this;
@@ -100,12 +128,8 @@ class PHPMethod extends PHPFunction
         $this->name = $method->name;
 
         $this->is_static = $method->isStatic();
-        $this->is_final = $method->isFinal();
 
-        foreach ($method->getParameters() as $parameter) {
-            $param = (new PHPParameter())->readObjectFromReflection($parameter);
-            $this->parameters[$param->name] = $param;
-        }
+        $this->is_final = $method->isFinal();
 
         $returnType = $method->getReturnType();
         if ($returnType !== null) {
@@ -116,6 +140,12 @@ class PHPMethod extends PHPFunction
             }
         }
 
+        $docComment = $this->readObjectFromReflectionReturnHelper($method);
+        if ($docComment !== null) {
+            $docComment = '/** ' . $docComment . ' */';
+            $this->readPhpDoc($docComment);
+        }
+
         if ($method->isProtected()) {
             $access = 'protected';
         } elseif ($method->isPrivate()) {
@@ -124,6 +154,11 @@ class PHPMethod extends PHPFunction
             $access = 'public';
         }
         $this->access = $access;
+
+        foreach ($method->getParameters() as $parameter) {
+            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromReflection($parameter);
+            $this->parameters[$param->name] = $param;
+        }
 
         return $this;
     }

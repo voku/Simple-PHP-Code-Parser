@@ -21,6 +21,33 @@ abstract class BasePHPElement
     public $parseError;
 
     /**
+     * @var int|null
+     */
+    public $line;
+
+    /**
+     * @var int|null
+     */
+    public $pos;
+
+    /**
+     * @var bool|null
+     */
+    private $usePhpReflection;
+
+    /**
+     * @param bool|null $usePhpReflection <p>
+     *                                    null = Php-Parser + PHP-Reflection<br>
+     *                                    true = PHP-Reflection<br>
+     *                                    false = Php-Parser<br>
+     *                                    <p>
+     */
+    public function __construct($usePhpReflection)
+    {
+        $this->usePhpReflection = $usePhpReflection;
+    }
+
+    /**
      * @param mixed $object
      *
      * @return mixed
@@ -34,6 +61,11 @@ abstract class BasePHPElement
      * @return mixed
      */
     abstract public function readObjectFromPhpNode($mixed_1, $mixed_2 = null);
+
+    protected function usePhpReflection(): ?bool
+    {
+        return $this->usePhpReflection;
+    }
 
     protected function getConstantFQN(NodeAbstract $node, string $nodeName): string
     {
@@ -75,49 +107,49 @@ abstract class BasePHPElement
     }
 
     /**
-     * @param Node $nodeClone
+     * @param Node $node
      *
      * @return void
      */
-    protected function checkForPhpDocErrors(Node $nodeClone): void
+    protected function prepareNode(Node $node): void
     {
-        foreach ($nodeClone->getComments() as $comment) {
+        $this->line = $node->getLine();
+
+        $this->pos = $node->getStartTokenPos();
+
+        foreach ($node->getComments() as $comment) {
             if ($comment instanceof \PhpParser\Comment\Doc) {
-                try {
-                    $parsed_docblock = \Psalm\DocComment::parsePreservingLength($comment);
+                $parsed_docblock = \Psalm\DocComment::parsePreservingLength($comment);
 
-                    foreach ($parsed_docblock['specials'] as $type_key => $type_tokens) {
-                        $type_token = \trim(\array_values($type_tokens)[0]);
+                foreach ($parsed_docblock['specials'] as $type_key => $type_tokens) {
+                    $type_token = \trim(\array_values($type_tokens)[0]);
 
-                        $nonEmptyTypeKeys = [
-                            'param',
-                            'psalm-param',
-                            'phpstan-param',
-                            'return',
-                            'psalm-return',
-                            'phpstan-return',
-                            'var',
-                            'psalm-var',
-                            'phpstan-var',
-                            'property',
-                            'psalm-property',
-                            'phpstan-property',
-                        ];
+                    $nonEmptyTypeKeys = [
+                        'param',
+                        'psalm-param',
+                        'phpstan-param',
+                        'return',
+                        'psalm-return',
+                        'phpstan-return',
+                        'var',
+                        'psalm-var',
+                        'phpstan-var',
+                        'property',
+                        'psalm-property',
+                        'phpstan-property',
+                    ];
 
-                        if (
-                            (
-                                !$type_token
-                                ||
-                                \strpos($type_token, '$') === 0
-                            )
-                            &&
-                            \in_array($type_key, $nonEmptyTypeKeys, true)
-                        ) {
-                            throw new \Exception('Empty type: ' . \print_r($parsed_docblock, true));
-                        }
+                    if (
+                        (
+                            !$type_token
+                            ||
+                            \strpos($type_token, '$') === 0
+                        )
+                        &&
+                        \in_array($type_key, $nonEmptyTypeKeys, true)
+                    ) {
+                        $this->parseError .= $this->line . ':' . $this->pos . ' | Empty type: ' . \print_r($parsed_docblock, true);
                     }
-                } catch (\Exception $e) {
-                    $this->parseError .= $e . "\n";
                 }
             }
         }

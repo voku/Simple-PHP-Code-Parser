@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
 use ReflectionParameter;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPParameter extends BasePHPElement
 {
@@ -53,18 +54,29 @@ class PHPParameter extends BasePHPElement
      */
     public function readObjectFromPhpNode($parameter, $node = null): self
     {
-        if ($node) {
-            $this->checkForPhpDocErrors($node);
+        $this->name = $parameter->var->name . '';
 
-            $this->checkParameter($node, $parameter);
+        if ($this->usePhpReflection() === true) {
+            return $this;
         }
 
-        $this->name = $parameter->var->name . '';
+        if ($node) {
+            $this->prepareNode($node);
+
+            $docComment = $node->getDocComment();
+            if ($docComment !== null) {
+                try {
+                    $this->readPhpDoc($docComment->getText(), $this->name);
+                } catch (\Exception $e) {
+                    $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                }
+            }
+        }
 
         if ($parameter->type !== null) {
             if (empty($parameter->type->name)) {
                 if (!empty($parameter->type->parts)) {
-                    $this->type = $parameter->type->parts[0];
+                    $this->type = '\\' . \implode('\\', $parameter->type->parts);
                 }
             } else {
                 $this->type = $parameter->type->name;
@@ -87,12 +99,47 @@ class PHPParameter extends BasePHPElement
     {
         $this->name = $parameter->name;
 
+        // TODO: use also php-types and not only php-docs
+        /*
+        $export = ReflectionParameter::export(
+            array(
+                $parameter->getDeclaringClass()->name,
+                $parameter->getDeclaringFunction()->name
+            ),
+            $parameter->name,
+            true
+        );
+        \var_dump($export);
+        */
+
+        $docComment = $this->readObjectFromReflectionParamHelper($parameter);
+        if ($docComment !== null) {
+            $docComment = '/** ' . $docComment . ' */';
+            try {
+                $this->readPhpDoc($docComment, $this->name);
+            } catch (\Exception $e) {
+                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            }
+        }
+
         $type = $parameter->getType();
+        // TODO: add e.g. reflectionType
         if ($type !== null) {
             if (\method_exists($type, 'getName')) {
                 $this->type = $type->getName();
             } else {
                 $this->type = $type . '';
+            }
+            if ($this->type && \class_exists($this->type)) {
+                $this->type = '\\' . \ltrim($this->type, '\\');
+            }
+
+            if ($type->allowsNull()) {
+                if ($this->type) {
+                    $this->type = 'null|' . $this->type;
+                } else {
+                    $this->type = 'null';
+                }
             }
         }
 
@@ -104,85 +151,95 @@ class PHPParameter extends BasePHPElement
     }
 
     /**
-     * @param FunctionLike $node
-     * @param Param        $parameter
+     * @param ReflectionParameter $parameter
      *
-     * @return void
+     * @return string|null Type of the property (content of var annotation)
      */
-    protected function checkParameter(FunctionLike $node, Param $parameter): void
+    private function readObjectFromReflectionParamHelper(ReflectionParameter $parameter): ?string
     {
-        $docComment = $node->getDocComment();
-        if ($docComment !== null) {
-            try {
-                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
+        // Get the content of the @param annotation.
+        $method = $parameter->getDeclaringFunction();
 
-                $parsedParamTags = $phpDoc->getTagsByName('param');
+        $phpDoc = $method->getDocComment();
+        if (!$phpDoc) {
+            return null;
+        }
 
-                if (!empty($parsedParamTags)) {
-                    foreach ($parsedParamTags as $parsedParamTag) {
-                        if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Param) {
-
-                            // check only the current "param"-tag
-                            if (
-                                $parameter->var instanceof \PhpParser\Node\Expr\Variable
-                                &&
-                                \is_string($parameter->var->name)
-                                &&
-                                \strtoupper($parameter->var->name) !== \strtoupper((string) $parsedParamTag->getVariableName())
-                            ) {
-                                continue;
-                            }
-
-                            $type = $parsedParamTag->getType();
-
-                            $this->typeFromPhpDoc = $type . '';
-
-                            $this->typeMaybeWithComment = \trim((string) $parsedParamTag);
-
-                            $returnTypeTmp = PhpFileHelper::parseDocTypeObject($type);
-                            if (\is_array($returnTypeTmp)) {
-                                $this->typeFromPhpDocSimple = \implode('|', $returnTypeTmp);
-                            } else {
-                                $this->typeFromPhpDocSimple = $returnTypeTmp;
-                            }
-
-                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
-                        }
-                    }
-                }
-
-                $parsedParamTags = $phpDoc->getTagsByName('psalm-param')
-                                   + $phpDoc->getTagsByName('phpstan-param');
-
-                if (!empty($parsedParamTags)) {
-                    foreach ($parsedParamTags as $parsedParamTag) {
-                        if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
-                            $spitedData = \voku\SimplePhpParser\Parsers\Helper\Utils::splitTypeAndVariable($parsedParamTag);
-                            $parsedParamTagStr = $spitedData['parsedParamTagStr'];
-                            $variableName = $spitedData['variableName'];
-
-                            // check only the current "param"-tag
-                            if (
-                                $variableName === null
-                                ||
-                                (
-                                    $parameter->var instanceof \PhpParser\Node\Expr\Variable
-                                    &&
-                                    \is_string($parameter->var->name)
-                                    &&
-                                    \strtoupper($parameter->var->name) !== \strtoupper($variableName)
-                                )
-                            ) {
-                                continue;
-                            }
-
-                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedParamTagStr);
-                        }
-                    }
-                }
-            } catch (\Exception $e) {
-                $this->parseError .= $e . "\n";
+        if (preg_match_all('/(@.*?param\s+[^\s]+\s+\$' . $parameter->name . ')/ui', $method->getDocComment(), $matches)) {
+            $param = '';
+            foreach ($matches[0] as $match) {
+                $param .= $match . "\n";
             }
+        } else {
+            return null;
+        }
+
+        return $param;
+    }
+
+    private function readPhpDoc(string $docComment, string $parameterName): void
+    {
+        try {
+            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+
+            $parsedParamTags = $phpDoc->getTagsByName('param');
+
+            if (!empty($parsedParamTags)) {
+                foreach ($parsedParamTags as $parsedParamTag) {
+                    if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Param) {
+
+                        // check only the current "param"-tag
+                        if (\strtoupper($parameterName) !== \strtoupper((string) $parsedParamTag->getVariableName())) {
+                            continue;
+                        }
+
+                        $type = $parsedParamTag->getType();
+
+                        $this->typeFromPhpDoc = $type . '';
+
+                        $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
+                        if (
+                            $typeMaybeWithCommentTmp
+                            &&
+                            \strpos($typeMaybeWithCommentTmp, '$') !== 0
+                        ) {
+                            $this->typeMaybeWithComment = $typeMaybeWithCommentTmp;
+                        }
+
+                        $returnTypeTmp = Utils::parseDocTypeObject($type);
+                        if (\is_array($returnTypeTmp)) {
+                            $this->typeFromPhpDocSimple = \implode('|', $returnTypeTmp);
+                        } else {
+                            $this->typeFromPhpDocSimple = $returnTypeTmp;
+                        }
+
+                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                    }
+                }
+            }
+
+            /** @noinspection AdditionOperationOnArraysInspection */
+            $parsedParamTags = $phpDoc->getTagsByName('psalm-param')
+                               + $phpDoc->getTagsByName('phpstan-param');
+
+            if (!empty($parsedParamTags)) {
+                foreach ($parsedParamTags as $parsedParamTag) {
+                    if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
+                        $spitedData = \voku\SimplePhpParser\Parsers\Helper\Utils::splitTypeAndVariable($parsedParamTag);
+                        $parsedParamTagStr = $spitedData['parsedParamTagStr'];
+                        $variableName = $spitedData['variableName'];
+
+                        // check only the current "param"-tag
+                        if (\strtoupper($parameterName) !== \strtoupper($variableName)) {
+                            continue;
+                        }
+
+                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedParamTagStr);
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
         }
     }
 }

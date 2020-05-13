@@ -12,8 +12,8 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\NodeVisitorAbstract;
+use voku\SimplePhpParser\Model\ParserContainer;
 use voku\SimplePhpParser\Model\PHPClass;
-use voku\SimplePhpParser\Model\PhpCodeContainer;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
 use voku\SimplePhpParser\Model\PHPFunction;
@@ -24,13 +24,27 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 final class ASTVisitor extends NodeVisitorAbstract
 {
     /**
-     * @var PhpCodeContainer
+     * @var ParserContainer
      */
     private $phpCode;
 
-    public function __construct(PhpCodeContainer $phpCode)
+    /**
+     * @var bool|null
+     */
+    private $usePhpReflection;
+
+    /**
+     * @param ParserContainer $phpCode
+     * @param bool|null       $usePhpReflection <p>
+     *                                          null = Php-Parser + PHP-Reflection<br>
+     *                                          true = PHP-Reflection<br>
+     *                                          false = Php-Parser<br>
+     *                                          <p>
+     */
+    public function __construct(ParserContainer $phpCode, bool $usePhpReflection = null)
     {
         $this->phpCode = $phpCode;
+        $this->usePhpReflection = $usePhpReflection;
     }
 
     /**
@@ -46,14 +60,14 @@ final class ASTVisitor extends NodeVisitorAbstract
         switch (true) {
             case $nodeClone instanceof Function_:
 
-                $function = (new PHPFunction())->readObjectFromPhpNode($nodeClone);
+                $function = (new PHPFunction($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 $this->phpCode->addFunction($function);
 
                 break;
 
             case $nodeClone instanceof Const_:
 
-                $constant = (new PHPConst())->readObjectFromPhpNode($nodeClone);
+                $constant = (new PHPConst($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 if ($constant->parentName === null) {
                     $this->phpCode->addConstant($constant);
                 } elseif ($this->phpCode->getClass($constant->parentName) !== null) {
@@ -74,7 +88,7 @@ final class ASTVisitor extends NodeVisitorAbstract
                     &&
                     $nodeClone->name->parts[0] === 'define'
                 ) {
-                    $constant = (new PHPDefineConstant())->readObjectFromPhpNode($nodeClone);
+                    $constant = (new PHPDefineConstant($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                     $this->phpCode->addConstant($constant);
                 }
 
@@ -82,7 +96,7 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             case $nodeClone instanceof ClassMethod:
 
-                $method = (new PHPMethod())->readObjectFromPhpNode($nodeClone);
+                $method = (new PHPMethod($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 if ($this->phpCode->getClass($method->parentName) !== null) {
                     $this->phpCode->getClass($method->parentName)->methods[$method->name] = $method;
                 } else {
@@ -96,14 +110,14 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             case $nodeClone instanceof Interface_:
 
-                $interface = (new PHPInterface())->readObjectFromPhpNode($nodeClone);
+                $interface = (new PHPInterface($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 $this->phpCode->addInterface($interface);
 
                 break;
 
             case $nodeClone instanceof Class_:
 
-                $class = (new PHPClass())->readObjectFromPhpNode($nodeClone);
+                $class = (new PHPClass($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 $this->phpCode->addClass($class);
 
                 break;

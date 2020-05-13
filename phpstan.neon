@@ -15,5 +15,5 @@ parameters:
         - '#should be compatible with#'
         - '#undefined property PhpParser\\Node::\$name#'
         - '#undefined property PhpParser\\Node\\Expr#'
-        - '#PhpFileHelper::parseDocTypeObject\(\) should return array#'
+        - '#Utils::parseDocTypeObject\(\) should return array#'
         - '#PHPConst::getConstValue\(\) expects PhpParser\\Node\\Const_, PhpParser\\Node\\Arg given#'

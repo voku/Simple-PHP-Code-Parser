@@ -22,7 +22,7 @@ class PHPInterface extends BasePHPClass
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
-        $this->checkForPhpDocErrors($node);
+        $this->prepareNode($node);
 
         $this->name = $this->getFQN($node);
 
@@ -31,6 +31,10 @@ class PHPInterface extends BasePHPClass
                 $reflectionInterface = new ReflectionClass($this->name);
                 $this->readObjectFromReflection($reflectionInterface);
             } catch (\ReflectionException $e) {
+                if ($this->usePhpReflection() === true) {
+                    throw $e;
+                }
+
                 // ignore
             }
         }
@@ -57,7 +61,8 @@ class PHPInterface extends BasePHPClass
             if ($method->getDeclaringClass()->getName() !== $this->name) {
                 continue;
             }
-            $this->methods[$method->name] = (new PHPMethod())->readObjectFromReflection($method);
+
+            $this->methods[$method->name] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         $this->parentInterfaces = $interface->getInterfaceNames();
@@ -65,7 +70,8 @@ class PHPInterface extends BasePHPClass
             if ($constant->getDeclaringClass()->getName() !== $this->name) {
                 continue;
             }
-            $this->constants[$constant->name] = (new PHPConst())->readObjectFromReflection($constant);
+
+            $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 
         return $this;

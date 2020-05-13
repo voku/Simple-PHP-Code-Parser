@@ -27,17 +27,29 @@ class PHPClass extends BasePHPClass
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
-        $this->checkForPhpDocErrors($node);
+        $this->prepareNode($node);
 
         $this->name = $this->getFQN($node);
 
-        if (\class_exists($this->name)) {
+        if (
+            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            &&
+            \class_exists($this->name)
+        ) {
             try {
                 $reflectionClass = new ReflectionClass($this->name);
                 $this->readObjectFromReflection($reflectionClass);
             } catch (\ReflectionException $e) {
+                if ($this->usePhpReflection() === true) {
+                    throw $e;
+                }
+
                 // ignore
             }
+        }
+
+        if ($this->usePhpReflection() === true) {
+            return $this;
         }
 
         $this->collectTags($node);
@@ -78,6 +90,8 @@ class PHPClass extends BasePHPClass
             $this->parentClass = $parent->getName();
         }
 
+        // TODO: ReflectionProperty
+
         foreach ($clazz->getInterfaceNames() as $interfaceName) {
             $this->interfaces[$interfaceName] = $interfaceName;
         }
@@ -86,14 +100,16 @@ class PHPClass extends BasePHPClass
             if ($method->getDeclaringClass()->getName() !== $this->name) {
                 continue;
             }
-            $this->methods[$method->name] = (new PHPMethod())->readObjectFromReflection($method);
+
+            $this->methods[$method->name] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
             if ($constant->getDeclaringClass()->getName() !== $this->name) {
                 continue;
             }
-            $this->constants[$constant->name] = (new PHPConst())->readObjectFromReflection($constant);
+
+            $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 
         return $this;

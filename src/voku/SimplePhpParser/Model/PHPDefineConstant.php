@@ -16,7 +16,7 @@ class PHPDefineConstant extends PHPConst
      */
     public function readObjectFromPhpNode($node, $dummy = null): PHPConst
     {
-        $this->checkForPhpDocErrors($node);
+        $this->prepareNode($node);
 
         $constName = $this->getConstantFQN($node, $node->args[0]->value->value);
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
@@ -26,6 +26,8 @@ class PHPDefineConstant extends PHPConst
         $this->name = $constName;
 
         $this->value = $this->getConstValue($node->args[1]);
+
+        $this->type = \gettype($this->value);
 
         $this->collectTags($node);
 
@@ -47,6 +49,8 @@ class PHPDefineConstant extends PHPConst
 
         $constantValue = $constant[1];
         if ($constantValue !== null) {
+            $this->type = \gettype($this->value);
+
             if (\is_resource($constantValue)) {
                 $this->value = 'PHPSTORM_RESOURCE';
             } elseif (\is_string($constantValue) || \is_float($constantValue)) {

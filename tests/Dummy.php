@@ -47,6 +47,7 @@ final class Dummy extends \stdClass
      * @param int[]|null $useRandInt
      *
      * @psalm-param ?list<int> $useRandInt
+     *                                    <p>foo öäü bar</p>
      */
     public function withPhpDocParam($useRandInt = [3, 5])
     {

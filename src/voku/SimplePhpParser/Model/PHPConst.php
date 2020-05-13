@@ -38,13 +38,17 @@ class PHPConst extends BasePHPElement
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
-        $this->checkForPhpDocErrors($node);
+        $this->prepareNode($node);
+
+        if ($this->usePhpReflection() === true) {
+            return $this;
+        }
 
         $this->name = $this->getConstantFQN($node, $node->name->name);
 
         $this->value = $this->getConstValue($node);
 
-        $this->type = $node->getType();
+        $this->type = \gettype($this->value);
 
         $this->collectTags($node);
 
@@ -63,7 +67,10 @@ class PHPConst extends BasePHPElement
     public function readObjectFromReflection($constant): self
     {
         $this->name = $constant->name;
+
         $this->value = $constant->getValue();
+
+        $this->type = \gettype($this->value);
 
         return $this;
     }

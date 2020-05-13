@@ -10,6 +10,7 @@ use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Stmt\Function_;
 use ReflectionFunction;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
 {
@@ -68,17 +69,29 @@ class PHPFunction extends BasePHPElement
      */
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
-        $this->checkForPhpDocErrors($node);
+        $this->prepareNode($node);
 
         $this->name = $this->getFQN($node);
 
-        if (\function_exists($this->name)) {
+        if (
+            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            &&
+            \function_exists($this->name)
+        ) {
             try {
                 $reflectionFunction = new ReflectionFunction($this->name);
                 $this->readObjectFromReflection($reflectionFunction);
             } catch (\ReflectionException $e) {
+                if ($this->usePhpReflection() === true) {
+                    throw $e;
+                }
+
                 // ignore
             }
+        }
+
+        if ($this->usePhpReflection() === true) {
+            return $this;
         }
 
         if ($node->returnType) {
@@ -93,19 +106,24 @@ class PHPFunction extends BasePHPElement
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
+            $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
             $this->summary = $phpDoc->getSummary();
             $this->description = (string) $phpDoc->getDescription();
         }
 
         foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter())->readObjectFromPhpNode($parameter, $node);
+            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromPhpNode($parameter, $node);
             $this->parameters[$param->name] = $param;
         }
 
         $this->collectTags($node);
+
         $this->checkDeprecationTag($node);
-        $this->checkReturnTag($node);
+
+        $nodeDoc = $node->getDocComment();
+        if ($nodeDoc) {
+            $this->readPhpDoc($nodeDoc->getText());
+        }
 
         return $this;
     }
@@ -122,7 +140,7 @@ class PHPFunction extends BasePHPElement
         $this->is_deprecated = $function->isDeprecated();
 
         foreach ($function->getParameters() as $parameter) {
-            $param = (new PHPParameter())->readObjectFromReflection($parameter);
+            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromReflection($parameter);
             $this->parameters[$param->name] = $param;
         }
 
@@ -146,56 +164,79 @@ class PHPFunction extends BasePHPElement
                     $this->is_deprecated = true;
                 }
             } catch (\Exception $e) {
-                $this->parseError .= $e . "\n";
+                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
             }
         }
     }
 
     /**
-     * @param FunctionLike $node
+     * @param \ReflectionFunctionAbstract $parameter
+     *
+     * @return string|null Type of the property (content of var annotation)
+     */
+    protected function readObjectFromReflectionReturnHelper(\ReflectionFunctionAbstract $function): ?string
+    {
+        $phpDoc = $function->getDocComment();
+        if (!$phpDoc) {
+            return null;
+        }
+
+        // Get the content of the @return annotation.
+        if (\preg_match_all('/(@.*?return\s+[^\s]+.*)/ui', $phpDoc, $matches)) {
+            $return = '';
+            foreach ($matches[0] as $match) {
+                $return .= $match . "\n";
+            }
+        } else {
+            return null;
+        }
+
+        return $return;
+    }
+
+    /**
+     * @param string $node
      *
      * @return void
      */
-    protected function checkReturnTag(FunctionLike $node): void
+    protected function readPhpDoc(string $docComment): void
     {
-        $docComment = $node->getDocComment();
-        if ($docComment !== null) {
-            try {
-                $phpDoc = PhpFileHelper::createDocBlockInstance()->create($docComment->getText());
+        try {
+            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
-                $parsedReturnTag = $phpDoc->getTagsByName('return');
+            $parsedReturnTag = $phpDoc->getTagsByName('return');
 
-                if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Return_) {
-                    /** @var Return_ $parsedReturnTagReturn */
-                    $parsedReturnTagReturn = $parsedReturnTag[0];
+            if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Return_) {
+                /** @var Return_ $parsedReturnTagReturn */
+                $parsedReturnTagReturn = $parsedReturnTag[0];
 
-                    $this->returnTypeMaybeWithComment = \trim((string) $parsedReturnTagReturn);
+                $this->returnTypeMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
-                    $type = $parsedReturnTagReturn->getType();
+                $type = $parsedReturnTagReturn->getType();
 
-                    $this->returnTypeFromPhpDoc = $type . '';
+                $this->returnTypeFromPhpDoc = $type . '';
 
-                    $returnTypeTmp = PhpFileHelper::parseDocTypeObject($type);
-                    if (\is_array($returnTypeTmp)) {
-                        $this->returnTypeFromPhpDocSimple = \implode('|', $returnTypeTmp);
-                    } else {
-                        $this->returnTypeFromPhpDocSimple = $returnTypeTmp;
-                    }
-
-                    $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->returnTypeFromPhpDoc);
+                $returnTypeTmp = Utils::parseDocTypeObject($type);
+                if (\is_array($returnTypeTmp)) {
+                    $this->returnTypeFromPhpDocSimple = \implode('|', $returnTypeTmp);
+                } else {
+                    $this->returnTypeFromPhpDocSimple = $returnTypeTmp;
                 }
 
-                $parsedReturnTag = $phpDoc->getTagsByName('psalm-return')
-                                   + $phpDoc->getTagsByName('phpstan-return');
-
-                if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
-                    $parsedReturnTagReturn = $parsedReturnTag[0] . '';
-
-                    $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
-                }
-            } catch (\Exception $e) {
-                $this->parseError .= $e . "\n";
+                $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->returnTypeFromPhpDoc);
             }
+
+            /** @noinspection AdditionOperationOnArraysInspection */
+            $parsedReturnTag = $phpDoc->getTagsByName('psalm-return')
+                               + $phpDoc->getTagsByName('phpstan-return');
+
+            if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
+                $parsedReturnTagReturn = $parsedReturnTag[0] . '';
+
+                $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
+            }
+        } catch (\Exception $e) {
+            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
         }
     }
 }

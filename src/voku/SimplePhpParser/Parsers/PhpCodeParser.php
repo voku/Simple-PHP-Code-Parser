@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers;
 
 use FilesystemIterator;
+use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\NodeVisitorAbstract;
@@ -12,7 +13,7 @@ use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use voku\SimplePhpParser\Model\PhpCodeContainer;
+use voku\SimplePhpParser\Model\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
@@ -20,19 +21,24 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
 final class PhpCodeParser
 {
-    public static function getFromString(string $code): PhpCodeContainer
+    public static function getFromString(string $code): ParserContainer
     {
         return self::getPhpFiles($code);
     }
 
     /**
-     * @param string $path
+     * @param string    $path
+     * @param bool|null $usePhpReflection <p>
+     *                                    null = Php-Parser + PHP-Reflection<br>
+     *                                    true = PHP-Reflection<br>
+     *                                    false = Php-Parser<br>
+     *                                    <p>
      *
-     * @return PhpCodeContainer
+     * @return ParserContainer
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function getPhpFiles(string $path): PhpCodeContainer
+    public static function getPhpFiles(string $path, bool $usePhpReflection = null): ParserContainer
     {
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
@@ -44,8 +50,8 @@ final class PhpCodeParser
         );
 
         /** @noinspection PhpUnhandledExceptionInspection */
-        $phpCode = new PhpCodeContainer();
-        $visitor = new ASTVisitor($phpCode);
+        $phpCode = new ParserContainer();
+        $visitor = new ASTVisitor($phpCode, $usePhpReflection);
 
         self::process(
             $path,
@@ -81,13 +87,28 @@ final class PhpCodeParser
         NodeVisitorAbstract $visitor,
         callable $fileCondition
     ): void {
-        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
+        $parser = (new ParserFactory())->create(
+            ParserFactory::PREFER_PHP7,
+            new Emulative(
+                [
+                    'usedAttributes' => [
+                        'comments',
+                        'startLine',
+                        'endLine',
+                        'startTokenPos',
+                        'endTokenPos',
+                    ],
+                ]
+            )
+        );
+
         $nameResolver = new NameResolver(
             new ParserErrorHandler(),
             [
                 'preserveOriginalNames' => true,
             ]
         );
+
         $parentConnector = new ParentConnector();
 
         if (\is_file($pathOrCode)) {
@@ -99,6 +120,7 @@ final class PhpCodeParser
         } else {
             $phpCodeIterator[] = $pathOrCode;
         }
+
         foreach ($phpCodeIterator as $fileOrCode) {
             if ($fileOrCode instanceof SplFileInfo) {
                 if (!$fileCondition($fileOrCode)) {
