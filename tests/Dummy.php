@@ -14,9 +14,31 @@ function foo(int $foo = 0)
 
 /**
  * @internal
+ *
+ * @property int $foo
+ * @property string $bar
  */
 final class Dummy extends \stdClass
 {
+    /**
+     * @var null|int[]
+     *
+     * @phpstan-var null|array<int,int>
+     */
+    public $lall1 = [];
+
+    /**
+     * @var float
+     */
+    public $lall2 = 0.1;
+
+    /**
+     * @var null|float
+     */
+    public $lall3;
+
+    const FOO_BAR = 4;
+
     /**
      * @return array<int, int>
      */

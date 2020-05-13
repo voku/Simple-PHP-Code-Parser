@@ -14,6 +14,11 @@ abstract class BasePHPClass extends BasePHPElement
     public $methods = [];
 
     /**
+     * @var PHPProperty[]
+     */
+    public $properties = [];
+
+    /**
      * @var PHPConst[]
      */
     public $constants = [];

@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Class_;
 use ReflectionClass;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPClass extends BasePHPClass
 {
@@ -62,6 +63,19 @@ class PHPClass extends BasePHPClass
             $this->parentClass = \ltrim($this->parentClass, '\\');
         }
 
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            $propertiesPhp = $this->readPhpDocProperties($docComment->getText());
+            foreach ($propertiesPhp as $propertyPhp) {
+                $this->properties[$propertyPhp->name] = $propertyPhp;
+            }
+        }
+
+        foreach ($node->getProperties() as $property) {
+            $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromPhpNode($property);
+            $this->properties[$propertyPhp->name] = $propertyPhp;
+        }
+
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
                 $interfaceFQN = '';
@@ -90,7 +104,22 @@ class PHPClass extends BasePHPClass
             $this->parentClass = $parent->getName();
         }
 
-        // TODO: ReflectionProperty
+        $docComment = $clazz->getDocComment();
+        if ($docComment) {
+            $propertiesPhp = $this->readPhpDocProperties($docComment);
+            foreach ($propertiesPhp as $propertyPhp) {
+                $this->properties[$propertyPhp->name] = $propertyPhp;
+            }
+        }
+
+        foreach ($clazz->getProperties() as $property) {
+            if ($property->getDeclaringClass()->getName() !== $this->name) {
+                continue;
+            }
+
+            $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromReflection($property);
+            $this->properties[$propertyPhp->name] = $propertyPhp;
+        }
 
         foreach ($clazz->getInterfaceNames() as $interfaceName) {
             $this->interfaces[$interfaceName] = $interfaceName;
@@ -117,12 +146,51 @@ class PHPClass extends BasePHPClass
 
     /**
      * @param string[] $access
+     * @param bool     $skipMethodsWithLeadingUnderscore
+     *
+     * @return array
+     *
+     * @psalm-return array<string, array{string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}>
+     */
+    public function getPropertiesInfo(
+        array $access = ['public', 'protected', 'private'],
+        bool $skipMethodsWithLeadingUnderscore = false
+    ): array {
+        // init
+        $allInfo = [];
+
+        foreach ($this->properties as $property) {
+            \assert($property instanceof PHPProperty);
+
+            if (!\in_array($property->access, $access, true)) {
+                continue;
+            }
+
+            if ($skipMethodsWithLeadingUnderscore && \strpos($property->name, '_') === 0) {
+                continue;
+            }
+
+            $types = [];
+            $types['type'] = $property->type;
+            $types['typeMaybeWithComment'] = $property->typeMaybeWithComment;
+            $types['typeFromPhpDoc'] = $property->typeFromPhpDoc;
+            $types['typeFromPhpDocSimple'] = $property->typeFromPhpDocSimple;
+            $types['typeFromPhpDocPslam'] = $property->typeFromPhpDocPslam;
+
+            $allInfo[$property->name] = $types;
+        }
+
+        return $allInfo;
+    }
+
+    /**
+     * @param string[] $access
      * @param bool     $skipDeprecatedMethods
      * @param bool     $skipMethodsWithLeadingUnderscore
      *
      * @return array
      *
-     * @psalm-return array<string, array{name: string, fullDescription: string, paramsTypes: array<string, array{typeMaybeWithComment: string, typeFromPhpDoc: string}, returnTypes: array{typeMaybeWithComment: string, typeFromPhpDoc: string}, }>
+     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}, returnTypes: array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}}>
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],
@@ -173,5 +241,77 @@ class PHPClass extends BasePHPClass
         }
 
         return $allInfo;
+    }
+
+    /**
+     * @param string $docComment
+     *
+     * @return PHPProperty[]
+     */
+    private function readPhpDocProperties(string $docComment): array
+    {
+        // init
+        /** @var PHPProperty[] $classPhpDocProperties */
+        $classPhpDocProperties = [];
+
+        try {
+            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+
+            /** @noinspection AdditionOperationOnArraysInspection */
+            $parsedPropertyTags = $phpDoc->getTagsByName('property')
+                               + $phpDoc->getTagsByName('property-read')
+                               + $phpDoc->getTagsByName('property-write');
+
+            if (!empty($parsedPropertyTags)) {
+                foreach ($parsedPropertyTags as $parsedPropertyTag) {
+                    if (
+                        $parsedPropertyTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\PropertyRead
+                        ||
+                        $parsedPropertyTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\PropertyWrite
+                        ||
+                        $parsedPropertyTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Property
+                    ) {
+                        $propertyPhp = new PHPProperty($this->usePhpReflection());
+
+                        $nameTmp = $parsedPropertyTag->getVariableName();
+                        if (!$nameTmp) {
+                            continue;
+                        }
+
+                        $propertyPhp->name = $nameTmp;
+
+                        $propertyPhp->access = 'public';
+
+                        $type = $parsedPropertyTag->getType();
+
+                        $propertyPhp->typeFromPhpDoc = $type . '';
+
+                        $typeMaybeWithCommentTmp = \trim((string) $parsedPropertyTag);
+                        if (
+                            $typeMaybeWithCommentTmp
+                            &&
+                            \strpos($typeMaybeWithCommentTmp, '$') !== 0
+                        ) {
+                            $propertyPhp->typeMaybeWithComment = $typeMaybeWithCommentTmp;
+                        }
+
+                        $returnTypeTmp = Utils::parseDocTypeObject($type);
+                        if (\is_array($returnTypeTmp)) {
+                            $propertyPhp->typeFromPhpDocSimple = \implode('|', $returnTypeTmp);
+                        } else {
+                            $propertyPhp->typeFromPhpDocSimple = $returnTypeTmp;
+                        }
+
+                        $propertyPhp->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
+
+                        $classPhpDocProperties[$propertyPhp->name] = $propertyPhp;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+        }
+
+        return $classPhpDocProperties;
     }
 }

@@ -226,7 +226,7 @@ class PHPParameter extends BasePHPElement
             if (!empty($parsedParamTags)) {
                 foreach ($parsedParamTags as $parsedParamTag) {
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
-                        $spitedData = \voku\SimplePhpParser\Parsers\Helper\Utils::splitTypeAndVariable($parsedParamTag);
+                        $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
                         $parsedParamTagStr = $spitedData['parsedParamTagStr'];
                         $variableName = $spitedData['variableName'];
 

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace voku\tests;
 
+use voku\SimplePhpParser\Parsers\PhpCodeParser;
+
 /**
  * @internal
  */
@@ -11,7 +13,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 {
     public function testSimpleOneClass(): void
     {
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
@@ -19,7 +21,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleDirectory(): void
     {
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/');
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/');
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
@@ -35,7 +37,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $objb = new class {};
         class AnotherClass {}';
 
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromString($code);
+        $phpCode = PhpCodeParser::getFromString($code);
         $phpClasses = $phpCode->getClasses();
 
         static::assertCount(4, $phpClasses);
@@ -56,7 +58,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         }
         ';
 
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromString($code);
+        $phpCode = PhpCodeParser::getFromString($code);
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame('Foo', $phpClasses['Foo']->name);
@@ -66,13 +68,63 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testGetMethodsInfoViaPhpReflectionOnly(): void
     {
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(
+        $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/Dummy.php',
             true
         );
         $phpClasses = $phpCode->getClasses();
 
+        // DEBUG
+        //\print_r($phpClasses);
+
+        $props = $phpClasses[Dummy::class]->getPropertiesInfo();
+
+        // DEBUG
+        //\var_export($props);
+
+        static::assertSame(
+            [
+                'foo' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'int $foo',
+                    'typeFromPhpDoc'       => 'int',
+                    'typeFromPhpDocSimple' => 'int',
+                    'typeFromPhpDocPslam'  => 'int',
+                ],
+                'bar' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'string $bar',
+                    'typeFromPhpDoc'       => 'string',
+                    'typeFromPhpDocSimple' => 'string',
+                    'typeFromPhpDocPslam'  => 'string',
+                ],
+                'lall1' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'null|int[]',
+                    'typeFromPhpDoc'       => 'null|int[]',
+                    'typeFromPhpDocSimple' => 'null|int[]',
+                    'typeFromPhpDocPslam'  => 'array<int, int>|null',
+                ],
+                'lall2' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'float',
+                    'typeFromPhpDoc'       => 'float',
+                    'typeFromPhpDocSimple' => 'float',
+                    'typeFromPhpDocPslam'  => 'float',
+                ],
+                'lall3' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'null|float',
+                    'typeFromPhpDoc'       => 'null|float',
+                    'typeFromPhpDocSimple' => 'null|float',
+                    'typeFromPhpDocPslam'  => 'float|null',
+                ],
+            ],
+            $props
+        );
+
         $result = $phpClasses[Dummy::class]->getMethodsInfo();
+
         // DEBUG
         //\var_export($result);
 
@@ -202,10 +254,60 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testGetMethodsInfo(): void
     {
-        $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();
 
+        // DEBUG
+        //\print_r($phpClasses);
+
+        $props = $phpClasses[Dummy::class]->getPropertiesInfo();
+
+        // DEBUG
+        //\var_export($props);
+
+        static::assertSame(
+            [
+                'foo' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'int $foo',
+                    'typeFromPhpDoc'       => 'int',
+                    'typeFromPhpDocSimple' => 'int',
+                    'typeFromPhpDocPslam'  => 'int',
+                ],
+                'bar' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'string $bar',
+                    'typeFromPhpDoc'       => 'string',
+                    'typeFromPhpDocSimple' => 'string',
+                    'typeFromPhpDocPslam'  => 'string',
+                ],
+                'lall1' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'null|int[]',
+                    'typeFromPhpDoc'       => 'null|int[]',
+                    'typeFromPhpDocSimple' => 'null|int[]',
+                    'typeFromPhpDocPslam'  => 'array<int, int>|null',
+                ],
+                'lall2' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'float',
+                    'typeFromPhpDoc'       => 'float',
+                    'typeFromPhpDocSimple' => 'float',
+                    'typeFromPhpDocPslam'  => 'float',
+                ],
+                'lall3' => [
+                    'type'                 => '',
+                    'typeMaybeWithComment' => 'null|float',
+                    'typeFromPhpDoc'       => 'null|float',
+                    'typeFromPhpDocSimple' => 'null|float',
+                    'typeFromPhpDocPslam'  => 'float|null',
+                ],
+            ],
+            $props
+        );
+
         $result = $phpClasses[Dummy::class]->getMethodsInfo();
+
         // DEBUG
         //\var_export($result);
 
