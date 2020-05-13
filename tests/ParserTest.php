@@ -17,6 +17,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
+
+        static::assertSame('withoutPhpDocParam', $phpClasses[Dummy::class]->methods['withoutPhpDocParam']->name);
+
+        static::assertSame('bool', $phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['useRandInt']->type);
     }
 
     public function testSimpleDirectory(): void
