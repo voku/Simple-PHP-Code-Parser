@@ -29,7 +29,9 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
+
         static::assertSame(Dummy2::class, $phpClasses[Dummy2::class]->name);
+        static::assertSame(DummyInterface::class, $phpClasses[Dummy2::class]->interfaces[0]);
     }
 
     public function testSimpleStringInput(): void

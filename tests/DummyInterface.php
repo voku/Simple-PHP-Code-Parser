@@ -7,7 +7,7 @@ namespace voku\tests;
 /**
  * @internal
  */
-final class Dummy2 implements DummyInterface
+interface DummyInterface
 {
     /**
      * @param \phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag
@@ -16,11 +16,5 @@ final class Dummy2 implements DummyInterface
      *
      * @psalm-return array{parsedParamTagStr: string, variableName: null[]|string}
      */
-    public function withComplexReturnArray(\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag)
-    {
-        return [
-            'parsedParamTagStr' => 'foo',
-            'variableName'      => [null],
-        ];
-    }
+    public function withComplexReturnArray(\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag);
 }
