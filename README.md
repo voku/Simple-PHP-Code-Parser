@@ -18,7 +18,7 @@ You can simple scan a string, a file or a full directory and you can see a simpl
 - Function / Method Parameter (**PHPParameter**)
 
 This code is forked from [JetBrains/phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs/tree/master/tests) but you can't use the classes from "phpstorm-stubs" directly, 
-because the are in a test namespace and the autoloader is "autoload-dev, so here is a extended version. 
+because the are in a test namespace and the autoloader is "autoload-dev", so here is a extended version. 
 
 We will use:
 - "PHP Reflection" AND / OR "nikic/PHP-Parser"
