@@ -73,6 +73,15 @@ class PHPParameter extends BasePHPElement
             }
         }
 
+        $defaultValue = $parameter->default;
+        if ($defaultValue) {
+            if (\property_exists($defaultValue, 'value')) {
+                $this->type = \gettype($defaultValue->value);
+            } elseif ($defaultValue instanceof \PhpParser\Node\Expr\Array_) {
+                $this->type = 'array';
+            }
+        }
+
         if ($parameter->type !== null) {
             if (empty($parameter->type->name)) {
                 if (!empty($parameter->type->parts)) {
@@ -99,19 +108,6 @@ class PHPParameter extends BasePHPElement
     {
         $this->name = $parameter->name;
 
-        // TODO: use also php-types and not only php-docs
-        /*
-        $export = ReflectionParameter::export(
-            array(
-                $parameter->getDeclaringClass()->name,
-                $parameter->getDeclaringFunction()->name
-            ),
-            $parameter->name,
-            true
-        );
-        \var_dump($export);
-         */
-
         $docComment = $this->readObjectFromReflectionParamHelper($parameter);
         if ($docComment !== null) {
             $docComment = '/** ' . $docComment . ' */';
@@ -123,8 +119,14 @@ class PHPParameter extends BasePHPElement
             }
         }
 
+        try {
+            $defaultValue = $parameter->getDefaultValue();
+            $this->type = \gettype($defaultValue);
+        } catch (\Exception $e) {
+            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+        }
+
         $type = $parameter->getType();
-        // TODO: add e.g. reflectionType
         if ($type !== null) {
             if (\method_exists($type, 'getName')) {
                 $this->type = $type->getName();

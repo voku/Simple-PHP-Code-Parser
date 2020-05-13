@@ -175,7 +175,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'fullDescription' => '',
                     'paramsTypes'     => [
                         'useRandInt' => [
-                            'type'                 => '',
+                            'type'                 => 'array',
                             'typeMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'       => 'int[]|null',
                             'typeFromPhpDocSimple' => 'int[]|null',
@@ -194,7 +194,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'fullDescription' => '',
                     'paramsTypes'     => [
                         'useRandInt' => [
-                            'type'                 => '',
+                            'type'                 => 'array',
                             'typeMaybeWithComment' => '',
                             'typeFromPhpDoc'       => '',
                             'typeFromPhpDocSimple' => '',
@@ -358,7 +358,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'fullDescription' => '',
                     'paramsTypes'     => [
                         'useRandInt' => [
-                            'type'                 => '',
+                            'type'                 => 'array',
                             'typeMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'       => 'int[]|null',
                             'typeFromPhpDocSimple' => 'int[]|null',
@@ -377,7 +377,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'fullDescription' => '',
                     'paramsTypes'     => [
                         'useRandInt' => [
-                            'type'                 => '',
+                            'type'                 => 'array',
                             'typeMaybeWithComment' => '',
                             'typeFromPhpDoc'       => '',
                             'typeFromPhpDocSimple' => '',
