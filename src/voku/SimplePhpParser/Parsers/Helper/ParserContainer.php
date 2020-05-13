@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
-namespace voku\SimplePhpParser\Model;
+namespace voku\SimplePhpParser\Parsers\Helper;
+
+use voku\SimplePhpParser\Model\PHPClass;
+use voku\SimplePhpParser\Model\PHPConst;
+use voku\SimplePhpParser\Model\PHPFunction;
+use voku\SimplePhpParser\Model\PHPInterface;
 
 class ParserContainer
 {

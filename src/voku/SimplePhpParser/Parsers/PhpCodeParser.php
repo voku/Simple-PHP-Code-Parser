@@ -13,7 +13,7 @@ use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use voku\SimplePhpParser\Model\ParserContainer;
+use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;

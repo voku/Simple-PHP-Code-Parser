@@ -12,13 +12,13 @@ use PhpParser\Node\Stmt\ClassMethod;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\NodeVisitorAbstract;
-use voku\SimplePhpParser\Model\ParserContainer;
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPMethod;
+use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 final class ASTVisitor extends NodeVisitorAbstract
