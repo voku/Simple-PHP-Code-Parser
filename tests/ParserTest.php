@@ -26,12 +26,17 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
     public function testSimpleDirectory(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/');
+
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
 
         static::assertSame(Dummy2::class, $phpClasses[Dummy2::class]->name);
         static::assertSame(DummyInterface::class, $phpClasses[Dummy2::class]->interfaces[0]);
+
+        $phpInterfaces = $phpCode->getInterfaces();
+
+        static::assertSame('array{parsedParamTagStr: string, variableName: array<array-key, null>|string}', $phpInterfaces[DummyInterface::class]->methods['withComplexReturnArray']->returnTypeFromPhpDocPslam);
     }
 
     public function testSimpleStringInput(): void
