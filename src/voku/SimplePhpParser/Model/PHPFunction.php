@@ -170,7 +170,7 @@ class PHPFunction extends BasePHPElement
     }
 
     /**
-     * @param \ReflectionFunctionAbstract $parameter
+     * @param \ReflectionFunctionAbstract $function
      *
      * @return string|null Type of the property (content of var annotation)
      */
@@ -194,11 +194,6 @@ class PHPFunction extends BasePHPElement
         return $return;
     }
 
-    /**
-     * @param string $node
-     *
-     * @return void
-     */
     protected function readPhpDoc(string $docComment): void
     {
         try {

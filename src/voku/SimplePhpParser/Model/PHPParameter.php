@@ -110,11 +110,12 @@ class PHPParameter extends BasePHPElement
             true
         );
         \var_dump($export);
-        */
+         */
 
         $docComment = $this->readObjectFromReflectionParamHelper($parameter);
         if ($docComment !== null) {
             $docComment = '/** ' . $docComment . ' */';
+
             try {
                 $this->readPhpDoc($docComment, $this->name);
             } catch (\Exception $e) {
@@ -165,7 +166,7 @@ class PHPParameter extends BasePHPElement
             return null;
         }
 
-        if (preg_match_all('/(@.*?param\s+[^\s]+\s+\$' . $parameter->name . ')/ui', $method->getDocComment(), $matches)) {
+        if (\preg_match_all('/(@.*?param\s+[^\s]+\s+\$' . $parameter->name . ')/ui', $phpDoc, $matches)) {
             $param = '';
             foreach ($matches[0] as $match) {
                 $param .= $match . "\n";
@@ -230,7 +231,7 @@ class PHPParameter extends BasePHPElement
                         $variableName = $spitedData['variableName'];
 
                         // check only the current "param"-tag
-                        if (\strtoupper($parameterName) !== \strtoupper($variableName)) {
+                        if (!$variableName || \strtoupper($parameterName) !== \strtoupper($variableName)) {
                             continue;
                         }
 

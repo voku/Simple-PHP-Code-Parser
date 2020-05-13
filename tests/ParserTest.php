@@ -161,7 +161,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'fullDescription' => '',
                     'paramsTypes'     => [
                         'parsedParamTag' => [
-                            'type'                 => 'phpDocumentor\Reflection\DocBlock\Tags\BaseTag',
+                            'type'                 => '\phpDocumentor\Reflection\DocBlock\Tags\BaseTag',
                             'typeMaybeWithComment' => '\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag',
                             'typeFromPhpDoc'       => '\phpDocumentor\Reflection\DocBlock\Tags\BaseTag',
                             'typeFromPhpDocSimple' => '\phpDocumentor\Reflection\DocBlock\Tags\BaseTag',
