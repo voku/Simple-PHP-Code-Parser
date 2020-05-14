@@ -1,9 +1,11 @@
 {
     "name": "voku/simple-php-code-parser",
-    "description": "",
+    "description": "Get a simple data structure from your php code.",
     "type": "library",
     "keywords": [
-        "php"
+        "php",
+        "parser",
+        "phpdoc"
     ],
     "homepage": "https://github.com/voku/Simple-PHP-Code-Parser",
     "license": "MIT",
