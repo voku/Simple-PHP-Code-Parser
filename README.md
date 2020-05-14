@@ -9,7 +9,7 @@
 
 # ❤ Simple PHP Code Parser
 
-You can simple scan a string, a file or a full directory and you can see a simple data structure with all your:
+You can simply scan a string, a file or a full directory and you can see a simple data structure from your php code.
 - Classes (**PHPClass**)
 - Class Properties (**PHPProperties**)
 - Class Constants (**PHPConst**)
