@@ -17,3 +17,4 @@ parameters:
         - '#undefined property PhpParser\\Node\\Expr#'
         - '#Utils::parseDocTypeObject\(\) should return array#'
         - '#PHPConst::getConstValue\(\) expects PhpParser\\Node\\Const_, PhpParser\\Node\\Arg given#'
+        - '#Unable to resolve the template type .* in call to function Amp\\Promise\\.*#'
