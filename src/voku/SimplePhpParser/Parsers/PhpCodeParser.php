@@ -10,7 +10,6 @@ use FilesystemIterator;
 use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
-use PhpParser\NodeVisitorAbstract;
 use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -21,10 +20,14 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
-final class PhpCodeParser
-{
-    public static function getFromString(string $code): ParserContainer
-    {
+final class PhpCodeParser {
+
+    /**
+     * @param string $code
+     *
+     * @return ParserContainer
+     */
+    public static function getFromString(string $code): ParserContainer {
         return self::getPhpFiles($code, false);
     }
 
@@ -40,10 +43,54 @@ final class PhpCodeParser
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer
-    {
+    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer {
         $phpCodes = self::getCode($pathOrCode);
 
+        $parserContainer = new ParserContainer();
+        $visitor = new ASTVisitor($parserContainer, $usePhpReflection);
+
+        $phpFilePromises = [];
+        foreach ($phpCodes as $code) {
+            $phpFilePromises[] = Worker\enqueueCallable(
+                [self::class, 'process'],
+                $code, $parserContainer, $usePhpReflection
+            );
+        }
+        $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
+        foreach ($phpFilePromiseResponses as $response) {
+            \assert($response instanceof ParserContainer);
+            $parserContainer->setClasses($response->getClasses());
+            $parserContainer->setInterfaces($response->getInterfaces());
+            $parserContainer->setConstants($response->getConstants());
+            $parserContainer->setFunctions($response->getFunctions());
+        }
+
+        foreach ($parserContainer->getInterfaces() as $interface) {
+            $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
+        }
+
+        foreach ($parserContainer->getClasses() as $class) {
+            $class->interfaces = Utils::flattenArray(
+                $visitor->combineImplementedInterfaces($class),
+                false
+            );
+        }
+
+        return $parserContainer;
+    }
+
+    /**
+     * @param string          $phpCode
+     * @param ParserContainer $phpContainer
+     * @param null|bool       $usePhpReflection
+     *
+     * @return null|ParserContainer
+     */
+    public static function process(
+        string $phpCode,
+        ParserContainer $phpContainer,
+        ?bool $usePhpReflection
+    ): ?ParserContainer {
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
             new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider()
@@ -53,39 +100,8 @@ final class PhpCodeParser
             $providers
         );
 
-        /** @noinspection PhpUnhandledExceptionInspection */
-        $phpCode = new ParserContainer();
-        $visitor = new ASTVisitor($phpCode, $usePhpReflection);
+        $visitor = new ASTVisitor($phpContainer, $usePhpReflection);
 
-        self::process(
-            $phpCodes,
-            $visitor
-        );
-
-        foreach ($phpCode->getInterfaces() as $interface) {
-            $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
-        }
-
-        foreach ($phpCode->getClasses() as $class) {
-            $class->interfaces = Utils::flattenArray(
-                $visitor->combineImplementedInterfaces($class),
-                false
-            );
-        }
-
-        return $phpCode;
-    }
-
-    /**
-     * @param string[]            $phpCodes
-     * @param NodeVisitorAbstract $visitor
-     *
-     * @return void
-     */
-    private static function process(
-        array $phpCodes,
-        NodeVisitorAbstract $visitor
-    ): void {
         $parser = (new ParserFactory())->create(
             ParserFactory::PREFER_PHP7,
             new Emulative(
@@ -110,19 +126,19 @@ final class PhpCodeParser
 
         $parentConnector = new ParentConnector();
 
-        foreach ($phpCodes as $code) {
-            /** @var \PhpParser\Node[]|null $parsedCode */
-            $parsedCode = $parser->parse($code, new ParserErrorHandler());
-            if ($parsedCode === null) {
-                return;
-            }
-
-            $traverser = new NodeTraverser();
-            $traverser->addVisitor($parentConnector);
-            $traverser->addVisitor($nameResolver);
-            $traverser->addVisitor($visitor);
-            $traverser->traverse($parsedCode);
+        /** @var \PhpParser\Node[]|null $parsedCode */
+        $parsedCode = $parser->parse($phpCode, new ParserErrorHandler());
+        if ($parsedCode === null) {
+            return null;
         }
+
+        $traverser = new NodeTraverser();
+        $traverser->addVisitor($parentConnector);
+        $traverser->addVisitor($nameResolver);
+        $traverser->addVisitor($visitor);
+        $traverser->traverse($parsedCode);
+
+        return $phpContainer;
     }
 
     /**
