@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers;
 
+use Amp\Parallel\Worker;
+use Amp\Promise;
 use FilesystemIterator;
 use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
@@ -23,11 +25,11 @@ final class PhpCodeParser
 {
     public static function getFromString(string $code): ParserContainer
     {
-        return self::getPhpFiles($code);
+        return self::getPhpFiles($code, false);
     }
 
     /**
-     * @param string    $path
+     * @param string    $pathOrCode
      * @param bool|null $usePhpReflection <p>
      *                                    null = Php-Parser + PHP-Reflection<br>
      *                                    true = PHP-Reflection<br>
@@ -38,8 +40,10 @@ final class PhpCodeParser
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function getPhpFiles(string $path, bool $usePhpReflection = null): ParserContainer
+    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer
     {
+        $phpCodes = self::getCode($pathOrCode);
+
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
             new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider()
@@ -54,11 +58,8 @@ final class PhpCodeParser
         $visitor = new ASTVisitor($phpCode, $usePhpReflection);
 
         self::process(
-            $path,
-            $visitor,
-            static function ($file) {
-                return true;
-            }
+            $phpCodes,
+            $visitor
         );
 
         foreach ($phpCode->getInterfaces() as $interface) {
@@ -76,16 +77,14 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string              $pathOrCode
+     * @param string[]            $phpCodes
      * @param NodeVisitorAbstract $visitor
-     * @param callable            $fileCondition
      *
      * @return void
      */
     private static function process(
-        string $pathOrCode,
-        NodeVisitorAbstract $visitor,
-        callable $fileCondition
+        array $phpCodes,
+        NodeVisitorAbstract $visitor
     ): void {
         $parser = (new ParserFactory())->create(
             ParserFactory::PREFER_PHP7,
@@ -111,42 +110,11 @@ final class PhpCodeParser
 
         $parentConnector = new ParentConnector();
 
-        if (\is_file($pathOrCode)) {
-            $phpCodeIterator = [new SplFileInfo($pathOrCode)];
-        } elseif (\is_dir($pathOrCode)) {
-            $phpCodeIterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
-            );
-        } else {
-            $phpCodeIterator[] = $pathOrCode;
-        }
-
-        foreach ($phpCodeIterator as $fileOrCode) {
-            if ($fileOrCode instanceof SplFileInfo) {
-                if (!$fileCondition($fileOrCode)) {
-                    continue;
-                }
-
-                $pathOrCode = $fileOrCode->getRealPath();
-                if (!$pathOrCode) {
-                    continue;
-                }
-
-                $code = \file_get_contents($pathOrCode);
-            } elseif (\is_string($fileOrCode)) {
-                $code = $fileOrCode;
-            } else {
-                $code = null;
-            }
-
-            if (!$code) {
-                continue;
-            }
-
+        foreach ($phpCodes as $code) {
             /** @var \PhpParser\Node[]|null $parsedCode */
             $parsedCode = $parser->parse($code, new ParserErrorHandler());
             if ($parsedCode === null) {
-                continue;
+                return;
             }
 
             $traverser = new NodeTraverser();
@@ -155,5 +123,45 @@ final class PhpCodeParser
             $traverser->addVisitor($visitor);
             $traverser->traverse($parsedCode);
         }
+    }
+
+    /**
+     * @param string $pathOrCode
+     *
+     * @return string[]
+     */
+    private static function getCode(string $pathOrCode): array {
+        // init
+        /** @var string[] $phpCodes */
+        $phpCodes = [];
+        /** @var SplFileInfo[] $phpFileIterators */
+        $phpFileIterators = [];
+        /** @var Promise[] $phpFilePromises */
+        $phpFilePromises = [];
+
+        if (\is_file($pathOrCode)) {
+            $phpFileIterators = [new SplFileInfo($pathOrCode)];
+        } elseif (\is_dir($pathOrCode)) {
+            $phpFileIterators = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
+            );
+        } else {
+            $phpCodes[] = $pathOrCode;
+        }
+
+        foreach ($phpFileIterators as $fileOrCode) {
+            $path = $fileOrCode->getRealPath();
+            if (!$path) {
+                continue;
+            }
+
+            $phpFilePromises[] = Worker\enqueueCallable('file_get_contents', $path);
+        }
+        $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
+        foreach ($phpFilePromiseResponses as $response) {
+            $phpCodes[] = $response;
+        }
+
+        return $phpCodes;
     }
 }
