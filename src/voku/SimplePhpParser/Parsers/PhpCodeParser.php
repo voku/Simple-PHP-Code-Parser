@@ -20,14 +20,15 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
-final class PhpCodeParser {
-
+final class PhpCodeParser
+{
     /**
      * @param string $code
      *
      * @return ParserContainer
      */
-    public static function getFromString(string $code): ParserContainer {
+    public static function getFromString(string $code): ParserContainer
+    {
         return self::getPhpFiles($code, false);
     }
 
@@ -43,7 +44,8 @@ final class PhpCodeParser {
      *
      * @noinspection PhpUnusedParameterInspection
      */
-    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer {
+    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer
+    {
         $phpCodes = self::getCode($pathOrCode);
 
         $parserContainer = new ParserContainer();
@@ -53,7 +55,9 @@ final class PhpCodeParser {
         foreach ($phpCodes as $code) {
             $phpFilePromises[] = Worker\enqueueCallable(
                 [self::class, 'process'],
-                $code, $parserContainer, $usePhpReflection
+                $code,
+                $parserContainer,
+                $usePhpReflection
             );
         }
         $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
@@ -82,9 +86,9 @@ final class PhpCodeParser {
     /**
      * @param string          $phpCode
      * @param ParserContainer $phpContainer
-     * @param null|bool       $usePhpReflection
+     * @param bool|null       $usePhpReflection
      *
-     * @return null|ParserContainer
+     * @return ParserContainer|null
      */
     public static function process(
         string $phpCode,
@@ -146,7 +150,8 @@ final class PhpCodeParser {
      *
      * @return string[]
      */
-    private static function getCode(string $pathOrCode): array {
+    private static function getCode(string $pathOrCode): array
+    {
         // init
         /** @var string[] $phpCodes */
         $phpCodes = [];

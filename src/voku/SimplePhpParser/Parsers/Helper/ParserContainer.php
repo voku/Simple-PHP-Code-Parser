@@ -9,7 +9,8 @@ use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 
-class ParserContainer {
+class ParserContainer
+{
     /**
      * @var PHPConst[]
      *
@@ -41,7 +42,8 @@ class ParserContainer {
     /**
      * @return PHPConst[]
      */
-    public function getConstants(): array {
+    public function getConstants(): array
+    {
         return $this->constants;
     }
 
@@ -50,14 +52,16 @@ class ParserContainer {
      *
      * @return void
      */
-    public function addConstant(PHPConst $constant): void {
+    public function addConstant(PHPConst $constant): void
+    {
         $this->constants[$constant->name] = $constant;
     }
 
     /**
      * @return PHPFunction[]
      */
-    public function getFunctions(): array {
+    public function getFunctions(): array
+    {
         return $this->functions;
     }
 
@@ -66,7 +70,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function addFunction(PHPFunction $function): void {
+    public function addFunction(PHPFunction $function): void
+    {
         $this->functions[$function->name] = $function;
     }
 
@@ -75,7 +80,8 @@ class ParserContainer {
      *
      * @return PHPClass|null
      */
-    public function getClass(string $name): ?PHPClass {
+    public function getClass(string $name): ?PHPClass
+    {
         if (\array_key_exists($name, $this->classes) && $this->classes[$name] !== null) {
             return $this->classes[$name];
         }
@@ -86,7 +92,8 @@ class ParserContainer {
     /**
      * @return PHPClass[]
      */
-    public function getClasses(): array {
+    public function getClasses(): array
+    {
         return $this->classes;
     }
 
@@ -95,7 +102,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function setInterfaces($interfaces): void {
+    public function setInterfaces($interfaces): void
+    {
         foreach ($interfaces as $name => $interface) {
             $this->interfaces[$name] = $interface;
         }
@@ -106,7 +114,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function setConstants($constants): void {
+    public function setConstants($constants): void
+    {
         foreach ($constants as $name => $constant) {
             $this->constants[$name] = $constant;
         }
@@ -117,7 +126,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function setFunctions($functions): void {
+    public function setFunctions($functions): void
+    {
         foreach ($functions as $name => $function) {
             $this->functions[$name] = $function;
         }
@@ -128,7 +138,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function setClasses($classes): void {
+    public function setClasses($classes): void
+    {
         foreach ($classes as $className => $class) {
             $this->classes[$className] = $class;
         }
@@ -139,7 +150,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function addClass(PHPClass $class): void {
+    public function addClass(PHPClass $class): void
+    {
         $this->classes[$class->name ?: \md5(\serialize($class))] = $class;
     }
 
@@ -148,7 +160,8 @@ class ParserContainer {
      *
      * @return PHPInterface|null
      */
-    public function getInterface(string $name): ?PHPInterface {
+    public function getInterface(string $name): ?PHPInterface
+    {
         if (
             \array_key_exists($name, $this->interfaces)
             &&
@@ -163,7 +176,8 @@ class ParserContainer {
     /**
      * @return PHPInterface[]
      */
-    public function getInterfaces(): array {
+    public function getInterfaces(): array
+    {
         return $this->interfaces;
     }
 
@@ -172,7 +186,8 @@ class ParserContainer {
      *
      * @return void
      */
-    public function addInterface(PHPInterface $interface): void {
+    public function addInterface(PHPInterface $interface): void
+    {
         $this->interfaces[$interface->name] = $interface;
     }
 }
