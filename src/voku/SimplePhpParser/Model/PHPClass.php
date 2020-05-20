@@ -188,7 +188,9 @@ class PHPClass extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psslm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
+     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
+     *
+     * @psalm-suppress MoreSpecificReturnType or Less ?
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],
@@ -236,6 +238,7 @@ class PHPClass extends BasePHPClass
             $allInfo[$method->name] = $infoTmp;
         }
 
+        /** @psalm-suppress LessSpecificReturnStatement ? */
         return $allInfo;
     }
 
