@@ -14,7 +14,8 @@
     </projectFiles>
 
     <issueHandlers>
-        <ImpureStaticProperty errorLevel="suppress" />
+        <InternalClass errorLevel="suppress" />
+        <MoreSpecificImplementedParamType errorLevel="suppress" />
     </issueHandlers>
 
 </psalm>

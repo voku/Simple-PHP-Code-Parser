@@ -37,12 +37,12 @@ class PHPParameter extends BasePHPElement
     public $typeMaybeWithComment = '';
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_vararg;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_passed_by_ref;
 
@@ -54,7 +54,7 @@ class PHPParameter extends BasePHPElement
      */
     public function readObjectFromPhpNode($parameter, $node = null): self
     {
-        $this->name = $parameter->var->name . '';
+        $this->name = \is_string($parameter->var->name) ? $parameter->var->name : '';
 
         if ($this->usePhpReflection() === true) {
             return $this;
@@ -68,7 +68,7 @@ class PHPParameter extends BasePHPElement
                 try {
                     $this->readPhpDoc($docComment->getText(), $this->name);
                 } catch (\Exception $e) {
-                    $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                    $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
                 }
             }
         }
@@ -76,6 +76,9 @@ class PHPParameter extends BasePHPElement
         $defaultValue = $parameter->default;
         if ($defaultValue) {
             if (\property_exists($defaultValue, 'value')) {
+                /**
+                 * @psalm-suppress UndefinedPropertyFetch - false-positive from psalm
+                 */
                 $this->type = \gettype($defaultValue->value);
             } elseif ($defaultValue instanceof \PhpParser\Node\Expr\Array_) {
                 $this->type = 'array';
@@ -115,7 +118,7 @@ class PHPParameter extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment, $this->name);
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
 
@@ -123,7 +126,7 @@ class PHPParameter extends BasePHPElement
             $defaultValue = $parameter->getDefaultValue();
             $this->type = \gettype($defaultValue);
         } catch (\Exception $e) {
-            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
         }
 
         $type = $parameter->getType();
@@ -197,8 +200,9 @@ class PHPParameter extends BasePHPElement
                         }
 
                         $type = $parsedParamTag->getType();
-
-                        $this->typeFromPhpDoc = $type . '';
+                        if ($type) {
+                            $this->typeFromPhpDoc = $type . '';
+                        }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
                         if (
@@ -242,7 +246,7 @@ class PHPParameter extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
         }
     }
 }

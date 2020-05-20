@@ -12,20 +12,22 @@ class PHPMethod extends PHPFunction
     /**
      * @var string
      */
-    public $access;
+    public $access = '';
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_static;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_final;
 
     /**
-     * @var string
+     * @var string|null
+     *
+     * @psalm-var null|class-string
      */
     public $parentName;
 
@@ -44,9 +46,11 @@ class PHPMethod extends PHPFunction
         $this->name = $node->name->name;
 
         if (
-            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            $this->parentName
             &&
             \method_exists($this->parentName, $this->name)
+            &&
+            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
         ) {
             try {
                 $reflectionMethod = new \ReflectionMethod($this->parentName, $this->name);
@@ -71,7 +75,7 @@ class PHPMethod extends PHPFunction
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
 

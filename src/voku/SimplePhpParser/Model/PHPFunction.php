@@ -17,7 +17,7 @@ class PHPFunction extends BasePHPElement
     use PHPDocElement;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_deprecated;
 
@@ -164,7 +164,7 @@ class PHPFunction extends BasePHPElement
                     $this->is_deprecated = true;
                 }
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
     }
@@ -208,8 +208,9 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
                 $type = $parsedReturnTagReturn->getType();
-
-                $this->returnTypeFromPhpDoc = $type . '';
+                if ($type) {
+                    $this->returnTypeFromPhpDoc = $type . '';
+                }
 
                 $returnTypeTmp = Utils::parseDocTypeObject($type);
                 if (\is_array($returnTypeTmp)) {
@@ -231,7 +232,7 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
-            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
         }
     }
 }

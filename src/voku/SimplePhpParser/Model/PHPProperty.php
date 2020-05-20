@@ -38,10 +38,10 @@ class PHPProperty extends BasePHPElement
     /**
      * @var string
      */
-    public $access;
+    public $access = '';
 
     /**
-     * @var bool
+     * @var ?bool
      */
     public $is_static;
 
@@ -66,7 +66,7 @@ class PHPProperty extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment->getText());
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
 
@@ -110,7 +110,7 @@ class PHPProperty extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment);
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
 
@@ -188,8 +188,9 @@ class PHPProperty extends BasePHPElement
                 foreach ($parsedParamTags as $parsedParamTag) {
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
                         $type = $parsedParamTag->getType();
-
-                        $this->typeFromPhpDoc = $type . '';
+                        if ($type) {
+                            $this->typeFromPhpDoc = $type . '';
+                        }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
                         if (
@@ -227,7 +228,7 @@ class PHPProperty extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
         }
     }
 }

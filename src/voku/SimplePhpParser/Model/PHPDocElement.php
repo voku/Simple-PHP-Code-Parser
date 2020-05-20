@@ -69,7 +69,7 @@ trait PHPDocElement
                 $this->removedTags = $phpDoc->getTagsByName('removed');
                 $this->hasInternalMetaTag = $phpDoc->hasTag('meta');
             } catch (\Exception $e) {
-                $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
             }
         }
     }

@@ -82,11 +82,7 @@ class ParserContainer
      */
     public function getClass(string $name): ?PHPClass
     {
-        if (\array_key_exists($name, $this->classes) && $this->classes[$name] !== null) {
-            return $this->classes[$name];
-        }
-
-        return null;
+        return $this->classes[$name] ?? null;
     }
 
     /**
@@ -162,15 +158,7 @@ class ParserContainer
      */
     public function getInterface(string $name): ?PHPInterface
     {
-        if (
-            \array_key_exists($name, $this->interfaces)
-            &&
-            $this->interfaces[$name] !== null
-        ) {
-            return $this->interfaces[$name];
-        }
-
-        return null;
+        return $this->interfaces[$name] ?? null;
     }
 
     /**

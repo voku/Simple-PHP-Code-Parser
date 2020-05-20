@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Node\Arg;
 use PhpParser\Node\Const_;
 use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Stmt\ClassConst;
@@ -76,7 +77,7 @@ class PHPConst extends BasePHPElement
     }
 
     /**
-     * @param Const_ $node
+     * @param Arg|Const_ $node
      *
      * @return mixed
      */
@@ -88,13 +89,16 @@ class PHPConst extends BasePHPElement
 
         if (\in_array('expr', $node->value->getSubNodeNames(), true)) {
             if ($node->value instanceof UnaryMinus) {
+                /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
                 return -$node->value->expr->value;
             }
 
+            /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
             return $node->value->expr->value;
         }
 
         if (\in_array('name', $node->value->getSubNodeNames(), true)) {
+            /** @psalm-suppress InvalidPropertyFetch - false-positive ? */
             return $node->value->name->parts[0];
         }
 

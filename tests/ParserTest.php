@@ -39,7 +39,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('array{parsedParamTagStr: string, variableName: array<array-key, null>|string}', $phpInterfaces[DummyInterface::class]->methods['withComplexReturnArray']->returnTypeFromPhpDocPslam);
     }
 
-    public function testSimpleStringInput(): void
+    public function testSimpleStringInputClasses(): void
     {
         $code = '<?php
         namespace voku\tests;
@@ -52,6 +52,19 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpClasses = $phpCode->getClasses();
 
         static::assertCount(4, $phpClasses);
+    }
+
+    public function testSimpleStringInputConstants(): void
+    {
+        $code = '<?php
+        define("FOO", 123);
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpConstants = $phpCode->getConstants();
+
+        static::assertCount(1, $phpConstants);
+        static::assertSame(123, $phpConstants['FOO']->value);
     }
 
     public function testSimpleBrokenPhpDocStringInput(): void

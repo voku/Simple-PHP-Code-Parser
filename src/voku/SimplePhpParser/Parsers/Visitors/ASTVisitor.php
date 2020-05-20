@@ -70,8 +70,8 @@ final class ASTVisitor extends NodeVisitorAbstract
                 $constant = (new PHPConst($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
                 if ($constant->parentName === null) {
                     $this->phpCode->addConstant($constant);
-                } elseif ($this->phpCode->getClass($constant->parentName) !== null) {
-                    $this->phpCode->getClass($constant->parentName)->constants[$constant->name] = $constant;
+                } elseif (($phpCodeParentConstantName = $this->phpCode->getClass($constant->parentName)) !== null) {
+                    $phpCodeParentConstantName->constants[$constant->name] = $constant;
                 } else {
                     $interface = $this->phpCode->getInterface($constant->parentName);
                     if ($interface) {
@@ -97,10 +97,21 @@ final class ASTVisitor extends NodeVisitorAbstract
             case $nodeClone instanceof ClassMethod:
 
                 $method = (new PHPMethod($this->usePhpReflection))->readObjectFromPhpNode($nodeClone);
-                if ($this->phpCode->getClass($method->parentName) !== null) {
-                    $this->phpCode->getClass($method->parentName)->methods[$method->name] = $method;
+                if ($method->parentName) {
+                    $phpCodeParentMethodName = $this->phpCode->getClass($method->parentName);
                 } else {
-                    $interface = $this->phpCode->getInterface($method->parentName);
+                    $phpCodeParentMethodName = null;
+                }
+
+                if ($phpCodeParentMethodName !== null) {
+                    $phpCodeParentMethodName->methods[$method->name] = $method;
+                } else {
+                    if ($method->parentName) {
+                        $interface = $this->phpCode->getInterface($method->parentName);
+                    } else {
+                        $interface = null;
+                    }
+
                     if ($interface !== null) {
                         $interface->methods[$method->name] = $method;
                     }
@@ -136,7 +147,7 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param PHPInterface $interface
      *
-     * @return array
+     * @return string[]
      */
     public function combineParentInterfaces($interface): array
     {
@@ -149,8 +160,10 @@ final class ASTVisitor extends NodeVisitorAbstract
 
         foreach ($interface->parentInterfaces as $parentInterface) {
             $parents[] = $parentInterface;
-            if ($this->phpCode->getInterface($parentInterface) !== null) {
-                foreach ($this->combineParentInterfaces($this->phpCode->getInterface($parentInterface)) as $value) {
+
+            $phpCodeParentInterfaces = $this->phpCode->getInterface($parentInterface);
+            if ($phpCodeParentInterfaces !== null) {
+                foreach ($this->combineParentInterfaces($phpCodeParentInterfaces) as $value) {
                     $parents[] = $value;
                 }
             }
@@ -171,8 +184,10 @@ final class ASTVisitor extends NodeVisitorAbstract
 
         foreach ($class->interfaces as $interface) {
             $interfaces[] = $interface;
-            if ($this->phpCode->getInterface($interface) !== null) {
-                $interfaces[] = $this->phpCode->getInterface($interface)->parentInterfaces;
+
+            $phpCodeInterfaces = $this->phpCode->getInterface($interface);
+            if ($phpCodeInterfaces !== null) {
+                $interfaces[] = $phpCodeInterfaces->parentInterfaces;
             }
         }
 
@@ -180,9 +195,10 @@ final class ASTVisitor extends NodeVisitorAbstract
             return $interfaces;
         }
 
-        if ($this->phpCode->getClass($class->parentClass) !== null) {
-            $inherited = $this->combineImplementedInterfaces($this->phpCode->getClass($class->parentClass));
-            $interfaces[] = Utils::flattenArray($inherited, false);
+        $parentClass = $this->phpCode->getClass($class->parentClass);
+        if ($parentClass !== null) {
+            $inherited = $this->combineImplementedInterfaces($parentClass);
+            $interfaces = Utils::flattenArray($inherited, false);
         }
 
         return $interfaces;

@@ -9,7 +9,7 @@ use phpDocumentor\Reflection\DocBlockFactory;
 final class DocFactoryProvider
 {
     /**
-     * @var DocBlockFactory
+     * @var DocBlockFactory|null
      */
     private static $docFactory;
 

@@ -13,12 +13,12 @@ abstract class BasePHPElement
     /**
      * @var string
      */
-    public $name;
+    public $name = '';
 
     /**
-     * @var string|null
+     * @var string
      */
-    public $parseError;
+    public $parseError = '';
 
     /**
      * @var int|null
@@ -80,9 +80,13 @@ abstract class BasePHPElement
     }
 
     /**
-     * @param \PhpParser\Node $node
+     * @param \PhpParser\Node|string $node
      *
      * @return string
+     *
+     * @psalm-return class-string
+     *
+     * @psalm-suppress MoreSpecificReturnType or Less ?
      */
     protected function getFQN($node): string
     {
@@ -94,6 +98,7 @@ abstract class BasePHPElement
             &&
             \property_exists($node, 'namespacedName')
         ) {
+            /** @psalm-suppress NoInterfaceProperties ? */
             if ($node->namespacedName === null) {
                 $fqn = $node->name->parts[0];
             } else {
@@ -103,6 +108,7 @@ abstract class BasePHPElement
             }
         }
 
+        /** @psalm-suppress LessSpecificReturnStatement ? */
         return \rtrim($fqn, '\\');
     }
 

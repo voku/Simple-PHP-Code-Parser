@@ -57,9 +57,15 @@ final class Utils
      * @param \phpDocumentor\Reflection\Type|null $type
      *
      * @return string|string[]
+     *
+     * @psalm-suppress InvalidReturnType - false-positive from psalm
      */
     public static function parseDocTypeObject($type)
     {
+        if ($type === null) {
+            return '';
+        }
+
         if ($type instanceof \phpDocumentor\Reflection\Types\Object_) {
             $tmpObject = (string) $type->getFqsen();
             if ($tmpObject) {
@@ -75,6 +81,9 @@ final class Utils
                 $types[] = self::parseDocTypeObject($subType);
             }
 
+            /**
+             * @psalm-suppress InvalidReturnStatement - false-positive from psalm
+             */
             return $types;
         }
 
@@ -173,7 +182,16 @@ final class Utils
         $typeResolver->addKeyword('false', \phpDocumentor\Reflection\Types\BooleanFalse::class);
         $typeResolver->addKeyword('true', \phpDocumentor\Reflection\Types\BooleanTrue::class);
 
+        /**
+         * @noinspection PhpParamsInspection
+         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
+         */
         $tagFactory->addService($descriptionFactory);
+
+        /**
+         * @noinspection PhpParamsInspection
+         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
+         */
         $tagFactory->addService($typeResolver);
 
         $docBlockFactory = new \phpDocumentor\Reflection\DocBlockFactory($descriptionFactory, $tagFactory);

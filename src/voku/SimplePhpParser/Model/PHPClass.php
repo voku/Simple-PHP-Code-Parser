@@ -150,7 +150,7 @@ class PHPClass extends BasePHPClass
      *
      * @return array
      *
-     * @psalm-return array<string, array{string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}>
+     * @psalm-return array<string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}>
      */
     public function getPropertiesInfo(
         array $access = ['public', 'protected', 'private'],
@@ -160,8 +160,6 @@ class PHPClass extends BasePHPClass
         $allInfo = [];
 
         foreach ($this->properties as $property) {
-            \assert($property instanceof PHPProperty);
-
             if (!\in_array($property->access, $access, true)) {
                 continue;
             }
@@ -188,9 +186,9 @@ class PHPClass extends BasePHPClass
      * @param bool     $skipDeprecatedMethods
      * @param bool     $skipMethodsWithLeadingUnderscore
      *
-     * @return array
+     * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}, returnTypes: array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}}>
+     * @psslm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],
@@ -201,8 +199,6 @@ class PHPClass extends BasePHPClass
         $allInfo = [];
 
         foreach ($this->methods as $method) {
-            \assert($method instanceof PHPMethod);
-
             if (!\in_array($method->access, $access, true)) {
                 continue;
             }
@@ -283,8 +279,9 @@ class PHPClass extends BasePHPClass
                         $propertyPhp->access = 'public';
 
                         $type = $parsedPropertyTag->getType();
-
-                        $propertyPhp->typeFromPhpDoc = $type . '';
+                        if ($type) {
+                            $propertyPhp->typeFromPhpDoc = $type . '';
+                        }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedPropertyTag);
                         if (
@@ -309,7 +306,7 @@ class PHPClass extends BasePHPClass
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= $this->line . ':' . $this->pos . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
         }
 
         return $classPhpDocProperties;

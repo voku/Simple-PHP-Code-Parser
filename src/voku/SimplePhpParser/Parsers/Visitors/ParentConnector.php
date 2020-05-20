@@ -17,6 +17,11 @@ final class ParentConnector extends NodeVisitorAbstract
      */
     private $stack;
 
+    public function __construct()
+    {
+        $this->stack = [];
+    }
+
     /**
      * @param array $nodes
      *
