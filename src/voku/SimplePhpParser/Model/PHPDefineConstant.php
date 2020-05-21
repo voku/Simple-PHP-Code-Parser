@@ -18,7 +18,7 @@ class PHPDefineConstant extends PHPConst
     {
         $this->prepareNode($node);
 
-        $constName = $this->getConstantFQN($node, $node->args[0]->value->value);
+        $constName = $this->getConstantFQN($node, (string) $node->args[0]->value->value);
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
             $constName = \strtoupper($constName);
         }

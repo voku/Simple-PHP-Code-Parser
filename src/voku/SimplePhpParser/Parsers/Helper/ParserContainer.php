@@ -66,6 +66,60 @@ class ParserContainer
     }
 
     /**
+     * @param bool $skipDeprecatedMethods
+     * @param bool $skipFunctionsWithLeadingUnderscore
+     *
+     * @return array<mixed>
+     *
+     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
+     *
+     * @psalm-suppress MoreSpecificReturnType or Less ?
+     */
+    public function getFunctionsInfo(
+        bool $skipDeprecatedMethods = false,
+        bool $skipFunctionsWithLeadingUnderscore = false
+    ): array {
+        // init
+        $allInfo = [];
+
+        foreach ($this->functions as $function) {
+            if ($skipDeprecatedMethods && $function->is_deprecated) {
+                continue;
+            }
+
+            if ($skipFunctionsWithLeadingUnderscore && \strpos($function->name, '_') === 0) {
+                continue;
+            }
+
+            $paramsTypes = [];
+            foreach ($function->parameters as $tagParam) {
+                $paramsTypes[$tagParam->name]['type'] = $tagParam->type;
+                $paramsTypes[$tagParam->name]['typeMaybeWithComment'] = $tagParam->typeMaybeWithComment;
+                $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
+                $paramsTypes[$tagParam->name]['typeFromPhpDocSimple'] = $tagParam->typeFromPhpDocSimple;
+                $paramsTypes[$tagParam->name]['typeFromPhpDocPslam'] = $tagParam->typeFromPhpDocPslam;
+            }
+
+            $returnTypes = [];
+            $returnTypes['type'] = $function->returnType;
+            $returnTypes['typeMaybeWithComment'] = $function->returnTypeMaybeWithComment;
+            $returnTypes['typeFromPhpDoc'] = $function->returnTypeFromPhpDoc;
+            $returnTypes['typeFromPhpDocSimple'] = $function->returnTypeFromPhpDocSimple;
+            $returnTypes['typeFromPhpDocPslam'] = $function->returnTypeFromPhpDocPslam;
+
+            $infoTmp = [];
+            $infoTmp['fullDescription'] = \trim($function->summary . "\n\n" . $function->description);
+            $infoTmp['paramsTypes'] = $paramsTypes;
+            $infoTmp['returnTypes'] = $returnTypes;
+
+            $allInfo[$function->name] = $infoTmp;
+        }
+
+        /** @psalm-suppress LessSpecificReturnStatement ? */
+        return $allInfo;
+    }
+
+    /**
      * @param PHPFunction $function
      *
      * @return void

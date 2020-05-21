@@ -48,17 +48,17 @@ abstract class BasePHPElement
     }
 
     /**
-     * @param mixed $object
+     * @param \Reflector $object
      *
-     * @return mixed
+     * @return $this
      */
     abstract public function readObjectFromReflection($object);
 
     /**
-     * @param mixed $mixed_1
-     * @param mixed $mixed_2
+     * @param NodeAbstract      $mixed_1
+     * @param NodeAbstract|null $mixed_2
      *
-     * @return mixed
+     * @return $this
      */
     abstract public function readObjectFromPhpNode($mixed_1, $mixed_2 = null);
 

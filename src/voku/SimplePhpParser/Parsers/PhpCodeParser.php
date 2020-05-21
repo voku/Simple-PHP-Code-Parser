@@ -22,11 +22,6 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
 final class PhpCodeParser
 {
-    /**
-     * @param string $code
-     *
-     * @return ParserContainer
-     */
     public static function getFromString(string $code): ParserContainer
     {
         return self::getPhpFiles($code, false);

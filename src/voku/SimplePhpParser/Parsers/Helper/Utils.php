@@ -183,13 +183,13 @@ final class Utils
         $typeResolver->addKeyword('true', \phpDocumentor\Reflection\Types\BooleanTrue::class);
 
         /**
-         * @noinspection PhpParamsInspection
+         * @noinspection   PhpParamsInspection
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
          */
         $tagFactory->addService($descriptionFactory);
 
         /**
-         * @noinspection PhpParamsInspection
+         * @noinspection   PhpParamsInspection
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
          */
         $tagFactory->addService($typeResolver);

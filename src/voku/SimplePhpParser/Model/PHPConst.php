@@ -22,7 +22,7 @@ class PHPConst extends BasePHPElement
     public $parentName;
 
     /**
-     * @var mixed
+     * @var float|int|string|null
      */
     public $value;
 
@@ -69,6 +69,7 @@ class PHPConst extends BasePHPElement
     {
         $this->name = $constant->name;
 
+        /** @psalm-suppress InvalidPropertyAssignmentValue - upstream phpdoc error ? */
         $this->value = $constant->getValue();
 
         $this->type = \gettype($this->value);
@@ -79,7 +80,7 @@ class PHPConst extends BasePHPElement
     /**
      * @param Arg|Const_ $node
      *
-     * @return mixed
+     * @return float|int|string|null
      */
     protected function getConstValue($node)
     {

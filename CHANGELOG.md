@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.3.0 (2020-05-20)
+
+- "PHPClass" fix phpdoc
+- add "PhpCodeChecker"-class
+
 ### 0.2.1 (2020-05-20)
 
 - fix code issues reported by psalm + phpstan

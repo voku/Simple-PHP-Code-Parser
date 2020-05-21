@@ -36,11 +36,23 @@ class FakeConfig extends Config
         $this->collectPredefinedFunctions();
     }
 
+    /**
+     * @param string $fq_classlike_name
+     *
+     * @return false
+     *
+     * @psalm-suppress LessSpecificImplementedReturnType
+     */
     public function getComposerFilePathForClassLike($fq_classlike_name)
     {
         return false;
     }
 
+    /**
+     * @return array
+     *
+     * @psalm-suppress LessSpecificImplementedReturnType
+     */
     public function getProjectDirectories()
     {
         return [];

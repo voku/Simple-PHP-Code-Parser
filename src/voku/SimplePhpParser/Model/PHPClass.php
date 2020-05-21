@@ -215,7 +215,6 @@ class PHPClass extends BasePHPClass
 
             $paramsTypes = [];
             foreach ($method->parameters as $tagParam) {
-                /** @var PHPParameter $tagParam */
                 $paramsTypes[$tagParam->name]['type'] = $tagParam->type;
                 $paramsTypes[$tagParam->name]['typeMaybeWithComment'] = $tagParam->typeMaybeWithComment;
                 $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
