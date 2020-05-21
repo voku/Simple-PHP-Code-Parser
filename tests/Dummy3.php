@@ -21,7 +21,8 @@ final class Dummy3 implements DummyInterface
      *
      * @return mixed
      */
-    public function lall($foo) {
+    public function lall($foo)
+    {
         return $foo + 1;
     }
 
