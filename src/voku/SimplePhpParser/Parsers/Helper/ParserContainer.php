@@ -71,7 +71,7 @@ class ParserContainer
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
      *
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
@@ -83,7 +83,7 @@ class ParserContainer
         $allInfo = [];
 
         foreach ($this->functions as $function) {
-            if ($skipDeprecatedMethods && $function->is_deprecated) {
+            if ($skipDeprecatedMethods && $function->hasDeprecatedTag) {
                 continue;
             }
 
@@ -98,6 +98,7 @@ class ParserContainer
                 $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocSimple'] = $tagParam->typeFromPhpDocSimple;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocPslam'] = $tagParam->typeFromPhpDocPslam;
+                $paramsTypes[$tagParam->name]['typeFromDefaultValue'] = $tagParam->typeFromDefaultValue;
             }
 
             $returnTypes = [];
@@ -111,6 +112,12 @@ class ParserContainer
             $infoTmp['fullDescription'] = \trim($function->summary . "\n\n" . $function->description);
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
+            $infoTmp['line'] = $function->line;
+            $infoTmp['error'] = $function->parseError;
+            $infoTmp['is_deprecated'] = $function->hasDeprecatedTag;
+            $infoTmp['is_meta'] = $function->hasMetaTag;
+            $infoTmp['is_internal'] = $function->hasInternalTag;
+            $infoTmp['is_removed'] = $function->hasRemovedTag;
 
             $allInfo[$function->name] = $infoTmp;
         }

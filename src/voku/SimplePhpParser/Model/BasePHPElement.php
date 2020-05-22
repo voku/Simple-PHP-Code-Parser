@@ -120,44 +120,5 @@ abstract class BasePHPElement
     protected function prepareNode(Node $node): void
     {
         $this->line = $node->getLine();
-
-        $this->pos = $node->getStartTokenPos();
-
-        foreach ($node->getComments() as $comment) {
-            if ($comment instanceof \PhpParser\Comment\Doc) {
-                $parsed_docblock = \Psalm\DocComment::parsePreservingLength($comment);
-
-                foreach ($parsed_docblock['specials'] as $type_key => $type_tokens) {
-                    $type_token = \trim(\array_values($type_tokens)[0]);
-
-                    $nonEmptyTypeKeys = [
-                        'param',
-                        'psalm-param',
-                        'phpstan-param',
-                        'return',
-                        'psalm-return',
-                        'phpstan-return',
-                        'var',
-                        'psalm-var',
-                        'phpstan-var',
-                        'property',
-                        'psalm-property',
-                        'phpstan-property',
-                    ];
-
-                    if (
-                        (
-                            !$type_token
-                            ||
-                            \strpos($type_token, '$') === 0
-                        )
-                        &&
-                        \in_array($type_key, $nonEmptyTypeKeys, true)
-                    ) {
-                        $this->parseError .= $this->line . ':' . $this->pos . ' | Empty type: ' . \print_r($parsed_docblock, true);
-                    }
-                }
-            }
-        }
     }
 }

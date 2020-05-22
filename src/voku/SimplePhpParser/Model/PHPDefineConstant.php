@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPDefineConstant extends PHPConst
 {
@@ -25,9 +26,9 @@ class PHPDefineConstant extends PHPConst
 
         $this->name = $constName;
 
-        $this->value = $this->getConstValue($node->args[1]);
+        $this->value = Utils::getPhpParserValueFromNode($node->args[1]);
 
-        $this->type = \gettype($this->value);
+        $this->type = Utils::normalizePhpType(\gettype($this->value));
 
         $this->collectTags($node);
 
@@ -49,10 +50,10 @@ class PHPDefineConstant extends PHPConst
 
         $constantValue = $constant[1];
         if ($constantValue !== null) {
-            $this->type = \gettype($this->value);
+            $this->type = Utils::normalizePhpType(\gettype($this->value));
 
             if (\is_resource($constantValue)) {
-                $this->value = 'PHPSTORM_RESOURCE';
+                $this->value = '__RESOURCE__';
             } elseif (\is_string($constantValue) || \is_float($constantValue)) {
                 $this->value = \utf8_encode((string) $constantValue);
             } else {

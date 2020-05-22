@@ -62,7 +62,7 @@ class PHPInterface extends BasePHPClass
                 continue;
             }
 
-            $this->methods[$method->name] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
+            $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         $this->parentInterfaces = $interface->getInterfaceNames();

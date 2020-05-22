@@ -20,6 +20,12 @@ function foo(int $foo = 0)
  */
 final class Dummy extends \stdClass
 {
+    const FOO1 = [1, 2];
+
+    const FOO2 = 'lall';
+
+    const FOO3 = 3;
+
     /**
      * @var null|int[]
      *
@@ -116,5 +122,17 @@ final class Dummy extends \stdClass
             'parsedParamTagStr' => 'foo',
             'variableName'      => [null],
         ];
+    }
+
+    /**
+     * @param mixed $p1
+     * @param mixed $p2
+     * @param mixed $p3
+     *
+     * @return array
+     */
+    public function withConstFromClass($p1 = self::FOO1, $p2 = self::FOO2, $p3 = self::FOO3)
+    {
+        return [];
     }
 }

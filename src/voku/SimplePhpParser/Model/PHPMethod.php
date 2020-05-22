@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\ClassMethod;
+use ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
@@ -45,12 +46,13 @@ class PHPMethod extends PHPFunction
 
         $this->name = $node->name->name;
 
+        /** @noinspection NotOptimalIfConditionsInspection */
         if (
             $this->parentName
             &&
-            \method_exists($this->parentName, $this->name)
-            &&
             ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            &&
+            \method_exists($this->parentName, $this->name)
         ) {
             try {
                 $reflectionMethod = new \ReflectionMethod($this->parentName, $this->name);
@@ -91,8 +93,6 @@ class PHPMethod extends PHPFunction
 
         $this->collectTags($node);
 
-        $this->checkDeprecationTag($node);
-
         $nodeDoc = $node->getDocComment();
         if ($nodeDoc) {
             $this->readPhpDoc($nodeDoc->getText());
@@ -123,13 +123,13 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param \ReflectionMethod $method
+     * @param ReflectionMethod $method
      *
      * @return $this
      */
     public function readObjectFromReflection($method): PHPFunction
     {
-        $this->name = $method->name;
+        $this->name = $method->getName();
 
         $this->is_static = $method->isStatic();
 

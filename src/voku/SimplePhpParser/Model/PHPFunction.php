@@ -6,10 +6,10 @@ namespace voku\SimplePhpParser\Model;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
-use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Stmt\Function_;
 use ReflectionFunction;
-use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
+use ReflectionFunctionAbstract;
+use ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
@@ -17,39 +17,34 @@ class PHPFunction extends BasePHPElement
     use PHPDocElement;
 
     /**
-     * @var bool|null
-     */
-    public $is_deprecated;
-
-    /**
      * @var PHPParameter[]
      */
     public $parameters = [];
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $returnType = '';
+    public $returnType;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $returnTypeFromPhpDoc = '';
+    public $returnTypeFromPhpDoc;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $returnTypeFromPhpDocSimple = '';
+    public $returnTypeFromPhpDocSimple;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $returnTypeFromPhpDocPslam = '';
+    public $returnTypeFromPhpDocPslam;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $returnTypeMaybeWithComment = '';
+    public $returnTypeMaybeWithComment;
 
     /**
      * @var string
@@ -118,8 +113,6 @@ class PHPFunction extends BasePHPElement
 
         $this->collectTags($node);
 
-        $this->checkDeprecationTag($node);
-
         $nodeDoc = $node->getDocComment();
         if ($nodeDoc) {
             $this->readPhpDoc($nodeDoc->getText());
@@ -135,9 +128,7 @@ class PHPFunction extends BasePHPElement
      */
     public function readObjectFromReflection($function): self
     {
-        $this->name = $function->name;
-
-        $this->is_deprecated = $function->isDeprecated();
+        $this->name = $function->getName();
 
         foreach ($function->getParameters() as $parameter) {
             $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromReflection($parameter);
@@ -148,33 +139,11 @@ class PHPFunction extends BasePHPElement
     }
 
     /**
-     * @param FunctionLike $node
-     *
-     * @return void
-     */
-    protected function checkDeprecationTag(FunctionLike $node): void
-    {
-        $docComment = $node->getDocComment();
-        if ($docComment !== null) {
-            try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
-                if (empty($phpDoc->getTagsByName('deprecated'))) {
-                    $this->is_deprecated = false;
-                } else {
-                    $this->is_deprecated = true;
-                }
-            } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
-            }
-        }
-    }
-
-    /**
-     * @param \ReflectionFunctionAbstract $function
+     * @param ReflectionFunctionAbstract|ReflectionMethod $function
      *
      * @return string|null Type of the property (content of var annotation)
      */
-    protected function readObjectFromReflectionReturnHelper(\ReflectionFunctionAbstract $function): ?string
+    protected function readObjectFromReflectionReturnHelper($function): ?string
     {
         $phpDoc = $function->getDocComment();
         if (!$phpDoc) {
@@ -209,7 +178,7 @@ class PHPFunction extends BasePHPElement
 
                 $type = $parsedReturnTagReturn->getType();
                 if ($type) {
-                    $this->returnTypeFromPhpDoc = $type . '';
+                    $this->returnTypeFromPhpDoc = Utils::normalizePhpType($type . '');
                 }
 
                 $returnTypeTmp = Utils::parseDocTypeObject($type);
@@ -219,7 +188,9 @@ class PHPFunction extends BasePHPElement
                     $this->returnTypeFromPhpDocSimple = $returnTypeTmp;
                 }
 
-                $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->returnTypeFromPhpDoc);
+                if ($this->returnTypeFromPhpDoc) {
+                    $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->returnTypeFromPhpDoc);
+                }
             }
 
             /** @noinspection AdditionOperationOnArraysInspection */

@@ -95,7 +95,7 @@ final class PhpCodeChecker
                 foreach ($methodInfo['paramsTypes'] as $paramName => $paramTypes) {
                     $typeFound = false;
                     foreach ($paramTypes as $key => $type) {
-                        if ($key === 'typeMaybeWithComment') {
+                        if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
                             continue;
                         }
 
@@ -134,6 +134,10 @@ final class PhpCodeChecker
                     if (!$typeFound) {
                         $error[] = 'missing return type for ' . $class->name . '::' . $methodName . '()';
                     }
+
+                    if ($methodInfo['error']) {
+                        $error[] = $methodInfo['error'];
+                    }
                 }
             }
 
@@ -143,7 +147,7 @@ final class PhpCodeChecker
             ) as $propertyName => $propertyTypes) {
                 $typeFound = false;
                 foreach ($propertyTypes as $key => $type) {
-                    if ($key === 'typeMaybeWithComment') {
+                    if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
                         continue;
                     }
 
@@ -187,7 +191,7 @@ final class PhpCodeChecker
             foreach ($functionInfo['paramsTypes'] as $paramName => $paramTypes) {
                 $typeFound = false;
                 foreach ($paramTypes as $key => $type) {
-                    if ($key === 'typeMaybeWithComment') {
+                    if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
                         continue;
                     }
 
@@ -220,6 +224,10 @@ final class PhpCodeChecker
             }
             if (!$typeFound) {
                 $error[] = 'missing return type for ' . $functionName . '()';
+            }
+
+            if ($functionInfo['error']) {
+                $error[] = $functionInfo['error'];
             }
         }
 

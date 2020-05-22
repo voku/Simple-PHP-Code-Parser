@@ -100,7 +100,7 @@ class PHPClass extends BasePHPClass
         $this->name = $clazz->getName();
 
         $parent = $clazz->getParentClass();
-        if ($parent !== false) {
+        if ($parent) {
             $this->parentClass = $parent->getName();
         }
 
@@ -130,7 +130,7 @@ class PHPClass extends BasePHPClass
                 continue;
             }
 
-            $this->methods[$method->name] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
+            $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
@@ -138,7 +138,7 @@ class PHPClass extends BasePHPClass
                 continue;
             }
 
-            $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
+            $this->constants[$constant->getName()] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 
         return $this;
@@ -150,7 +150,7 @@ class PHPClass extends BasePHPClass
      *
      * @return array
      *
-     * @psalm-return array<string, array{type: string, typeMaybeWithComment: string, typeFromPhpDoc: string, typeFromPhpDocSimple: string, typeFromPhpDocPslam: string}>
+     * @psalm-return array<string, array{type: null|string, typeMaybeWithComment: null|string, typeFromPhpDoc: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocPslam: null|string, typeFromDefaultValue: null|string}>
      */
     public function getPropertiesInfo(
         array $access = ['public', 'protected', 'private'],
@@ -174,6 +174,7 @@ class PHPClass extends BasePHPClass
             $types['typeFromPhpDoc'] = $property->typeFromPhpDoc;
             $types['typeFromPhpDocSimple'] = $property->typeFromPhpDocSimple;
             $types['typeFromPhpDocPslam'] = $property->typeFromPhpDocPslam;
+            $types['typeFromDefaultValue'] = $property->typeFromDefaultValue;
 
             $allInfo[$property->name] = $types;
         }
@@ -188,7 +189,7 @@ class PHPClass extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, paramsTypes: array<string, array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}>, returnTypes: array{type: string, typeFromPhpDoc: string, typeFromPhpDocPslam: string, typeFromPhpDocSimple: string, typeMaybeWithComment: string}}>
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
      *
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
@@ -205,7 +206,7 @@ class PHPClass extends BasePHPClass
                 continue;
             }
 
-            if ($skipDeprecatedMethods && $method->is_deprecated) {
+            if ($skipDeprecatedMethods && $method->hasDeprecatedTag) {
                 continue;
             }
 
@@ -220,6 +221,7 @@ class PHPClass extends BasePHPClass
                 $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocSimple'] = $tagParam->typeFromPhpDocSimple;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocPslam'] = $tagParam->typeFromPhpDocPslam;
+                $paramsTypes[$tagParam->name]['typeFromDefaultValue'] = $tagParam->typeFromDefaultValue;
             }
 
             $returnTypes = [];
@@ -233,6 +235,12 @@ class PHPClass extends BasePHPClass
             $infoTmp['fullDescription'] = \trim($method->summary . "\n\n" . $method->description);
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
+            $infoTmp['line'] = $method->line;
+            $infoTmp['error'] = $method->parseError;
+            $infoTmp['is_deprecated'] = $method->hasDeprecatedTag;
+            $infoTmp['is_meta'] = $method->hasMetaTag;
+            $infoTmp['is_internal'] = $method->hasInternalTag;
+            $infoTmp['is_removed'] = $method->hasRemovedTag;
 
             $allInfo[$method->name] = $infoTmp;
         }
@@ -282,7 +290,7 @@ class PHPClass extends BasePHPClass
 
                         $type = $parsedPropertyTag->getType();
                         if ($type) {
-                            $propertyPhp->typeFromPhpDoc = $type . '';
+                            $propertyPhp->typeFromPhpDoc = Utils::normalizePhpType($type . '');
                         }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedPropertyTag);
@@ -301,7 +309,9 @@ class PHPClass extends BasePHPClass
                             $propertyPhp->typeFromPhpDocSimple = $returnTypeTmp;
                         }
 
-                        $propertyPhp->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
+                        if ($propertyPhp->typeFromPhpDoc) {
+                            $propertyPhp->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
+                        }
 
                         $classPhpDocProperties[$propertyPhp->name] = $propertyPhp;
                     }

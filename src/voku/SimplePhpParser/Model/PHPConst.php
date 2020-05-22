@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-use PhpParser\Node\Arg;
 use PhpParser\Node\Const_;
-use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
 use ReflectionClassConstant;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPConst extends BasePHPElement
 {
@@ -27,9 +26,9 @@ class PHPConst extends BasePHPElement
     public $value;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $type = '';
+    public $type;
 
     /**
      * @param Const_ $node
@@ -47,9 +46,9 @@ class PHPConst extends BasePHPElement
 
         $this->name = $this->getConstantFQN($node, $node->name->name);
 
-        $this->value = $this->getConstValue($node);
+        $this->value = Utils::getPhpParserValueFromNode($node);
 
-        $this->type = \gettype($this->value);
+        $this->type = Utils::normalizePhpType(\gettype($this->value));
 
         $this->collectTags($node);
 
@@ -67,7 +66,7 @@ class PHPConst extends BasePHPElement
      */
     public function readObjectFromReflection($constant): self
     {
-        $this->name = $constant->name;
+        $this->name = $constant->getName();
 
         /** @psalm-suppress InvalidPropertyAssignmentValue - upstream phpdoc error ? */
         $this->value = $constant->getValue();
@@ -75,35 +74,6 @@ class PHPConst extends BasePHPElement
         $this->type = \gettype($this->value);
 
         return $this;
-    }
-
-    /**
-     * @param Arg|Const_ $node
-     *
-     * @return float|int|string|null
-     */
-    protected function getConstValue($node)
-    {
-        if (\in_array('value', $node->value->getSubNodeNames(), true)) {
-            return $node->value->value;
-        }
-
-        if (\in_array('expr', $node->value->getSubNodeNames(), true)) {
-            if ($node->value instanceof UnaryMinus) {
-                /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
-                return -$node->value->expr->value;
-            }
-
-            /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
-            return $node->value->expr->value;
-        }
-
-        if (\in_array('name', $node->value->getSubNodeNames(), true)) {
-            /** @psalm-suppress InvalidPropertyFetch - false-positive ? */
-            return $node->value->name->parts[0];
-        }
-
-        return null;
     }
 
     protected function getConstantFQN(NodeAbstract $node, string $nodeName): string

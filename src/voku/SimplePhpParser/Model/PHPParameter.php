@@ -12,29 +12,39 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPParameter extends BasePHPElement
 {
     /**
-     * @var string
+     * @var mixed|null
      */
-    public $type = '';
+    public $defaultValue;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDoc = '';
+    public $type;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDocSimple = '';
+    public $typeFromDefaultValue;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDocPslam = '';
+    public $typeFromPhpDoc;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeMaybeWithComment = '';
+    public $typeFromPhpDocSimple;
+
+    /**
+     * @var string|null
+     */
+    public $typeFromPhpDocPslam;
+
+    /**
+     * @var string|null
+     */
+    public $typeMaybeWithComment;
 
     /**
      * @var bool|null
@@ -73,18 +83,6 @@ class PHPParameter extends BasePHPElement
             }
         }
 
-        $defaultValue = $parameter->default;
-        if ($defaultValue) {
-            if (\property_exists($defaultValue, 'value')) {
-                /**
-                 * @psalm-suppress UndefinedPropertyFetch - false-positive from psalm
-                 */
-                $this->type = \gettype($defaultValue->value);
-            } elseif ($defaultValue instanceof \PhpParser\Node\Expr\Array_) {
-                $this->type = 'array';
-            }
-        }
-
         if ($parameter->type !== null) {
             if (empty($parameter->type->name)) {
                 if (!empty($parameter->type->parts)) {
@@ -93,6 +91,17 @@ class PHPParameter extends BasePHPElement
             } else {
                 $this->type = $parameter->type->name;
             }
+        }
+
+        if ($parameter->default) {
+            $defaultValue = Utils::getPhpParserValueFromNode($parameter->default);
+            if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                $this->defaultValue = $defaultValue;
+            }
+        }
+
+        if ($this->defaultValue !== null) {
+            $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
         }
 
         $this->is_vararg = $parameter->variadic;
@@ -109,7 +118,15 @@ class PHPParameter extends BasePHPElement
      */
     public function readObjectFromReflection($parameter): self
     {
-        $this->name = $parameter->name;
+        $this->name = $parameter->getName();
+
+        if ($parameter->isDefaultValueAvailable()) {
+            $this->defaultValue = $parameter->getDefaultValue();
+
+            if ($this->defaultValue !== null) {
+                $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+            }
+        }
 
         $docComment = $this->readObjectFromReflectionParamHelper($parameter);
         if ($docComment !== null) {
@@ -122,19 +139,12 @@ class PHPParameter extends BasePHPElement
             }
         }
 
-        try {
-            $defaultValue = $parameter->getDefaultValue();
-            $this->type = \gettype($defaultValue);
-        } catch (\Exception $e) {
-            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
-        }
-
         $type = $parameter->getType();
         if ($type !== null) {
             if (\method_exists($type, 'getName')) {
-                $this->type = $type->getName();
+                $this->type = Utils::normalizePhpType($type->getName());
             } else {
-                $this->type = $type . '';
+                $this->type = Utils::normalizePhpType($type . '');
             }
             if ($this->type && \class_exists($this->type)) {
                 $this->type = '\\' . \ltrim($this->type, '\\');
@@ -161,7 +171,7 @@ class PHPParameter extends BasePHPElement
      *
      * @return string|null Type of the property (content of var annotation)
      */
-    private function readObjectFromReflectionParamHelper(ReflectionParameter $parameter): ?string
+    private function readObjectFromReflectionParamHelper($parameter): ?string
     {
         // Get the content of the @param annotation.
         $method = $parameter->getDeclaringFunction();
@@ -171,7 +181,7 @@ class PHPParameter extends BasePHPElement
             return null;
         }
 
-        if (\preg_match_all('/(@.*?param\s+[^\s]+\s+\$' . $parameter->name . ')/ui', $phpDoc, $matches)) {
+        if (\preg_match_all('/(@.*?param\s+[^\s]+\s+\$' . $parameter->getName() . ')/ui', $phpDoc, $matches)) {
             $param = '';
             foreach ($matches[0] as $match) {
                 $param .= $match . "\n";
@@ -201,7 +211,7 @@ class PHPParameter extends BasePHPElement
 
                         $type = $parsedParamTag->getType();
                         if ($type) {
-                            $this->typeFromPhpDoc = $type . '';
+                            $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
                         }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
@@ -220,7 +230,9 @@ class PHPParameter extends BasePHPElement
                             $this->typeFromPhpDocSimple = $returnTypeTmp;
                         }
 
-                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                        if ($this->typeFromPhpDoc) {
+                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                        }
                     }
                 }
             }

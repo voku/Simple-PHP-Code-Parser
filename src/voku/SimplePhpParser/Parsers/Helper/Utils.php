@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
 
+use PhpParser\Node\Expr\UnaryMinus;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 
 final class Utils
 {
+    public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
+
     /**
      * @param array $arr
      * @param bool  $group
@@ -51,6 +54,110 @@ final class Utils
             'parsedParamTagStr' => $parsedParamTagStr,
             'variableName'      => $variableName,
         ];
+    }
+
+    /**
+     * @param \PhpParser\Node\Arg|\PhpParser\Node\Const_|\PhpParser\Node\Expr $node
+     *
+     * @return mixed|string
+     *                      Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
+     */
+    public static function getPhpParserValueFromNode($node)
+    {
+        if (\property_exists($node, 'value')) {
+            /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
+            if (\is_object($node->value)) {
+                \assert($node->value instanceof \PhpParser\Node);
+
+                /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
+                if (\property_exists($node->value, 'value')) {
+                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
+                    return $node->value->value;
+                }
+
+                if (\property_exists($node->value, 'expr')) {
+                    if ($node->value instanceof UnaryMinus) {
+                        /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
+                        return -$node->value->expr->value;
+                    }
+
+                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
+                    return $node->value->expr->value;
+                }
+
+                /** @psalm-suppress NoInterfaceProperties - false-positive ? */
+                if (
+                    \property_exists($node->value, 'name')
+                    &&
+                    \property_exists($node->value->name, 'parts')
+                ) {
+                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
+                    return $node->value->name->parts[0];
+                }
+            }
+
+            /**
+             * @psalm-suppress UndefinedPropertyFetch - false-positive from psalm
+             */
+            return $node->value;
+        }
+
+        if ($node instanceof \PhpParser\Node\Expr\Array_) {
+            $defaultValue = [];
+            foreach ($node->items as $item) {
+                /**
+                 * @psalm-suppress PossiblyNullPropertyFetch - false-positive ?
+                 * @psalm-suppress PossiblyNullArgument - false-positive ?
+                 */
+                $defaultValue[] = self::getPhpParserValueFromNode($item->value);
+            }
+
+            return $defaultValue;
+        }
+
+        if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
+            return $node->name->parts[0];
+        }
+
+        return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;
+    }
+
+    public static function normalizePhpType(string $type_string): string
+    {
+        $type_string_lower = \strtolower($type_string);
+
+        /** @noinspection PhpSwitchCaseWithoutDefaultBranchInspection */
+        switch ($type_string_lower) {
+            case 'int':
+            case 'void':
+            case 'float':
+            case 'string':
+            case 'bool':
+            case 'callable':
+            case 'iterable':
+            case 'array':
+            case 'object':
+            case 'true':
+            case 'false':
+            case 'null':
+            case 'mixed':
+                return $type_string_lower;
+        }
+
+        /** @noinspection PhpSwitchCaseWithoutDefaultBranchInspection */
+        switch ($type_string_lower) {
+            case 'boolean':
+                return 'bool';
+
+            case 'integer':
+                return 'int';
+
+            case 'double':
+            case 'real':
+                return 'float';
+        }
+
+        return $type_string;
     }
 
     /**

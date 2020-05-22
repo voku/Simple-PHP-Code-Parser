@@ -11,29 +11,39 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPProperty extends BasePHPElement
 {
     /**
-     * @var string
+     * @var mixed|null
      */
-    public $type = '';
+    public $defaultValue;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDoc = '';
+    public $type;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDocSimple = '';
+    public $typeFromDefaultValue;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeFromPhpDocPslam = '';
+    public $typeFromPhpDoc;
 
     /**
-     * @var string
+     * @var string|null
      */
-    public $typeMaybeWithComment = '';
+    public $typeFromPhpDocSimple;
+
+    /**
+     * @var string|null
+     */
+    public $typeFromPhpDocPslam;
+
+    /**
+     * @var string|null
+     */
+    public $typeMaybeWithComment;
 
     /**
      * @var string
@@ -54,6 +64,8 @@ class PHPProperty extends BasePHPElement
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
         $this->name = $this->getConstantFQN($node, $node->props[0]->name->name);
+
+        $this->is_static = $node->isStatic();
 
         if ($this->usePhpReflection() === true) {
             return $this;
@@ -80,7 +92,16 @@ class PHPProperty extends BasePHPElement
             }
         }
 
-        $this->is_static = $node->isStatic();
+        if ($node->props[0]->default !== null) {
+            $defaultValue = Utils::getPhpParserValueFromNode($node->props[0]->default);
+            if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                $this->defaultValue = $defaultValue;
+            }
+        }
+
+        if ($this->defaultValue !== null) {
+            $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+        }
 
         if ($node->isPrivate()) {
             $this->access = 'private';
@@ -100,7 +121,17 @@ class PHPProperty extends BasePHPElement
      */
     public function readObjectFromReflection($property): self
     {
-        $this->name = $property->name;
+        $this->name = $property->getName();
+
+        $this->is_static = $property->isStatic();
+
+        if ($this->is_static) {
+            $this->defaultValue = $property->getValue();
+
+            if ($this->defaultValue !== null) {
+                $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+            }
+        }
 
         $docComment = $this->readObjectFromReflectionVarHelper($property);
 
@@ -119,9 +150,9 @@ class PHPProperty extends BasePHPElement
             $type = $property->getType();
             if ($type !== null) {
                 if (\method_exists($type, 'getName')) {
-                    $this->type = $type->getName();
+                    $this->type = Utils::normalizePhpType($type->getName());
                 } else {
-                    $this->type = $type . '';
+                    $this->type = Utils::normalizePhpType($type . '');
                 }
                 if ($this->type && \class_exists($this->type)) {
                     $this->type = '\\' . \ltrim($this->type, '\\');
@@ -136,8 +167,6 @@ class PHPProperty extends BasePHPElement
                 }
             }
         }
-
-        $this->is_static = $property->isStatic();
 
         if ($property->isProtected()) {
             $access = 'protected';
@@ -189,7 +218,7 @@ class PHPProperty extends BasePHPElement
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
                         $type = $parsedParamTag->getType();
                         if ($type) {
-                            $this->typeFromPhpDoc = $type . '';
+                            $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
                         }
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
@@ -208,7 +237,9 @@ class PHPProperty extends BasePHPElement
                             $this->typeFromPhpDocSimple = $returnTypeTmp;
                         }
 
-                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                        if ($this->typeFromPhpDoc) {
+                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                        }
                     }
                 }
             }

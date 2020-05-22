@@ -38,6 +38,7 @@ final class PhpCodeParser
      * @return ParserContainer
      *
      * @noinspection PhpUnusedParameterInspection
+     * @noinspection PhpRedundantCatchClauseInspection
      */
     public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer
     {
@@ -55,7 +56,13 @@ final class PhpCodeParser
                 $usePhpReflection
             );
         }
-        $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
+
+        try {
+            $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
+        } catch (\Amp\Parallel\Worker\TaskFailureThrowable $exception) {
+            throw new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true));
+        }
+
         foreach ($phpFilePromiseResponses as $response) {
             \assert($response instanceof ParserContainer);
             $parserContainer->setClasses($response->getClasses());
