@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.4.0 (2020-05-23)
+
+- add default values for parameter and properties
+- add types from default values
+- normalize types (e.g. double => float)
+
 ### 0.3.0 (2020-05-20)
 
 - "PHPClass" fix phpdoc
