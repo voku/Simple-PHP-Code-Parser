@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.4.1 (2020-05-23)
+
+- "PHPFunction" -> fix phpdoc parsing error
+
 ### 0.4.0 (2020-05-23)
 
 - add default values for parameter and properties
