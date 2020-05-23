@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.4.2 (2020-05-23)
+
+- "PhpCodeChecker" -> fix "$skipMixedTypesAsError" usage 
+
 ### 0.4.1 (2020-05-23)
 
 - "PHPFunction" -> fix phpdoc parsing error
