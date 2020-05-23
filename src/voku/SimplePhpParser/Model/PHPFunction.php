@@ -101,9 +101,13 @@ class PHPFunction extends BasePHPElement
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
-            $this->summary = $phpDoc->getSummary();
-            $this->description = (string) $phpDoc->getDescription();
+            try {
+                $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
+                $this->summary = $phpDoc->getSummary();
+                $this->description = (string) $phpDoc->getDescription();
+            } catch (\Exception $e) {
+                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            }
         }
 
         foreach ($node->getParams() as $parameter) {
