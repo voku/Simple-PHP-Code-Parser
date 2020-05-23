@@ -102,7 +102,7 @@ final class PhpCodeChecker
                         if (
                             $type
                             &&
-                            (!$skipMixedTypesAsError && $type !== 'mixed')
+                            ($skipMixedTypesAsError || (!$skipMixedTypesAsError && $type !== 'mixed'))
                         ) {
                             $typeFound = true;
                         }
@@ -126,7 +126,7 @@ final class PhpCodeChecker
                         if (
                             $type
                             &&
-                            (!$skipMixedTypesAsError && $type !== 'mixed')
+                            ($skipMixedTypesAsError || (!$skipMixedTypesAsError && $type !== 'mixed'))
                         ) {
                             $typeFound = true;
                         }
@@ -154,7 +154,7 @@ final class PhpCodeChecker
                     if (
                         $type
                         &&
-                        (!$skipMixedTypesAsError && $type !== 'mixed')
+                        ($skipMixedTypesAsError || (!$skipMixedTypesAsError && $type !== 'mixed'))
                     ) {
                         $typeFound = true;
                     }
@@ -198,7 +198,7 @@ final class PhpCodeChecker
                     if (
                         $type
                         &&
-                        (!$skipMixedTypesAsError && $type !== 'mixed')
+                        ($skipMixedTypesAsError || (!$skipMixedTypesAsError && $type !== 'mixed'))
                     ) {
                         $typeFound = true;
                     }
@@ -217,7 +217,7 @@ final class PhpCodeChecker
                 if (
                     $type
                     &&
-                    (!$skipMixedTypesAsError && $type !== 'mixed')
+                    ($skipMixedTypesAsError || (!$skipMixedTypesAsError && $type !== 'mixed'))
                 ) {
                     $typeFound = true;
                 }

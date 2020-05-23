@@ -34,9 +34,36 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
             public $foo;
             public int $foo1;
             private $foo2;
+            
+            /** @var mixed */
+            public $foo3;
         }';
 
         $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public']);
+
+        static::assertSame(
+            [
+                'missing property type for voku\tests\SimpleClass->$foo',
+                'missing property type for voku\tests\SimpleClass->$foo3',
+            ],
+            $phpCodeErrors
+        );
+    }
+
+    public function testSimpleStringInputWithMixed(): void
+    {
+        $code = '<?php
+        namespace voku\tests;
+        class SimpleClass {
+            public $foo;
+            public int $foo1;
+            private $foo2;
+            
+            /** @var mixed */
+            public $foo3;
+        }';
+
+        $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public'], true);
 
         static::assertSame(
             [
