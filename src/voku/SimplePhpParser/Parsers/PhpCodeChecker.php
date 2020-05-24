@@ -45,17 +45,16 @@ final class PhpCodeChecker
         bool $skipFunctionsWithLeadingUnderscore = false,
         bool $usePhpReflection = null
     ): array {
-        // init
-        $error = [];
-
         $phpInfo = PhpCodeParser::getPhpFiles($path, $usePhpReflection);
 
-        $error = self::checkFunctions(
+        $errors = $phpInfo->getParseErrors();
+
+        $errors = self::checkFunctions(
             $phpInfo,
             $skipDeprecatedMethods,
             $skipFunctionsWithLeadingUnderscore,
             $skipMixedTypesAsError,
-            $error
+            $errors
         );
 
         return self::checkClasses(
@@ -64,7 +63,7 @@ final class PhpCodeChecker
             $skipDeprecatedMethods,
             $skipFunctionsWithLeadingUnderscore,
             $skipMixedTypesAsError,
-            $error
+            $errors
         );
     }
 

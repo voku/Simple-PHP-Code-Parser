@@ -16,9 +16,9 @@ abstract class BasePHPElement
     public $name = '';
 
     /**
-     * @var string
+     * @var string[]
      */
-    public $parseError = '';
+    public $parseError = [];
 
     /**
      * @var int|null

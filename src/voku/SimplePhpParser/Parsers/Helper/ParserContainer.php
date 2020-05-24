@@ -40,11 +40,24 @@ class ParserContainer
     private $interfaces = [];
 
     /**
+     * @var string[]
+     */
+    private $parse_errors = [];
+
+    /**
      * @return PHPConst[]
      */
     public function getConstants(): array
     {
         return $this->constants;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getParseErrors(): array
+    {
+        return $this->parse_errors;
     }
 
     /**
@@ -113,7 +126,10 @@ class ParserContainer
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['line'] = $function->line;
-            $infoTmp['error'] = $function->parseError;
+            $infoTmp['error'] = \implode("\n", $function->parseError);
+            foreach ($function->parameters as $parameter) {
+                $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);
+            }
             $infoTmp['is_deprecated'] = $function->hasDeprecatedTag;
             $infoTmp['is_meta'] = $function->hasMetaTag;
             $infoTmp['is_internal'] = $function->hasInternalTag;
@@ -199,6 +215,13 @@ class ParserContainer
     {
         foreach ($classes as $className => $class) {
             $this->classes[$className] = $class;
+        }
+    }
+
+    public function setParseError(ParserErrorHandler $error): void
+    {
+        foreach ($error->getErrors() as $errorInner) {
+            $this->parse_errors[] = $errorInner->getFile() . ':' . $errorInner->getLine() . ' | ' . $errorInner->getMessage();
         }
     }
 

@@ -118,7 +118,8 @@ trait PHPDocElement
                 $this->hasInternalTag = $phpDoc->hasTag('internal');
                 $this->hasRemovedTag = $phpDoc->hasTag('removed');
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
     }

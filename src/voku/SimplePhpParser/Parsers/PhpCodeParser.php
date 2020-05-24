@@ -64,11 +64,14 @@ final class PhpCodeParser
         }
 
         foreach ($phpFilePromiseResponses as $response) {
-            \assert($response instanceof ParserContainer);
-            $parserContainer->setClasses($response->getClasses());
-            $parserContainer->setInterfaces($response->getInterfaces());
-            $parserContainer->setConstants($response->getConstants());
-            $parserContainer->setFunctions($response->getFunctions());
+            if ($response instanceof ParserContainer) {
+                $parserContainer->setClasses($response->getClasses());
+                $parserContainer->setInterfaces($response->getInterfaces());
+                $parserContainer->setConstants($response->getConstants());
+                $parserContainer->setFunctions($response->getFunctions());
+            } elseif ($response instanceof ParserErrorHandler) {
+                $parserContainer->setParseError($response);
+            }
         }
 
         foreach ($parserContainer->getInterfaces() as $interface) {
@@ -90,13 +93,13 @@ final class PhpCodeParser
      * @param ParserContainer $phpContainer
      * @param bool|null       $usePhpReflection
      *
-     * @return ParserContainer|null
+     * @return ParserContainer|ParserErrorHandler
      */
     public static function process(
         string $phpCode,
         ParserContainer $phpContainer,
         ?bool $usePhpReflection
-    ): ?ParserContainer {
+    ) {
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
             new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider()
@@ -123,8 +126,10 @@ final class PhpCodeParser
             )
         );
 
+        $errorHandler = new ParserErrorHandler();
+
         $nameResolver = new NameResolver(
-            new ParserErrorHandler(),
+            $errorHandler,
             [
                 'preserveOriginalNames' => true,
             ]
@@ -133,9 +138,9 @@ final class PhpCodeParser
         $parentConnector = new ParentConnector();
 
         /** @var \PhpParser\Node[]|null $parsedCode */
-        $parsedCode = $parser->parse($phpCode, new ParserErrorHandler());
+        $parsedCode = $parser->parse($phpCode, $errorHandler);
         if ($parsedCode === null) {
-            return null;
+            return $errorHandler;
         }
 
         $traverser = new NodeTraverser();

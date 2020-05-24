@@ -77,7 +77,8 @@ class PHPMethod extends PHPFunction
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->parentName . '->' . $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
 

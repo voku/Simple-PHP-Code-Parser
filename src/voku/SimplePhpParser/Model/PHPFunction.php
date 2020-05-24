@@ -106,7 +106,8 @@ class PHPFunction extends BasePHPElement
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
 
@@ -207,7 +208,8 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
-            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }
 }

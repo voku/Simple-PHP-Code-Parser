@@ -64,7 +64,16 @@ class PHPParameter extends BasePHPElement
      */
     public function readObjectFromPhpNode($parameter, $node = null): self
     {
-        $this->name = \is_string($parameter->var->name) ? $parameter->var->name : '';
+        $parameterVar = $parameter->var;
+        if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
+            $this->parseError[] = ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
+
+            $this->name = \md5(\uniqid('error', true));
+
+            return $this;
+        }
+
+        $this->name = \is_string($parameterVar->name) ? $parameterVar->name : '';
 
         if ($this->usePhpReflection() === true) {
             return $this;
@@ -78,7 +87,8 @@ class PHPParameter extends BasePHPElement
                 try {
                     $this->readPhpDoc($docComment->getText(), $this->name);
                 } catch (\Exception $e) {
-                    $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                    $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                    $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
                 }
             }
         }
@@ -135,7 +145,8 @@ class PHPParameter extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment, $this->name);
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
 
@@ -258,7 +269,8 @@ class PHPParameter extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }
 }

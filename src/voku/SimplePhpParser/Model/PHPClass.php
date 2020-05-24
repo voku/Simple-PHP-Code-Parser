@@ -236,7 +236,10 @@ class PHPClass extends BasePHPClass
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['line'] = $method->line;
-            $infoTmp['error'] = $method->parseError;
+            $infoTmp['error'] = \implode("\n", $method->parseError);
+            foreach ($method->parameters as $parameter) {
+                $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);
+            }
             $infoTmp['is_deprecated'] = $method->hasDeprecatedTag;
             $infoTmp['is_meta'] = $method->hasMetaTag;
             $infoTmp['is_internal'] = $method->hasInternalTag;
@@ -318,7 +321,8 @@ class PHPClass extends BasePHPClass
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
 
         return $classPhpDocProperties;

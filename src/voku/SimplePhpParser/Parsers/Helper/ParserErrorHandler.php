@@ -7,7 +7,7 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 use PhpParser\Error;
 use PhpParser\ErrorHandler;
 
-final class ParserErrorHandler implements ErrorHandler
+final class ParserErrorHandler extends ErrorHandler\Collecting
 {
     /**
      * Handle an error generated during lexing, parsing or some other operation.
@@ -19,5 +19,7 @@ final class ParserErrorHandler implements ErrorHandler
     public function handleError(Error $error): void
     {
         $error->setRawMessage($error->getRawMessage() . "\n" . $error->getFile());
+
+        parent::handleError($error);
     }
 }

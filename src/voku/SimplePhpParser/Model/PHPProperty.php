@@ -78,7 +78,8 @@ class PHPProperty extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment->getText());
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
 
@@ -141,7 +142,8 @@ class PHPProperty extends BasePHPElement
             try {
                 $this->readPhpDoc($docComment);
             } catch (\Exception $e) {
-                $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
 
@@ -259,7 +261,8 @@ class PHPProperty extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $this->parseError .= ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }
 }
