@@ -26,7 +26,11 @@ class PHPInterface extends BasePHPClass
 
         $this->name = $this->getFQN($node);
 
-        if (\interface_exists($this->name)) {
+        if (
+            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
+            &&
+            \interface_exists($this->name)
+        ) {
             try {
                 $reflectionInterface = new ReflectionClass($this->name);
                 $this->readObjectFromReflection($reflectionInterface);
@@ -37,6 +41,10 @@ class PHPInterface extends BasePHPClass
 
                 // ignore
             }
+        }
+
+        if ($this->usePhpReflection() === true) {
+            return $this;
         }
 
         $this->collectTags($node);
