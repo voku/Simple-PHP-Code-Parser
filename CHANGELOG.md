@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.5.0 (2020-05-25)
+
+- "ParserErrorHandler" -> show more parsing errors in the results
+- "PHPInterface" -> fix PhpReflection usage
+- "PHPDefineConstant" -> fix php warning
+
 ### 0.4.2 (2020-05-23)
 
 - "PhpCodeChecker" -> fix "$skipMixedTypesAsError" usage 
