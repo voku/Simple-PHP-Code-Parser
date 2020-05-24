@@ -78,11 +78,13 @@ class PHPConst extends BasePHPElement
 
     protected function getConstantFQN(NodeAbstract $node, string $nodeName): string
     {
-        $namespace = '';
         $parent = $node->getAttribute('parent');
         $parentParentNode = $parent ? $parent->getAttribute('parent') : null;
+
         if ($parentParentNode instanceof Namespace_ && !empty($parentParentNode->name)) {
             $namespace = '\\' . \implode('\\', $parentParentNode->name->parts) . '\\';
+        } else {
+            $namespace = '';
         }
 
         return $namespace . $nodeName;

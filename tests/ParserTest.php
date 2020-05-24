@@ -65,6 +65,19 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertCount(1, $phpConstants);
         static::assertSame(123, $phpConstants['FOO']->value);
+
+        // ---
+
+        $code = '<?php
+        namespace foo\bar;
+        define("FOO_BAR", "Lall");
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpConstants = $phpCode->getConstants();
+
+        static::assertCount(1, $phpConstants);
+        static::assertSame('Lall', $phpConstants['\foo\bar\FOO_BAR']->value);
     }
 
     public function testSimpleBrokenPhpDocStringInput(): void
