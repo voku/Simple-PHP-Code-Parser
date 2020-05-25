@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.6.0 (2020-05-25)
+
+- "PhpCodeParser" -> fetch phpdoc-data for @inheritdoc
+
 ### 0.5.0 (2020-05-25)
 
 - "ParserErrorHandler" -> show more parsing errors in the results
