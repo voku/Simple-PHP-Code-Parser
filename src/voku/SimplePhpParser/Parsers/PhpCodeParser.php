@@ -218,7 +218,7 @@ final class PhpCodeParser
             foreach ($class->interfaces as $interfaceStr) {
                 /** @noinspection UnnecessaryIssetArgumentsInspection */
                 if (isset($interfaces[$interfaceStr], $interfaces[$interfaceStr]->methods[$method->name])) {
-                    $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];;
+                    $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
 
                     /** @noinspection AlterInForeachInspection */
                     /** @psalm-suppress RawObjectIteration */
@@ -228,14 +228,13 @@ final class PhpCodeParser
                             &&
                             $interfaceMethod->{$key} !== null
                             &&
-                            stripos($key, 'typeFromPhpDoc') !== false
+                            \stripos($key, 'typeFromPhpDoc') !== false
                         ) {
                             $value = $interfaceMethod->{$key};
                         }
 
                         if ($key === 'parameters') {
                             foreach ($value as $parameterName => $parameter) {
-
                                 \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
 
                                 if (!isset($interfaceMethod->parameters[$parameterName])) {
@@ -252,7 +251,7 @@ final class PhpCodeParser
                                         &&
                                         $interfaceMethodParameter->{$keyInner} !== null
                                         &&
-                                        stripos($keyInner, 'typeFromPhpDoc') !== false
+                                        \stripos($keyInner, 'typeFromPhpDoc') !== false
                                     ) {
                                         $valueInner = $interfaceMethodParameter->{$keyInner};
                                     }
@@ -274,7 +273,7 @@ final class PhpCodeParser
                         &&
                         $parentMethod->{$key} !== null
                         &&
-                        stripos($key, 'typeFromPhpDoc') !== false
+                        \stripos($key, 'typeFromPhpDoc') !== false
                     ) {
                         $value = $parentMethod->{$key};
                     }
@@ -295,7 +294,7 @@ final class PhpCodeParser
                                     &&
                                     $parentMethodParameter->{$keyInner} !== null
                                     &&
-                                    stripos($keyInner, 'typeFromPhpDoc') !== false
+                                    \stripos($keyInner, 'typeFromPhpDoc') !== false
                                 ) {
                                     $valueInner = $parentMethodParameter->{$keyInner};
                                 }
