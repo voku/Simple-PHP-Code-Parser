@@ -140,6 +140,11 @@ class PHPFunction extends BasePHPElement
             $this->parameters[$param->name] = $param;
         }
 
+        $docCommentText = $function->getDocComment();
+        if ($docCommentText) {
+            $this->readPhpDoc($docCommentText);
+        }
+
         return $this;
     }
 

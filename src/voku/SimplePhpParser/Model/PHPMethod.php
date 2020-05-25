@@ -26,6 +26,11 @@ class PHPMethod extends PHPFunction
     public $is_final;
 
     /**
+     * @var bool|null
+     */
+    public $is_inheritdoc;
+
+    /**
      * @var string|null
      *
      * @psalm-var null|class-string
@@ -96,7 +101,13 @@ class PHPMethod extends PHPFunction
 
         $nodeDoc = $node->getDocComment();
         if ($nodeDoc) {
-            $this->readPhpDoc($nodeDoc->getText());
+            $docCommentText = $nodeDoc->getText();
+
+            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                $this->is_inheritdoc = true;
+            }
+
+            $this->readPhpDoc($docCommentText);
         }
 
         if (\strncmp($this->name, 'PS_UNRESERVE_PREFIX_', 20) === 0) {
@@ -147,8 +158,13 @@ class PHPMethod extends PHPFunction
 
         $docComment = $this->readObjectFromReflectionReturnHelper($method);
         if ($docComment !== null) {
-            $docComment = '/** ' . $docComment . ' */';
-            $this->readPhpDoc($docComment);
+            $docCommentText = '/** ' . $docComment . ' */';
+
+            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                $this->is_inheritdoc = true;
+            }
+
+            $this->readPhpDoc($docCommentText);
         }
 
         if ($method->isProtected()) {

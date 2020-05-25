@@ -51,9 +51,14 @@ class PHPProperty extends BasePHPElement
     public $access = '';
 
     /**
-     * @var ?bool
+     * @var bool|null
      */
     public $is_static;
+
+    /**
+     * @var bool|null
+     */
+    public $is_inheritdoc;
 
     /**
      * @param Property $node
@@ -75,12 +80,14 @@ class PHPProperty extends BasePHPElement
 
         $docComment = $node->getDocComment();
         if ($docComment !== null) {
-            try {
-                $this->readPhpDoc($docComment->getText());
-            } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
-                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            $docCommentText = $docComment->getText();
+
+            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                // TODO: inheritdoc
+                $this->is_inheritdoc = true;
             }
+
+            $this->readPhpDoc($docCommentText);
         }
 
         if ($node->type !== null) {
@@ -137,14 +144,14 @@ class PHPProperty extends BasePHPElement
         $docComment = $this->readObjectFromReflectionVarHelper($property);
 
         if ($docComment !== null) {
-            $docComment = '/** ' . $docComment . ' */';
+            $docCommentText = '/** ' . $docComment . ' */';
 
-            try {
-                $this->readPhpDoc($docComment);
-            } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
-                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                // TODO: inheritdoc
+                $this->is_inheritdoc = true;
             }
+
+            $this->readPhpDoc($docCommentText);
         }
 
         /** @noinspection ClassMemberExistenceCheckInspection */

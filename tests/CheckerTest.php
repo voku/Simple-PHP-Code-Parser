@@ -50,6 +50,65 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function testSimpleStringInputInheritdocExtended(): void
+    {
+        $code = '<?php
+        namespace voku\tests;
+        class SimpleClassV1 {
+            /**
+             * @param string $foo
+             */
+            public function lall($foo): array
+            {
+               return [];
+            }
+        }
+        class SimpleClassV2 extends SimpleClassV1 {
+            /**
+             * {@inheritdoc}
+             */
+            public function lall($foo): array
+            {
+               return [];
+            }
+        }';
+
+        $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public'], false);
+
+        static::assertSame(
+            [],
+            $phpCodeErrors
+        );
+    }
+
+    public function testSimpleStringInputInheritdoc(): void
+    {
+        $code = '<?php
+        namespace voku\tests;
+        interface SimpleInterface {
+            /**
+             * @param string $foo
+             */
+            public function lall($foo)
+        }
+        class SimpleClass implements SimpleInterface {
+            /**
+             * {@inheritdoc}
+             */
+            public function lall($foo): array
+            {
+               return [];
+            }
+        }';
+
+        $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public'], false);
+
+        static::assertSame(
+            [],
+            $phpCodeErrors
+        );
+    }
+
     public function testSimpleStringInputWithMixed(): void
     {
         $code = '<?php

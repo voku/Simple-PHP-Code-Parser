@@ -57,6 +57,11 @@ class PHPParameter extends BasePHPElement
     public $is_passed_by_ref;
 
     /**
+     * @var bool|null
+     */
+    public $is_inheritdoc;
+
+    /**
      * @param Param        $parameter
      * @param FunctionLike $node
      *
@@ -84,12 +89,14 @@ class PHPParameter extends BasePHPElement
 
             $docComment = $node->getDocComment();
             if ($docComment !== null) {
-                try {
-                    $this->readPhpDoc($docComment->getText(), $this->name);
-                } catch (\Exception $e) {
-                    $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
-                    $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+                $docCommentText = $docComment->getText();
+
+                if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                    // TODO: inheritdoc
+                    $this->is_inheritdoc = true;
                 }
+
+                $this->readPhpDoc($docCommentText, $this->name);
             }
         }
 
@@ -140,14 +147,14 @@ class PHPParameter extends BasePHPElement
 
         $docComment = $this->readObjectFromReflectionParamHelper($parameter);
         if ($docComment !== null) {
-            $docComment = '/** ' . $docComment . ' */';
+            $docCommentText = '/** ' . $docComment . ' */';
 
-            try {
-                $this->readPhpDoc($docComment, $this->name);
-            } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
-                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                // TODO: inheritdoc
+                $this->is_inheritdoc = true;
             }
+
+            $this->readPhpDoc($docCommentText, $this->name);
         }
 
         $type = $parameter->getType();
