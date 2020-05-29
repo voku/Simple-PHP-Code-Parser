@@ -113,10 +113,6 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getProperties() as $property) {
-            if ($property->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
         }
@@ -126,18 +122,10 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getMethods() as $method) {
-            if ($method->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
-            if ($constant->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->constants[$constant->getName()] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 

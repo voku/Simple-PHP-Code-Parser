@@ -18,7 +18,7 @@ function foo(int $foo = 0)
  * @property int $foo
  * @property string $bar
  */
-final class Dummy extends \stdClass
+class Dummy extends \stdClass
 {
     const FOO1 = [1, 2];
 

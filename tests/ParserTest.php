@@ -101,6 +101,233 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('Foo', $phpClasses['Foo']->name);
     }
 
+    public function testGetMethodsInfoFromExtendedClass(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(
+            __DIR__ . '/Dummy4.php'
+        );
+        $phpClasses = $phpCode->getClasses();
+
+        $result = $phpClasses[Dummy4::class]->getMethodsInfo();
+
+        // DEBUG
+        //\var_export($result);
+
+        static::assertSame(
+            [
+                'withReturnType' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                    ],
+                    'returnTypes' => [
+                        'type'                 => 'array',
+                        'typeMaybeWithComment' => 'array<int,int>',
+                        'typeFromPhpDoc'       => 'array<int,int>',
+                        'typeFromPhpDocSimple' => 'int[]',
+                        'typeFromPhpDocPslam'  => 'array<int, int>',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withoutReturnType' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => 'false|int',
+                        'typeFromPhpDoc'       => 'false|int',
+                        'typeFromPhpDocSimple' => 'false|int',
+                        'typeFromPhpDocPslam'  => 'false|int',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withoutPhpDocParam' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'useRandInt' => [
+                            'type'                 => 'bool',
+                            'typeMaybeWithComment' => null,
+                            'typeFromPhpDoc'       => null,
+                            'typeFromPhpDocSimple' => null,
+                            'typeFromPhpDocPslam'  => null,
+                            'typeFromDefaultValue' => 'bool',
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => 'int[]|string[]|null <p>foo</p>',
+                        'typeFromPhpDoc'       => 'int[]|string[]|null',
+                        'typeFromPhpDocSimple' => 'int[]|string[]|null',
+                        'typeFromPhpDocPslam'  => 'list<int|string>|null',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withPhpDocParam' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'useRandInt' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => 'int[]|null $useRandInt',
+                            'typeFromPhpDoc'       => 'int[]|null',
+                            'typeFromPhpDocSimple' => 'int[]|null',
+                            'typeFromPhpDocPslam'  => 'list<int>|null',
+                            'typeFromDefaultValue' => 'array',
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => null,
+                        'typeFromPhpDoc'       => null,
+                        'typeFromPhpDocSimple' => null,
+                        'typeFromPhpDocPslam'  => null,
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withPsalmPhpDocOnlyParam' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'useRandInt' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => null,
+                            'typeFromPhpDoc'       => null,
+                            'typeFromPhpDocSimple' => null,
+                            'typeFromPhpDocPslam'  => 'list<int>|null',
+                            'typeFromDefaultValue' => 'array',
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => null,
+                        'typeFromPhpDoc'       => null,
+                        'typeFromPhpDocSimple' => null,
+                        'typeFromPhpDocPslam'  => null,
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withComplexReturnArray' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'parsedParamTag' => [
+                            'type'                 => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
+                            'typeMaybeWithComment' => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag $parsedParamTag',
+                            'typeFromPhpDoc'       => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
+                            'typeFromPhpDocSimple' => '\\phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
+                            'typeFromPhpDocPslam'  => 'phpDocumentor\\Reflection\\DocBlock\\Tags\\BaseTag',
+                            'typeFromDefaultValue' => null,
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => 'array',
+                        'typeFromPhpDoc'       => 'array',
+                        'typeFromPhpDocSimple' => 'array',
+                        'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withEmptyParamTypePhpDoc' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'parsedParamTag' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => null,
+                            'typeFromPhpDoc'       => null,
+                            'typeFromPhpDocSimple' => null,
+                            'typeFromPhpDocPslam'  => null,
+                            'typeFromDefaultValue' => null,
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => 'array',
+                        'typeFromPhpDoc'       => 'array',
+                        'typeFromPhpDocSimple' => 'array',
+                        'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+                'withConstFromClass' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                        'p1' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => 'mixed $p1',
+                            'typeFromPhpDoc'       => 'mixed',
+                            'typeFromPhpDocSimple' => 'mixed',
+                            'typeFromPhpDocPslam'  => 'mixed',
+                            'typeFromDefaultValue' => 'array',
+                        ],
+                        'p2' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => 'mixed $p2',
+                            'typeFromPhpDoc'       => 'mixed',
+                            'typeFromPhpDocSimple' => 'mixed',
+                            'typeFromPhpDocPslam'  => 'mixed',
+                            'typeFromDefaultValue' => 'string',
+                        ],
+                        'p3' => [
+                            'type'                 => null,
+                            'typeMaybeWithComment' => 'mixed $p3',
+                            'typeFromPhpDoc'       => 'mixed',
+                            'typeFromPhpDocSimple' => 'mixed',
+                            'typeFromPhpDocPslam'  => 'mixed',
+                            'typeFromDefaultValue' => 'int',
+                        ],
+                    ],
+                    'returnTypes' => [
+                        'type'                 => null,
+                        'typeMaybeWithComment' => 'array',
+                        'typeFromPhpDoc'       => 'array',
+                        'typeFromPhpDocSimple' => 'array',
+                        'typeFromPhpDocPslam'  => 'array<array-key, mixed>',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+            ],
+            $result
+        );
+    }
+
     public function testGetMethodsInfoViaPhpReflectionOnly(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(

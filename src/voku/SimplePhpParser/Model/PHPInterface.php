@@ -66,19 +66,11 @@ class PHPInterface extends BasePHPClass
         $this->name = $interface->getName();
 
         foreach ($interface->getMethods() as $method) {
-            if ($method->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         $this->parentInterfaces = $interface->getInterfaceNames();
         foreach ($interface->getReflectionConstants() as $constant) {
-            if ($constant->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 
