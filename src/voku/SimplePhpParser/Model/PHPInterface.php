@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Interface_;
-use ReflectionClass;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionClass;
 
 class PHPInterface extends BasePHPClass
 {
@@ -32,7 +32,7 @@ class PHPInterface extends BasePHPClass
             \interface_exists($this->name)
         ) {
             try {
-                $reflectionInterface = new ReflectionClass($this->name);
+                $reflectionInterface = ReflectionClass::createFromName($this->name);
                 $this->readObjectFromReflection($reflectionInterface);
             } catch (\ReflectionException $e) {
                 if ($this->usePhpReflection() === true) {
@@ -66,19 +66,11 @@ class PHPInterface extends BasePHPClass
         $this->name = $interface->getName();
 
         foreach ($interface->getMethods() as $method) {
-            if ($method->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         $this->parentInterfaces = $interface->getInterfaceNames();
         foreach ($interface->getReflectionConstants() as $constant) {
-            if ($constant->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 

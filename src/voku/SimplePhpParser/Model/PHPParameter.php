@@ -6,7 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
-use ReflectionParameter;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionParameter;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPParameter extends BasePHPElement
@@ -164,7 +164,7 @@ class PHPParameter extends BasePHPElement
             } else {
                 $this->type = Utils::normalizePhpType($type . '');
             }
-            if ($this->type && \class_exists($this->type)) {
+            if ($this->type && \class_exists($this->type, false)) {
                 $this->type = '\\' . \ltrim($this->type, '\\');
             }
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Property;
-use ReflectionProperty;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPProperty extends BasePHPElement
@@ -163,7 +163,7 @@ class PHPProperty extends BasePHPElement
                 } else {
                     $this->type = Utils::normalizePhpType($type . '');
                 }
-                if ($this->type && \class_exists($this->type)) {
+                if ($this->type && \class_exists($this->type, false)) {
                     $this->type = '\\' . \ltrim($this->type, '\\');
                 }
 

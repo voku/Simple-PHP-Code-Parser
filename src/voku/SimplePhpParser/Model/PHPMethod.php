@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\ClassMethod;
-use ReflectionMethod;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
@@ -59,16 +59,8 @@ class PHPMethod extends PHPFunction
             &&
             \method_exists($this->parentName, $this->name)
         ) {
-            try {
-                $reflectionMethod = new \ReflectionMethod($this->parentName, $this->name);
-                $this->readObjectFromReflection($reflectionMethod);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
+            $reflectionMethod = ReflectionMethod::createFromName($this->parentName, $this->name);
+            $this->readObjectFromReflection($reflectionMethod);
         }
 
         if ($this->usePhpReflection() === true) {

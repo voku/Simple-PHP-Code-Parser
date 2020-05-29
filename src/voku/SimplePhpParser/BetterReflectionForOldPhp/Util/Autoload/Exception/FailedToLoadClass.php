@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+namespace voku\SimplePhpParser\BetterReflectionForOldPhp\Util\Autoload\Exception;
+
+use LogicException;
+
+final class FailedToLoadClass extends LogicException
+{
+    public static function fromClassName(string $className): self
+    {
+        return new self(\sprintf('Unable to load class %s', $className));
+    }
+}

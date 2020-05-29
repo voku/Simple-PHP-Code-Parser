@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Class_;
-use ReflectionClass;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPClass extends BasePHPClass
@@ -37,16 +37,8 @@ class PHPClass extends BasePHPClass
             &&
             \class_exists($this->name)
         ) {
-            try {
-                $reflectionClass = new ReflectionClass($this->name);
-                $this->readObjectFromReflection($reflectionClass);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
+            $reflectionClass = ReflectionClass::createFromName($this->name);
+            $this->readObjectFromReflection($reflectionClass);
         }
 
         if ($this->usePhpReflection() === true) {
@@ -113,10 +105,6 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getProperties() as $property) {
-            if ($property->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
         }
@@ -126,18 +114,10 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getMethods() as $method) {
-            if ($method->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
-            if ($constant->getDeclaringClass()->getName() !== $this->name) {
-                continue;
-            }
-
             $this->constants[$constant->getName()] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
         }
 

@@ -7,9 +7,9 @@ namespace voku\SimplePhpParser\Model;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
-use ReflectionFunction;
-use ReflectionFunctionAbstract;
-use ReflectionMethod;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionFunction;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionFunctionAbstract;
+use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
@@ -73,16 +73,8 @@ class PHPFunction extends BasePHPElement
             &&
             \function_exists($this->name)
         ) {
-            try {
-                $reflectionFunction = new ReflectionFunction($this->name);
-                $this->readObjectFromReflection($reflectionFunction);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
+            $reflectionFunction = ReflectionFunction::createFromName($this->name);
+            $this->readObjectFromReflection($reflectionFunction);
         }
 
         if ($this->usePhpReflection() === true) {

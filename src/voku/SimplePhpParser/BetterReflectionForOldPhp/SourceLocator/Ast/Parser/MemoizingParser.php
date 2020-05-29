@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace voku\SimplePhpParser\BetterReflectionForOldPhp\SourceLocator\Ast\Parser;
+
+use function hash;
+use PhpParser\ErrorHandler;
+use PhpParser\Parser;
+
+/**
+ * @internal
+ */
+final class MemoizingParser implements Parser
+{
+    /**
+     * @var string[] indexed by source hash
+     */
+    private $sourceHashToAst = [];
+
+    /**
+     * @var Parser
+     */
+    private $wrappedParser;
+
+    /**
+     * @param Parser $wrappedParser
+     */
+    public function __construct(Parser $wrappedParser)
+    {
+        $this->wrappedParser = $wrappedParser;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parse(string $code, ?ErrorHandler $errorHandler = null): ?array
+    {
+        // note: this code is mathematically buggy by default, as we are using a hash to identify
+        //       cache entries. The string length is added to further reduce likeliness (although
+        //       already imperceptible) of key collisions.
+        //       In the "real world", this code will work just fine.
+        $hash = \hash('sha256', $code) . ':' . \strlen($code);
+
+        if (!\array_key_exists($hash, $this->sourceHashToAst)) {
+            $this->sourceHashToAst[$hash] = \serialize($this->wrappedParser->parse($code, $errorHandler));
+        }
+
+        return \unserialize($this->sourceHashToAst[$hash], ['allowed_classes' => true]);
+    }
+}
