@@ -9,6 +9,8 @@ namespace voku\tests;
  */
 final class Dummy4 extends Dummy
 {
+    use DummyTrait;
+
     /**
      * @var null|float|int
      */

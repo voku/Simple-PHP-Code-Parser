@@ -115,6 +115,24 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(
             [
+                'getLallTrait' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [
+                    ],
+                    'returnTypes' => [
+                        'type'                 => 'float',
+                        'typeMaybeWithComment' => 'float',
+                        'typeFromPhpDoc'       => 'float',
+                        'typeFromPhpDocSimple' => 'float',
+                        'typeFromPhpDocPslam'  => 'float',
+                    ],
+                    'line'          => null,
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
                 'withReturnType' => [
                     'fullDescription' => '',
                     'paramsTypes'     => [
