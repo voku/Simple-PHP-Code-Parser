@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
+use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 
 abstract class BasePHPElement
 {
@@ -31,20 +32,16 @@ abstract class BasePHPElement
     public $pos;
 
     /**
-     * @var bool|null
+     * @var ParserContainer
      */
-    private $usePhpReflection;
+    public $parserContainer;
 
     /**
-     * @param bool|null $usePhpReflection <p>
-     *                                    null = Php-Parser + PHP-Reflection<br>
-     *                                    true = PHP-Reflection<br>
-     *                                    false = Php-Parser<br>
-     *                                    <p>
+     * @param ParserContainer $parserContainer
      */
-    public function __construct($usePhpReflection)
+    public function __construct($parserContainer)
     {
-        $this->usePhpReflection = $usePhpReflection;
+        $this->parserContainer = $parserContainer;
     }
 
     /**
@@ -52,7 +49,7 @@ abstract class BasePHPElement
      *
      * @return $this
      */
-    abstract public function readObjectFromReflection($object);
+    abstract public function readObjectFromBetterReflection($object);
 
     /**
      * @param NodeAbstract      $mixed_1
@@ -61,11 +58,6 @@ abstract class BasePHPElement
      * @return $this
      */
     abstract public function readObjectFromPhpNode($mixed_1, $mixed_2 = null);
-
-    protected function usePhpReflection(): ?bool
-    {
-        return $this->usePhpReflection;
-    }
 
     protected function getConstantFQN(NodeAbstract $node, string $nodeName): string
     {

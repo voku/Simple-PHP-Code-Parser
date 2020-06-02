@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\ClassMethod;
-use ReflectionMethod;
+use Roave\BetterReflection\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
@@ -39,41 +39,19 @@ class PHPMethod extends PHPFunction
 
     /**
      * @param ClassMethod $node
-     * @param null        $dummy
+     * @param string|null $classStr
+     *
+     * @psalm-param null|class-string $classStr
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null): PHPFunction
+    public function readObjectFromPhpNode($node, $classStr = null): PHPFunction
     {
         $this->prepareNode($node);
 
         $this->parentName = $this->getFQN($node->getAttribute('parent'));
 
         $this->name = $node->name->name;
-
-        /** @noinspection NotOptimalIfConditionsInspection */
-        if (
-            $this->parentName
-            &&
-            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
-            &&
-            \method_exists($this->parentName, $this->name)
-        ) {
-            try {
-                $reflectionMethod = new \ReflectionMethod($this->parentName, $this->name);
-                $this->readObjectFromReflection($reflectionMethod);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
-        }
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
-        }
 
         $docComment = $node->getDocComment();
         if ($docComment) {
@@ -127,7 +105,7 @@ class PHPMethod extends PHPFunction
         }
 
         foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromPhpNode($parameter, $node);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node, $classStr);
             $this->parameters[$param->name] = $param;
         }
 
@@ -139,7 +117,7 @@ class PHPMethod extends PHPFunction
      *
      * @return $this
      */
-    public function readObjectFromReflection($method): PHPFunction
+    public function readObjectFromBetterReflection($method): PHPFunction
     {
         $this->name = $method->getName();
 
@@ -156,7 +134,7 @@ class PHPMethod extends PHPFunction
             }
         }
 
-        $docComment = $this->readObjectFromReflectionReturnHelper($method);
+        $docComment = $this->readObjectFromBetterReflectionReturnHelper($method);
         if ($docComment !== null) {
             $docCommentText = '/** ' . $docComment . ' */';
 
@@ -177,7 +155,7 @@ class PHPMethod extends PHPFunction
         $this->access = $access;
 
         foreach ($method->getParameters() as $parameter) {
-            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromReflection($parameter);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);
             $this->parameters[$param->name] = $param;
         }
 

@@ -9,10 +9,10 @@ namespace voku\tests;
  */
 final class Dummy4 extends Dummy
 {
+    use DummyTrait;
+
     /**
-     * @var null|int[]
-     *
-     * @phpstan-var null|array<int,int>
+     * @var null|float|int
      */
-    public $lall4 = [];
+    public $lall4;
 }

@@ -50,7 +50,7 @@ class PHPDefineConstant extends PHPConst
      *
      * @return $this
      */
-    public function readObjectFromReflection($constant): PHPConst
+    public function readObjectFromBetterReflection($constant): PHPConst
     {
         if (\is_string($constant[0])) {
             $this->name = \utf8_encode($constant[0]);

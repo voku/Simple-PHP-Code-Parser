@@ -19,10 +19,13 @@
         "php": ">=7.1.0",
         "ext-simplexml": "*",
         "amphp/parallel": "~1.4",
+        "composer/composer": "1.10.6",
+        "jetbrains/phpstorm-stubs": "2019.3",
         "phpdocumentor/type-resolver": "~1.0 || ~1.1",
         "phpdocumentor/reflection-docblock": "~4.3 || ~5.1",
         "phpdocumentor/reflection-common": "~2.1",
         "nikic/php-parser": "~4.4",
+        "ondrejmirtes/better-reflection": "~4.2",
         "vimeo/psalm": "~3.11"
     },
     "require-dev": {

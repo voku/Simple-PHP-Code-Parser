@@ -24,28 +24,23 @@ final class PhpCodeParser
 {
     public static function getFromString(string $code): ParserContainer
     {
-        return self::getPhpFiles($code, false);
+        return self::getPhpFiles($code);
     }
 
     /**
-     * @param string    $pathOrCode
-     * @param bool|null $usePhpReflection <p>
-     *                                    null = Php-Parser + PHP-Reflection<br>
-     *                                    true = PHP-Reflection<br>
-     *                                    false = Php-Parser<br>
-     *                                    <p>
+     * @param string $pathOrCode
      *
      * @return ParserContainer
      *
      * @noinspection PhpUnusedParameterInspection
      * @noinspection PhpRedundantCatchClauseInspection
      */
-    public static function getPhpFiles(string $pathOrCode, bool $usePhpReflection = null): ParserContainer
+    public static function getPhpFiles(string $pathOrCode): ParserContainer
     {
         $phpCodes = self::getCode($pathOrCode);
 
         $parserContainer = new ParserContainer();
-        $visitor = new ASTVisitor($parserContainer, $usePhpReflection);
+        $visitor = new ASTVisitor($parserContainer);
 
         $phpFilePromises = [];
         foreach ($phpCodes as $code) {
@@ -53,7 +48,7 @@ final class PhpCodeParser
                 [self::class, 'process'],
                 $code,
                 $parserContainer,
-                $usePhpReflection
+                $visitor
             );
         }
 
@@ -95,15 +90,15 @@ final class PhpCodeParser
 
     /**
      * @param string          $phpCode
-     * @param ParserContainer $phpContainer
-     * @param bool|null       $usePhpReflection
+     * @param ParserContainer $parserContainer
+     * @param ASTVisitor      $visitor
      *
      * @return ParserContainer|ParserErrorHandler
      */
     public static function process(
         string $phpCode,
-        ParserContainer $phpContainer,
-        ?bool $usePhpReflection
+        ParserContainer $parserContainer,
+        ASTVisitor $visitor
     ) {
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
@@ -113,8 +108,6 @@ final class PhpCodeParser
             new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeConfig(),
             $providers
         );
-
-        $visitor = new ASTVisitor($phpContainer, $usePhpReflection);
 
         $parser = (new ParserFactory())->create(
             ParserFactory::PREFER_PHP7,
@@ -140,8 +133,6 @@ final class PhpCodeParser
             ]
         );
 
-        $parentConnector = new ParentConnector();
-
         /** @var \PhpParser\Node[]|null $parsedCode */
         $parsedCode = $parser->parse($phpCode, $errorHandler);
         if ($parsedCode === null) {
@@ -149,12 +140,12 @@ final class PhpCodeParser
         }
 
         $traverser = new NodeTraverser();
-        $traverser->addVisitor($parentConnector);
+        $traverser->addVisitor(new ParentConnector());
         $traverser->addVisitor($nameResolver);
         $traverser->addVisitor($visitor);
         $traverser->traverse($parsedCode);
 
-        return $phpContainer;
+        return $parserContainer;
     }
 
     /**

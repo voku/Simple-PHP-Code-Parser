@@ -18,22 +18,16 @@ final class PhpCodeChecker
             $access,
             $skipMixedTypesAsError,
             $skipDeprecatedMethods,
-            $skipFunctionsWithLeadingUnderscore,
-            false
+            $skipFunctionsWithLeadingUnderscore
         );
     }
 
     /**
-     * @param string    $path
-     * @param bool      $skipMixedTypesAsError
-     * @param string[]  $access
-     * @param bool      $skipDeprecatedMethods
-     * @param bool      $skipFunctionsWithLeadingUnderscore
-     * @param bool|null $usePhpReflection                   <p>
-     *                                                      null = Php-Parser + PHP-Reflection<br>
-     *                                                      true = PHP-Reflection<br>
-     *                                                      false = Php-Parser<br>
-     *                                                      <p>
+     * @param string   $path
+     * @param bool     $skipMixedTypesAsError
+     * @param string[] $access
+     * @param bool     $skipDeprecatedMethods
+     * @param bool     $skipFunctionsWithLeadingUnderscore
      *
      * @return string[]
      */
@@ -42,10 +36,9 @@ final class PhpCodeChecker
         array $access = ['public', 'protected', 'private'],
         bool $skipMixedTypesAsError = false,
         bool $skipDeprecatedMethods = false,
-        bool $skipFunctionsWithLeadingUnderscore = false,
-        bool $usePhpReflection = null
+        bool $skipFunctionsWithLeadingUnderscore = false
     ): array {
-        $phpInfo = PhpCodeParser::getPhpFiles($path, $usePhpReflection);
+        $phpInfo = PhpCodeParser::getPhpFiles($path);
 
         $errors = $phpInfo->getParseErrors();
 

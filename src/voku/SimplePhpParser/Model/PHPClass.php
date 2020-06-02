@@ -5,18 +5,29 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Class_;
-use ReflectionClass;
+use Roave\BetterReflection\Reflection\ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPClass extends BasePHPClass
 {
     /**
+     * @var string
+     *
+     * @psalm-var class-string
+     */
+    public $name;
+
+    /**
      * @var string|null
+     *
+     * @psalm-var class-string|null
      */
     public $parentClass;
 
     /**
      * @var string[]
+     *
+     * @psalm-var class-string[]
      */
     public $interfaces = [];
 
@@ -32,35 +43,23 @@ class PHPClass extends BasePHPClass
 
         $this->name = $this->getFQN($node);
 
-        if (
-            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
-            &&
-            \class_exists($this->name)
-        ) {
-            try {
-                $reflectionClass = new ReflectionClass($this->name);
-                $this->readObjectFromReflection($reflectionClass);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
-        }
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
+        /** @noinspection NotOptimalIfConditionsInspection */
+        if (\class_exists($this->name, true)) {
+            $reflectionClass = ReflectionClass::createFromName($this->name);
+            $this->readObjectFromBetterReflection($reflectionClass);
         }
 
         $this->collectTags($node);
 
         if (!empty($node->extends)) {
-            $this->parentClass = '';
+            $classExtended = '';
             foreach ($node->extends->parts as $part) {
-                $this->parentClass .= "\\${part}";
+                $classExtended .= "\\${part}";
             }
-            $this->parentClass = \ltrim($this->parentClass, '\\');
+            /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
+            /** @var class-string $classExtended */
+            $classExtended = \ltrim($classExtended, '\\');
+            $this->parentClass = $classExtended;
         }
 
         $docComment = $node->getDocComment();
@@ -72,8 +71,12 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($node->getProperties() as $property) {
-            $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromPhpNode($property);
+            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
             $this->properties[$propertyPhp->name] = $propertyPhp;
+        }
+
+        foreach ($node->getMethods() as $method) {
+            $this->methods[$method->name->name] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method, $this->name);
         }
 
         if (!empty($node->implements)) {
@@ -83,6 +86,9 @@ class PHPClass extends BasePHPClass
                     $interfaceFQN .= "\\${interface}";
                 }
                 $interfaceFQN = \ltrim($interfaceFQN, '\\');
+                /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
+                /** @var class-string $interfaceFQN */
+                $interfaceFQN = $interfaceFQN;
                 $this->interfaces[$interfaceFQN] = $interfaceFQN;
             }
         }
@@ -95,7 +101,7 @@ class PHPClass extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromReflection($clazz): self
+    public function readObjectFromBetterReflection($clazz): self
     {
         $this->name = $clazz->getName();
 
@@ -113,20 +119,23 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getProperties() as $property) {
-            $propertyPhp = (new PHPProperty($this->usePhpReflection()))->readObjectFromReflection($property);
+            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromBetterReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
         }
 
         foreach ($clazz->getInterfaceNames() as $interfaceName) {
+            /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
+            /** @var class-string $interfaceName */
+            $interfaceName = $interfaceName;
             $this->interfaces[$interfaceName] = $interfaceName;
         }
 
         foreach ($clazz->getMethods() as $method) {
-            $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
+            $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
-            $this->constants[$constant->getName()] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
+            $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
         }
 
         return $this;
@@ -268,7 +277,7 @@ class PHPClass extends BasePHPClass
                         ||
                         $parsedPropertyTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Property
                     ) {
-                        $propertyPhp = new PHPProperty($this->usePhpReflection());
+                        $propertyPhp = new PHPProperty($this->parserContainer);
 
                         $nameTmp = $parsedPropertyTag->getVariableName();
                         if (!$nameTmp) {
@@ -280,9 +289,8 @@ class PHPClass extends BasePHPClass
                         $propertyPhp->access = 'public';
 
                         $type = $parsedPropertyTag->getType();
-                        if ($type) {
-                            $propertyPhp->typeFromPhpDoc = Utils::normalizePhpType($type . '');
-                        }
+
+                        $propertyPhp->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedPropertyTag);
                         if (
@@ -293,11 +301,11 @@ class PHPClass extends BasePHPClass
                             $propertyPhp->typeMaybeWithComment = $typeMaybeWithCommentTmp;
                         }
 
-                        $returnTypeTmp = Utils::parseDocTypeObject($type);
-                        if (\is_array($returnTypeTmp)) {
-                            $propertyPhp->typeFromPhpDocSimple = \implode('|', $returnTypeTmp);
-                        } else {
-                            $propertyPhp->typeFromPhpDocSimple = $returnTypeTmp;
+                        $typeTmp = Utils::parseDocTypeObject($type);
+                        if (\is_array($typeTmp) && \count($typeTmp) > 0) {
+                            $propertyPhp->typeFromPhpDocSimple = \implode('|', $typeTmp);
+                        } elseif (\is_string($typeTmp)) {
+                            $propertyPhp->typeFromPhpDocSimple = $typeTmp;
                         }
 
                         if ($propertyPhp->typeFromPhpDoc) {

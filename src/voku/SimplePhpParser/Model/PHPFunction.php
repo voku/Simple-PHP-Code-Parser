@@ -7,9 +7,9 @@ namespace voku\SimplePhpParser\Model;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
-use ReflectionFunction;
-use ReflectionFunctionAbstract;
-use ReflectionMethod;
+use Roave\BetterReflection\Reflection\ReflectionFunction;
+use Roave\BetterReflection\Reflection\ReflectionFunctionAbstract;
+use Roave\BetterReflection\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
@@ -68,25 +68,10 @@ class PHPFunction extends BasePHPElement
 
         $this->name = $this->getFQN($node);
 
-        if (
-            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
-            &&
-            \function_exists($this->name)
-        ) {
-            try {
-                $reflectionFunction = new ReflectionFunction($this->name);
-                $this->readObjectFromReflection($reflectionFunction);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
-        }
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
+        /** @noinspection NotOptimalIfConditionsInspection */
+        if (\function_exists($this->name)) {
+            $reflectionFunction = ReflectionFunction::createFromName($this->name);
+            $this->readObjectFromBetterReflection($reflectionFunction);
         }
 
         if ($node->returnType) {
@@ -112,7 +97,7 @@ class PHPFunction extends BasePHPElement
         }
 
         foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromPhpNode($parameter, $node);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node);
             $this->parameters[$param->name] = $param;
         }
 
@@ -131,12 +116,12 @@ class PHPFunction extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromReflection($function): self
+    public function readObjectFromBetterReflection($function): self
     {
         $this->name = $function->getName();
 
         foreach ($function->getParameters() as $parameter) {
-            $param = (new PHPParameter($this->usePhpReflection()))->readObjectFromReflection($parameter);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);
             $this->parameters[$param->name] = $param;
         }
 
@@ -153,7 +138,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return string|null Type of the property (content of var annotation)
      */
-    protected function readObjectFromReflectionReturnHelper($function): ?string
+    protected function readObjectFromBetterReflectionReturnHelper($function): ?string
     {
         $phpDoc = $function->getDocComment();
         if (!$phpDoc) {
@@ -187,15 +172,14 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
                 $type = $parsedReturnTagReturn->getType();
-                if ($type) {
-                    $this->returnTypeFromPhpDoc = Utils::normalizePhpType($type . '');
-                }
 
-                $returnTypeTmp = Utils::parseDocTypeObject($type);
-                if (\is_array($returnTypeTmp)) {
-                    $this->returnTypeFromPhpDocSimple = \implode('|', $returnTypeTmp);
-                } else {
-                    $this->returnTypeFromPhpDocSimple = $returnTypeTmp;
+                $this->returnTypeFromPhpDoc = Utils::normalizePhpType($type . '');
+
+                $typeTmp = Utils::parseDocTypeObject($type);
+                if (\is_array($typeTmp) && \count($typeTmp) > 0) {
+                    $this->returnTypeFromPhpDocSimple = \implode('|', $typeTmp);
+                } elseif (\is_string($typeTmp)) {
+                    $this->returnTypeFromPhpDocSimple = $typeTmp;
                 }
 
                 if ($this->returnTypeFromPhpDoc) {
