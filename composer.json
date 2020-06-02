@@ -25,6 +25,7 @@
         "phpdocumentor/reflection-docblock": "~4.3 || ~5.1",
         "phpdocumentor/reflection-common": "~2.1",
         "nikic/php-parser": "~4.4",
+        "ondrejmirtes/better-reflection": "~4.2",
         "vimeo/psalm": "~3.11"
     },
     "require-dev": {

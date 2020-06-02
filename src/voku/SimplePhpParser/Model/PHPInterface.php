@@ -5,12 +5,21 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Interface_;
-use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionClass;
+use Roave\BetterReflection\Reflection\ReflectionClass;
 
 class PHPInterface extends BasePHPClass
 {
     /**
+     * @var string
+     *
+     * @psalm-var class-string
+     */
+    public $name;
+
+    /**
      * @var string[]
+     *
+     * @psalm-var class-string[]
      */
     public $parentInterfaces = [];
 
@@ -26,31 +35,22 @@ class PHPInterface extends BasePHPClass
 
         $this->name = $this->getFQN($node);
 
-        if (
-            ($this->usePhpReflection() === null || $this->usePhpReflection() === true)
-            &&
-            \interface_exists($this->name)
-        ) {
-            try {
-                $reflectionInterface = ReflectionClass::createFromName($this->name);
-                $this->readObjectFromReflection($reflectionInterface);
-            } catch (\ReflectionException $e) {
-                if ($this->usePhpReflection() === true) {
-                    throw $e;
-                }
-
-                // ignore
-            }
-        }
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
+        /** @noinspection NotOptimalIfConditionsInspection */
+        if (\interface_exists($this->name)) {
+            $reflectionInterface = ReflectionClass::createFromName($this->name);
+            $this->readObjectFromBetterReflection($reflectionInterface);
         }
 
         $this->collectTags($node);
 
+        foreach ($node->getMethods() as $method) {
+            $this->methods[$method->name->name] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method);
+        }
+
         if (!empty($node->extends)) {
-            $this->parentInterfaces[] = \implode('\\', $node->extends[0]->parts);
+            /** @var class-string $interfaceExtended */
+            $interfaceExtended = \implode('\\', $node->extends[0]->parts);
+            $this->parentInterfaces[] = $interfaceExtended;
         }
 
         return $this;
@@ -61,17 +61,20 @@ class PHPInterface extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromReflection($interface): self
+    public function readObjectFromBetterReflection($interface): self
     {
         $this->name = $interface->getName();
 
         foreach ($interface->getMethods() as $method) {
-            $this->methods[$method->getName()] = (new PHPMethod($this->usePhpReflection()))->readObjectFromReflection($method);
+            $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
         }
 
-        $this->parentInterfaces = $interface->getInterfaceNames();
+        /** @var class-string[] $interfaceNames */
+        $interfaceNames = $interface->getInterfaceNames();
+        $this->parentInterfaces = $interfaceNames;
+
         foreach ($interface->getReflectionConstants() as $constant) {
-            $this->constants[$constant->name] = (new PHPConst($this->usePhpReflection()))->readObjectFromReflection($constant);
+            $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
         }
 
         return $this;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Property;
-use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionProperty;
+use Roave\BetterReflection\Reflection\ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPProperty extends BasePHPElement
@@ -61,20 +61,18 @@ class PHPProperty extends BasePHPElement
     public $is_inheritdoc;
 
     /**
-     * @param Property $node
-     * @param null     $dummy
+     * @param Property    $node
+     * @param string|null $classStr
+     *
+     * @psalm-param class-string|null $classStr
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $dummy = null): self
+    public function readObjectFromPhpNode($node, $classStr = null): self
     {
         $this->name = $this->getConstantFQN($node, $node->props[0]->name->name);
 
         $this->is_static = $node->isStatic();
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
-        }
 
         $this->prepareNode($node);
 
@@ -83,7 +81,6 @@ class PHPProperty extends BasePHPElement
             $docCommentText = $docComment->getText();
 
             if (\stripos($docCommentText, 'inheritdoc') !== false) {
-                // TODO: inheritdoc
                 $this->is_inheritdoc = true;
             }
 
@@ -101,7 +98,7 @@ class PHPProperty extends BasePHPElement
         }
 
         if ($node->props[0]->default !== null) {
-            $defaultValue = Utils::getPhpParserValueFromNode($node->props[0]->default);
+            $defaultValue = Utils::getPhpParserValueFromNode($node->props[0]->default, $classStr);
             if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
                 $this->defaultValue = $defaultValue;
             }
@@ -127,7 +124,7 @@ class PHPProperty extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromReflection($property): self
+    public function readObjectFromBetterReflection($property): self
     {
         $this->name = $property->getName();
 
@@ -141,13 +138,12 @@ class PHPProperty extends BasePHPElement
             }
         }
 
-        $docComment = $this->readObjectFromReflectionVarHelper($property);
+        $docComment = $this->readObjectFromBetterReflectionVarHelper($property);
 
         if ($docComment !== null) {
             $docCommentText = '/** ' . $docComment . ' */';
 
             if (\stripos($docCommentText, 'inheritdoc') !== false) {
-                // TODO: inheritdoc
                 $this->is_inheritdoc = true;
             }
 
@@ -171,7 +167,7 @@ class PHPProperty extends BasePHPElement
                     if ($this->type) {
                         $this->type = 'null|' . $this->type;
                     } else {
-                        $this->type = 'null';
+                        $this->type = 'null|mixed';
                     }
                 }
             }
@@ -194,7 +190,7 @@ class PHPProperty extends BasePHPElement
      *
      * @return string|null Type of the property (content of var annotation)
      */
-    private function readObjectFromReflectionVarHelper(ReflectionProperty $property): ?string
+    private function readObjectFromBetterReflectionVarHelper(ReflectionProperty $property): ?string
     {
         // Get the content of the @var annotation.
 
@@ -226,9 +222,8 @@ class PHPProperty extends BasePHPElement
                 foreach ($parsedParamTags as $parsedParamTag) {
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
                         $type = $parsedParamTag->getType();
-                        if ($type) {
-                            $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
-                        }
+
+                        $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
                         $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
                         if (
@@ -239,11 +234,11 @@ class PHPProperty extends BasePHPElement
                             $this->typeMaybeWithComment = $typeMaybeWithCommentTmp;
                         }
 
-                        $returnTypeTmp = Utils::parseDocTypeObject($type);
-                        if (\is_array($returnTypeTmp)) {
-                            $this->typeFromPhpDocSimple = \implode('|', $returnTypeTmp);
-                        } else {
-                            $this->typeFromPhpDocSimple = $returnTypeTmp;
+                        $typeTmp = Utils::parseDocTypeObject($type);
+                        if (\is_array($typeTmp) && \count($typeTmp) > 0) {
+                            $this->typeFromPhpDocSimple = \implode('|', $typeTmp);
+                        } elseif (\is_string($typeTmp) && $typeTmp !== '') {
+                            $this->typeFromPhpDocSimple = $typeTmp;
                         }
 
                         if ($this->typeFromPhpDoc) {

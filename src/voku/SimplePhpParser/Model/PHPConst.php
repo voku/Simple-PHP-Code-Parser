@@ -8,7 +8,7 @@ use PhpParser\Node\Const_;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
-use voku\SimplePhpParser\BetterReflectionForOldPhp\Reflection\ReflectionClassConstant;
+use Roave\BetterReflection\Reflection\ReflectionClassConstant;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPConst extends BasePHPElement
@@ -21,7 +21,9 @@ class PHPConst extends BasePHPElement
     public $parentName;
 
     /**
-     * @var float|int|string|null
+     * @var array|bool|float|int|string|null
+     *
+     * @psalm-var scalar|array<scalar>|null
      */
     public $value;
 
@@ -39,10 +41,6 @@ class PHPConst extends BasePHPElement
     public function readObjectFromPhpNode($node, $dummy = null): self
     {
         $this->prepareNode($node);
-
-        if ($this->usePhpReflection() === true) {
-            return $this;
-        }
 
         $this->name = $this->getConstantFQN($node, $node->name->name);
 
@@ -64,7 +62,7 @@ class PHPConst extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromReflection($constant): self
+    public function readObjectFromBetterReflection($constant): self
     {
         $this->name = $constant->getName();
 

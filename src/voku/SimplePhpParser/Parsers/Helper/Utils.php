@@ -58,12 +58,17 @@ final class Utils
 
     /**
      * @param \PhpParser\Node\Arg|\PhpParser\Node\Const_|\PhpParser\Node\Expr $node
+     * @param string|null                                                     $classStr
+     * @param class-string                                                    $classStr
      *
      * @return mixed|string
      *                      Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
      */
-    public static function getPhpParserValueFromNode($node)
-    {
+    public static function getPhpParserValueFromNode(
+        $node,
+        ?string $classStr = null,
+        ?ParserContainer $parserContainer = null
+    ) {
         if (\property_exists($node, 'value')) {
             /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
             if (\is_object($node->value)) {
@@ -115,14 +120,45 @@ final class Utils
             return $defaultValue;
         }
 
+        if ($node instanceof \PhpParser\Node\Expr\ClassConstFetch) {
+            \assert($node->class instanceof \PhpParser\Node\Name);
+            \assert($node->name instanceof \PhpParser\Node\Identifier);
+            $className = $node->class->toString();
+            $constantName = $node->name->name;
+
+            if ($className === 'self' || $className === 'static') {
+                if ($classStr === null || $parserContainer === null) {
+                    return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;
+                }
+
+                $className = self::findParentClassDeclaringConstant($classStr, $constantName, $parserContainer);
+            }
+
+            return \constant($className . '::' . $node->name->name);
+        }
+
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
+            $returnTmp = \strtolower($node->name->parts[0]);
+
+            if ($returnTmp === 'true') {
+                return true;
+            }
+
+            if ($returnTmp === 'false') {
+                return false;
+            }
+
+            if ($returnTmp === 'null') {
+                return null;
+            }
+
             return $node->name->parts[0];
         }
 
         return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;
     }
 
-    public static function normalizePhpType(string $type_string): string
+    public static function normalizePhpType(string $type_string): ?string
     {
         $type_string_lower = \strtolower($type_string);
 
@@ -155,6 +191,10 @@ final class Utils
             case 'double':
             case 'real':
                 return 'float';
+        }
+
+        if ($type_string === '') {
+            return null;
         }
 
         return $type_string;
@@ -262,8 +302,6 @@ final class Utils
         }
 
         return $type . '';
-
-        // throw new \Exception('Unhandled PhpDoc type: ' . get_class($type));
     }
 
     /**
@@ -307,5 +345,24 @@ final class Utils
         }
 
         return $docBlockFactory;
+    }
+
+    private static function findParentClassDeclaringConstant(
+        string $classStr,
+        string $constantName,
+        ParserContainer $parserContainer
+    ): string {
+        do {
+            $class = $parserContainer->getClass($classStr);
+            if ($class && isset($class->constants[$constantName])) {
+                return $class->name;
+            }
+
+            if ($class && $class->parentClass) {
+                $class = $parserContainer->getClass($class->parentClass);
+            }
+        } while ($class);
+
+        return $classStr;
     }
 }
