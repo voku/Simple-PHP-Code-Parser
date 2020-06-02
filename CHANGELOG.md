@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.7.0 (2020-06-02)
+
+- replace PhpReflection with BetterReflection
+
 ### 0.6.0 (2020-05-25)
 
 - "PhpCodeParser" -> fetch phpdoc-data for @inheritdoc
