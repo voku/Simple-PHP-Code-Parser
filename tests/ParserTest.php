@@ -23,6 +23,24 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('bool', $phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['useRandInt']->type);
     }
 
+    public function testSimpleOneClassV2(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy3.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(Dummy3::class, $phpClasses[Dummy3::class]->name);
+
+        $withComplexReturnArray = $phpClasses[Dummy3::class]->methods['withComplexReturnArray'];
+
+        static::assertSame('withComplexReturnArray', $withComplexReturnArray->name);
+        static::assertSame('This is a test-text [...] öäü !"§?.', $withComplexReturnArray->summary . $withComplexReturnArray->description);
+
+        $parsedParamTag = $withComplexReturnArray->parameters['parsedParamTag'];
+
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $parsedParamTag->type);
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag <p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeMaybeWithComment);
+    }
+
     public function testSimpleDirectory(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/');

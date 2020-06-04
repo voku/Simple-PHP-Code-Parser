@@ -134,7 +134,8 @@ final class Utils
                 $className = self::findParentClassDeclaringConstant($classStr, $constantName, $parserContainer);
             }
 
-            return \constant($className . '::' . $node->name->name);
+            /** @noinspection PhpUsageOfSilenceOperatorInspection */
+            return @\constant($className . '::' . $node->name->name);
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {

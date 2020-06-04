@@ -27,7 +27,10 @@ final class Dummy3 implements DummyInterface
     }
 
     /**
+     * This is a test-text [...] öäü !"§?.
+     *
      * @param \phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag
+     *                                                                        <p>this is a test-text [...] öäü !"§?</p>
      *
      * @return array
      *

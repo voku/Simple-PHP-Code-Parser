@@ -14,6 +14,7 @@ use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use voku\cache\Cache;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -41,14 +42,17 @@ final class PhpCodeParser
 
         $parserContainer = new ParserContainer();
         $visitor = new ASTVisitor($parserContainer);
+        $cache = new Cache(null, null, false);
 
         $phpFilePromises = [];
-        foreach ($phpCodes as $code) {
+        foreach ($phpCodes as $cacheKey => $codeAndFileName) {
             $phpFilePromises[] = Worker\enqueueCallable(
                 [self::class, 'process'],
-                $code,
+                $codeAndFileName['content'],
                 $parserContainer,
-                $visitor
+                $visitor,
+                $cache,
+                $cacheKey
             );
         }
 
@@ -92,14 +96,20 @@ final class PhpCodeParser
      * @param string          $phpCode
      * @param ParserContainer $parserContainer
      * @param ASTVisitor      $visitor
+     * @param Cache           $cache
+     * @param string          $cacheKey
      *
      * @return ParserContainer|ParserErrorHandler
      */
     public static function process(
         string $phpCode,
         ParserContainer $parserContainer,
-        ASTVisitor $visitor
+        ASTVisitor $visitor,
+        Cache $cache,
+        string $cacheKey
     ) {
+        $cacheKey .= '--process';
+
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
             new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider()
@@ -133,8 +143,15 @@ final class PhpCodeParser
             ]
         );
 
-        /** @var \PhpParser\Node[]|null $parsedCode */
-        $parsedCode = $parser->parse($phpCode, $errorHandler);
+        if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
+            $parsedCode = $cache->getItem($cacheKey);
+        } else {
+            /** @var \PhpParser\Node[]|null $parsedCode */
+            $parsedCode = $parser->parse($phpCode, $errorHandler);
+
+            $cache->setItem($cacheKey, $parsedCode);
+        }
+
         if ($parsedCode === null) {
             return $errorHandler;
         }
@@ -149,14 +166,44 @@ final class PhpCodeParser
     }
 
     /**
+     * @param string $fileName
+     * @param Cache  $cache
+     *
+     * @return array{content: string, fileName: string, cacheKey: string}
+     *
+     * @internal
+     */
+    public static function file_get_contents_with_cache(string $fileName, Cache $cache): array
+    {
+        $cacheKey = 'simple-php-code-parser-' . \md5($fileName) . '--' . \filemtime($fileName);
+
+        if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
+            return $cache->getItem($cacheKey);
+        }
+
+        $content = (string) \file_get_contents($fileName);
+
+        $return = [
+            'content'  => $content,
+            'fileName' => $fileName,
+            'cacheKey' => $cacheKey,
+        ];
+
+        $cache->setItem($cacheKey, $return);
+
+        return $return;
+    }
+
+    /**
      * @param string $pathOrCode
      *
-     * @return string[]
+     * @return array
+     *
+     * @psalm-return array<string, array{content: string, fileName: null|string}>
      */
     private static function getCode(string $pathOrCode): array
     {
         // init
-        /** @var string[] $phpCodes */
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
@@ -170,8 +217,13 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $phpCodes[] = $pathOrCode;
+            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode);
+
+            $phpCodes[$cacheKey]['content'] = $pathOrCode;
+            $phpCodes[$cacheKey]['fileName'] = null;
         }
+
+        $cache = new Cache(null, null, false);
 
         foreach ($phpFileIterators as $fileOrCode) {
             $path = $fileOrCode->getRealPath();
@@ -179,11 +231,20 @@ final class PhpCodeParser
                 continue;
             }
 
-            $phpFilePromises[] = Worker\enqueueCallable('file_get_contents', $path);
+            $phpFilePromises[] = Worker\enqueueCallable(
+                [self::class, 'file_get_contents_with_cache'],
+                $path,
+                $cache
+            );
         }
         $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
         foreach ($phpFilePromiseResponses as $response) {
-            $phpCodes[] = $response;
+            /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
+            /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */
+            $response = $response;
+
+            $phpCodes[$response['cacheKey']]['content'] = $response['content'];
+            $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
         }
 
         return $phpCodes;
