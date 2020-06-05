@@ -84,7 +84,7 @@ class ParserContainer
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
      *
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
@@ -126,6 +126,7 @@ class ParserContainer
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['line'] = $function->line;
+            $infoTmp['file'] = $function->file;
             $infoTmp['error'] = \implode("\n", $function->parseError);
             foreach ($function->parameters as $parameter) {
                 $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);

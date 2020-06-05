@@ -29,7 +29,7 @@ final class PhpCodeChecker
      * @param bool     $skipDeprecatedMethods
      * @param bool     $skipFunctionsWithLeadingUnderscore
      *
-     * @return string[]
+     * @return string[][]
      */
     public static function checkPhpFiles(
         string $path,
@@ -100,7 +100,7 @@ final class PhpCodeChecker
                         }
                     }
                     if (!$typeFound) {
-                        $error[] = 'missing parameter type for ' . $class->name . '::' . $methodName . '() | parameter:' . $paramName;
+                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: missing parameter type for ' . $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '() | parameter:' . $paramName;
                     }
                 }
 
@@ -124,11 +124,11 @@ final class PhpCodeChecker
                         }
                     }
                     if (!$typeFound) {
-                        $error[] = 'missing return type for ' . $class->name . '::' . $methodName . '()';
+                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: missing return type for ' . $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()';
                     }
 
                     if ($methodInfo['error']) {
-                        $error[] = $methodInfo['error'];
+                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: ' . $methodInfo['error'];
                     }
                 }
             }
@@ -152,7 +152,7 @@ final class PhpCodeChecker
                     }
                 }
                 if (!$typeFound) {
-                    $error[] = 'missing property type for ' . $class->name . '->$' . $propertyName;
+                    $error[$class->file][] = '[' . $class->line . ']: missing property type for ' . $class->name . '->$' . $propertyName;
                 }
             }
         }
@@ -196,7 +196,7 @@ final class PhpCodeChecker
                     }
                 }
                 if (!$typeFound) {
-                    $error[] = 'missing parameter type for ' . $functionName . '() | parameter:' . $paramName;
+                    $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: missing parameter type for ' . $functionName . '() | parameter:' . $paramName;
                 }
             }
 
@@ -215,11 +215,11 @@ final class PhpCodeChecker
                 }
             }
             if (!$typeFound) {
-                $error[] = 'missing return type for ' . $functionName . '()';
+                $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: missing return type for ' . $functionName . '()';
             }
 
             if ($functionInfo['error']) {
-                $error[] = $functionInfo['error'];
+                $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: ' . $functionInfo['error'];
             }
         }
 

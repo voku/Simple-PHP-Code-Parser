@@ -66,6 +66,11 @@ class PHPConst extends BasePHPElement
     {
         $this->name = $constant->getName();
 
+        $file = $constant->getDeclaringClass()->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
+
         /** @psalm-suppress InvalidPropertyAssignmentValue - upstream phpdoc error ? */
         $this->value = $constant->getValue();
 

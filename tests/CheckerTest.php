@@ -17,10 +17,14 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(
             [
-                'missing return type for voku\tests\foo3()',
-                'missing parameter type for voku\tests\Dummy3::lall() | parameter:foo',
-                'missing return type for voku\tests\Dummy3::lall()',
-                'missing property type for voku\tests\Dummy3->$foo',
+                '' => [
+                    '[7]: missing return type for voku\tests\foo3()',
+                ],
+                '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy3.php' => [
+                    '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
+                    '[24]: missing return type for voku\tests\Dummy3->lall()',
+                    '[15]: missing property type for voku\tests\Dummy3->$foo',
+                ],
             ],
             $phpCodeErrors
         );
@@ -43,8 +47,10 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(
             [
-                'missing property type for voku\tests\SimpleClass->$foo',
-                'missing property type for voku\tests\SimpleClass->$foo3',
+                '' => [
+                    '[3]: missing property type for voku\tests\SimpleClass->$foo',
+                    '[3]: missing property type for voku\tests\SimpleClass->$foo3',
+                ],
             ],
             $phpCodeErrors
         );
@@ -126,7 +132,9 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(
             [
-                'missing property type for voku\tests\SimpleClass->$foo',
+                '' => [
+                    '[3]: missing property type for voku\tests\SimpleClass->$foo',
+                ],
             ],
             $phpCodeErrors
         );

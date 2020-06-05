@@ -97,8 +97,14 @@ class PHPFunction extends BasePHPElement
         }
 
         foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node);
-            $this->parameters[$param->name] = $param;
+            $paramNameTmp = $parameter->var->name;
+            \assert(\is_string($paramNameTmp));
+
+            if (isset($this->parameters[$paramNameTmp])) {
+                $this->parameters[$paramNameTmp] = $this->parameters[$paramNameTmp]->readObjectFromPhpNode($parameter, $node);
+            } else {
+                $this->parameters[$paramNameTmp] = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node);
+            }
         }
 
         $this->collectTags($node);
@@ -119,6 +125,11 @@ class PHPFunction extends BasePHPElement
     public function readObjectFromBetterReflection($function): self
     {
         $this->name = $function->getName();
+
+        $file = $function->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
 
         foreach ($function->getParameters() as $parameter) {
             $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);

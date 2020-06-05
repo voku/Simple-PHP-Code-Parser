@@ -16,12 +16,12 @@ class PHPMethod extends PHPFunction
     public $access = '';
 
     /**
-     * @var bool|null
+     * @var bool
      */
     public $is_static;
 
     /**
-     * @var bool|null
+     * @var bool
      */
     public $is_final;
 
@@ -105,8 +105,14 @@ class PHPMethod extends PHPFunction
         }
 
         foreach ($node->getParams() as $parameter) {
-            $param = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node, $classStr);
-            $this->parameters[$param->name] = $param;
+            $parameterNameTmp = $parameter->var->name;
+            \assert(\is_string($parameterNameTmp));
+
+            if (isset($this->parameters[$parameterNameTmp])) {
+                $this->parameters[$parameterNameTmp] = $this->parameters[$parameterNameTmp]->readObjectFromPhpNode($parameter, $node, $classStr);
+            } else {
+                $this->parameters[$parameterNameTmp] = (new PHPParameter($this->parserContainer))->readObjectFromPhpNode($parameter, $node, $classStr);
+            }
         }
 
         return $this;
@@ -120,6 +126,11 @@ class PHPMethod extends PHPFunction
     public function readObjectFromBetterReflection($method): PHPFunction
     {
         $this->name = $method->getName();
+
+        $file = $method->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
 
         $this->is_static = $method->isStatic();
 

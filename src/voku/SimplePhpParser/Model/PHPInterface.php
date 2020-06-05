@@ -44,7 +44,13 @@ class PHPInterface extends BasePHPClass
         $this->collectTags($node);
 
         foreach ($node->getMethods() as $method) {
-            $this->methods[$method->name->name] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method);
+            $methodNameTmp = $method->name->name;
+
+            if (isset($this->methods[$methodNameTmp])) {
+                $this->methods[$methodNameTmp] = $this->methods[$methodNameTmp]->readObjectFromPhpNode($method);
+            } else {
+                $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method);
+            }
         }
 
         if (!empty($node->extends)) {
@@ -64,6 +70,11 @@ class PHPInterface extends BasePHPClass
     public function readObjectFromBetterReflection($interface): self
     {
         $this->name = $interface->getName();
+
+        $file = $interface->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
 
         foreach ($interface->getMethods() as $method) {
             $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);

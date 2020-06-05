@@ -27,6 +27,11 @@ abstract class BasePHPElement
     public $line;
 
     /**
+     * @var string|null
+     */
+    public $file;
+
+    /**
      * @var int|null
      */
     public $pos;

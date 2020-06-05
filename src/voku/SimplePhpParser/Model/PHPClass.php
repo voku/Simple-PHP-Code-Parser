@@ -71,12 +71,23 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($node->getProperties() as $property) {
-            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
-            $this->properties[$propertyPhp->name] = $propertyPhp;
+            $propertyNameTmp = $this->getConstantFQN($property, $property->props[0]->name->name);
+
+            if (isset($this->properties[$propertyNameTmp])) {
+                $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name);
+            } else {
+                $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
+            }
         }
 
         foreach ($node->getMethods() as $method) {
-            $this->methods[$method->name->name] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method, $this->name);
+            $methodNameTmp = $method->name->name;
+
+            if (isset($this->methods[$methodNameTmp])) {
+                $this->methods[$methodNameTmp] = $this->methods[$methodNameTmp]->readObjectFromPhpNode($method, $this->name);
+            } else {
+                $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method, $this->name);
+            }
         }
 
         if (!empty($node->implements)) {
@@ -105,17 +116,14 @@ class PHPClass extends BasePHPClass
     {
         $this->name = $clazz->getName();
 
+        $file = $clazz->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
+
         $parent = $clazz->getParentClass();
         if ($parent) {
             $this->parentClass = $parent->getName();
-        }
-
-        $docComment = $clazz->getDocComment();
-        if ($docComment) {
-            $propertiesPhp = $this->readPhpDocProperties($docComment);
-            foreach ($propertiesPhp as $propertyPhp) {
-                $this->properties[$propertyPhp->name] = $propertyPhp;
-            }
         }
 
         foreach ($clazz->getProperties() as $property) {
@@ -186,7 +194,7 @@ class PHPClass extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_static: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
      *
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
@@ -233,11 +241,13 @@ class PHPClass extends BasePHPClass
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['line'] = $method->line;
+            $infoTmp['file'] = $method->file;
             $infoTmp['error'] = \implode("\n", $method->parseError);
             foreach ($method->parameters as $parameter) {
                 $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);
             }
             $infoTmp['is_deprecated'] = $method->hasDeprecatedTag;
+            $infoTmp['is_static'] = $method->is_static;
             $infoTmp['is_meta'] = $method->hasMetaTag;
             $infoTmp['is_internal'] = $method->hasInternalTag;
             $infoTmp['is_removed'] = $method->hasRemovedTag;
