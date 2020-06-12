@@ -17,10 +17,8 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(
             [
-                '' => [
-                    '[7]: missing return type for voku\tests\foo3()',
-                ],
                 '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy3.php' => [
+                    '[7]: missing return type for voku\tests\foo3()',
                     '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
                     '[24]: missing return type for voku\tests\Dummy3->lall()',
                     '[15]: missing property type for voku\tests\Dummy3->$foo',

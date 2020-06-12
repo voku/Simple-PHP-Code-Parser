@@ -66,6 +66,10 @@ class PHPConst extends BasePHPElement
     {
         $this->name = $constant->getName();
 
+        if (!$this->line) {
+            $this->line = $constant->getStartLine();
+        }
+
         $file = $constant->getDeclaringClass()->getFileName();
         if ($file) {
             $this->file = $file;

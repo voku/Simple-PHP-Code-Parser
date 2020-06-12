@@ -5,9 +5,6 @@ use Psalm\Config;
 
 class FakeConfig extends Config
 {
-    /** @var Config\ProjectFileFilter|null */
-    private static $cached_project_files = null;
-
     /**
      * @psalm-suppress PossiblyNullPropertyAssignmentValue because cache_directory isn't strictly nullable
      */
@@ -21,16 +18,6 @@ class FakeConfig extends Config
         $this->cache_directory = '';
 
         $this->base_dir = __DIR__;
-
-        if (!self::$cached_project_files) {
-            self::$cached_project_files = Config\ProjectFileFilter::loadFromXMLElement(
-                new \SimpleXMLElement($this->getContents()),
-                $this->base_dir,
-                true
-            );
-        }
-
-        $this->project_files = self::$cached_project_files;
 
         $this->collectPredefinedConstants();
         $this->collectPredefinedFunctions();
@@ -56,13 +43,5 @@ class FakeConfig extends Config
     public function getProjectDirectories()
     {
         return [];
-    }
-
-    protected function getContents(): string
-    {
-        return '<?xml version="1.0"?>
-                <projectFiles>
-                    <directory name="." />
-                </projectFiles>';
     }
 }

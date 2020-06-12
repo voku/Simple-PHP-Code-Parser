@@ -126,6 +126,10 @@ class PHPFunction extends BasePHPElement
     {
         $this->name = $function->getName();
 
+        if (!$this->line) {
+            $this->line = $function->getStartLine();
+        }
+
         $file = $function->getFileName();
         if ($file) {
             $this->file = $file;
@@ -142,6 +146,26 @@ class PHPFunction extends BasePHPElement
         }
 
         return $this;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getReturnType(): ?string
+    {
+        if ($this->returnTypeFromPhpDocPslam) {
+            return $this->returnTypeFromPhpDocPslam;
+        }
+
+        if ($this->returnType) {
+            return $this->returnType;
+        }
+
+        if ($this->returnTypeFromPhpDocSimple) {
+            return $this->returnTypeFromPhpDocSimple;
+        }
+
+        return null;
     }
 
     /**
@@ -194,7 +218,8 @@ class PHPFunction extends BasePHPElement
                 }
 
                 if ($this->returnTypeFromPhpDoc) {
-                    $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->returnTypeFromPhpDoc);
+                    /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                    $this->returnTypeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->returnTypeFromPhpDoc);
                 }
             }
 
@@ -205,7 +230,8 @@ class PHPFunction extends BasePHPElement
             if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
                 $parsedReturnTagReturn = $parsedReturnTag[0] . '';
 
-                $this->returnTypeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedReturnTagReturn);
+                /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                $this->returnTypeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);

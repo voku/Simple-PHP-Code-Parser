@@ -88,6 +88,10 @@ class PHPClass extends BasePHPClass
             } else {
                 $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method, $this->name);
             }
+
+            if (!$this->methods[$methodNameTmp]->file) {
+                $this->methods[$methodNameTmp]->file = $this->file;
+            }
         }
 
         if (!empty($node->implements)) {
@@ -116,6 +120,10 @@ class PHPClass extends BasePHPClass
     {
         $this->name = $clazz->getName();
 
+        if (!$this->line) {
+            $this->line = $clazz->getStartLine();
+        }
+
         $file = $clazz->getFileName();
         if ($file) {
             $this->file = $file;
@@ -139,11 +147,23 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($clazz->getMethods() as $method) {
-            $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
+            $methodNameTmp = $method->getName();
+
+            $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
+
+            if (!$this->methods[$methodNameTmp]->file) {
+                $this->methods[$methodNameTmp]->file = $this->file;
+            }
         }
 
         foreach ($clazz->getReflectionConstants() as $constant) {
-            $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
+            $constantNameTmp = $constant->getName();
+
+            $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
+
+            if (!$this->constants[$constantNameTmp]->file) {
+                $this->constants[$constantNameTmp]->file = $this->file;
+            }
         }
 
         return $this;
@@ -319,7 +339,8 @@ class PHPClass extends BasePHPClass
                         }
 
                         if ($propertyPhp->typeFromPhpDoc) {
-                            $propertyPhp->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
+                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                            $propertyPhp->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
                         }
 
                         $classPhpDocProperties[$propertyPhp->name] = $propertyPhp;

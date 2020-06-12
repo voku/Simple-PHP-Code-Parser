@@ -29,15 +29,18 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string $pathOrCode
+     * @param string   $pathOrCode
+     * @param string[] $composerAutoloaderProjectPaths
      *
      * @return ParserContainer
      *
      * @noinspection PhpUnusedParameterInspection
      * @noinspection PhpRedundantCatchClauseInspection
      */
-    public static function getPhpFiles(string $pathOrCode): ParserContainer
-    {
+    public static function getPhpFiles(
+        string $pathOrCode,
+        array $composerAutoloaderProjectPaths = []
+    ): ParserContainer {
         $phpCodes = self::getCode($pathOrCode);
 
         $parserContainer = new ParserContainer();
@@ -49,10 +52,12 @@ final class PhpCodeParser
             $phpFilePromises[] = Worker\enqueueCallable(
                 [self::class, 'process'],
                 $codeAndFileName['content'],
+                $codeAndFileName['fileName'],
                 $parserContainer,
                 $visitor,
                 $cache,
-                $cacheKey
+                $cacheKey,
+                $composerAutoloaderProjectPaths
             );
         }
 
@@ -94,21 +99,35 @@ final class PhpCodeParser
 
     /**
      * @param string          $phpCode
+     * @param string|null     $fileName
      * @param ParserContainer $parserContainer
      * @param ASTVisitor      $visitor
      * @param Cache           $cache
      * @param string          $cacheKey
+     * @param string[]        $composerAutoloaderProjectPaths
      *
      * @return ParserContainer|ParserErrorHandler
      */
     public static function process(
         string $phpCode,
+        ?string $fileName,
         ParserContainer $parserContainer,
         ASTVisitor $visitor,
         Cache $cache,
-        string $cacheKey
+        string $cacheKey,
+        array $composerAutoloaderProjectPaths
     ) {
         $cacheKey .= '--process';
+
+        foreach ($composerAutoloaderProjectPaths as $projectPath) {
+            if (\file_exists($projectPath . '/vendor/autoload.php')) {
+                /** @noinspection PhpIncludeInspection */
+                require_once $projectPath . '/vendor/autoload.php';
+            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                /** @noinspection PhpIncludeInspection */
+                require_once $projectPath . '/../vendor/autoload.php';
+            }
+        }
 
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
@@ -155,6 +174,8 @@ final class PhpCodeParser
         if ($parsedCode === null) {
             return $errorHandler;
         }
+
+        $visitor->fileName = $fileName;
 
         $traverser = new NodeTraverser();
         $traverser->addVisitor(new ParentConnector());

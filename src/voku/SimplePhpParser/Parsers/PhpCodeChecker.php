@@ -28,6 +28,7 @@ final class PhpCodeChecker
      * @param string[] $access
      * @param bool     $skipDeprecatedMethods
      * @param bool     $skipFunctionsWithLeadingUnderscore
+     * @pram string[]  $composerAutoloaderProjectPaths
      *
      * @return string[][]
      */
@@ -36,9 +37,10 @@ final class PhpCodeChecker
         array $access = ['public', 'protected', 'private'],
         bool $skipMixedTypesAsError = false,
         bool $skipDeprecatedMethods = false,
-        bool $skipFunctionsWithLeadingUnderscore = false
+        bool $skipFunctionsWithLeadingUnderscore = false,
+        array $composerAutoloaderProjectPaths = []
     ): array {
-        $phpInfo = PhpCodeParser::getPhpFiles($path);
+        $phpInfo = PhpCodeParser::getPhpFiles($path, $composerAutoloaderProjectPaths);
 
         $errors = $phpInfo->getParseErrors();
 
@@ -108,6 +110,8 @@ final class PhpCodeChecker
                     $methodName !== '__construct'
                     &&
                     $methodName !== '__destruct'
+                    &&
+                    $methodName !== '__clone'
                 ) {
                     $typeFound = false;
                     foreach ($methodInfo['returnTypes'] as $key => $type) {

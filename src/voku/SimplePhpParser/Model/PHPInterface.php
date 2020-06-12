@@ -36,7 +36,7 @@ class PHPInterface extends BasePHPClass
         $this->name = $this->getFQN($node);
 
         /** @noinspection NotOptimalIfConditionsInspection */
-        if (\interface_exists($this->name)) {
+        if (\interface_exists($this->name, true)) {
             $reflectionInterface = ReflectionClass::createFromName($this->name);
             $this->readObjectFromBetterReflection($reflectionInterface);
         }
@@ -50,6 +50,10 @@ class PHPInterface extends BasePHPClass
                 $this->methods[$methodNameTmp] = $this->methods[$methodNameTmp]->readObjectFromPhpNode($method);
             } else {
                 $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method);
+            }
+
+            if (!$this->methods[$methodNameTmp]->file) {
+                $this->methods[$methodNameTmp]->file = $this->file;
             }
         }
 
@@ -70,6 +74,10 @@ class PHPInterface extends BasePHPClass
     public function readObjectFromBetterReflection($interface): self
     {
         $this->name = $interface->getName();
+
+        if (!$this->line) {
+            $this->line = $interface->getStartLine();
+        }
 
         $file = $interface->getFileName();
         if ($file) {

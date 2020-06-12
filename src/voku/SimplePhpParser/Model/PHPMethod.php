@@ -11,6 +11,8 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPMethod extends PHPFunction
 {
     /**
+     * "private", "protected" or "public"
+     *
      * @var string
      */
     public $access = '';
@@ -126,6 +128,10 @@ class PHPMethod extends PHPFunction
     public function readObjectFromBetterReflection($method): PHPFunction
     {
         $this->name = $method->getName();
+
+        if (!$this->line) {
+            $this->line = $method->getStartLine();
+        }
 
         $file = $method->getFileName();
         if ($file) {

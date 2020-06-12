@@ -97,7 +97,9 @@ class PHPParameter extends BasePHPElement
         }
 
         if ($parameter->type !== null) {
+            /** @noinspection MissingIssetImplementationInspection */
             if (empty($parameter->type->name)) {
+                /** @noinspection MissingIssetImplementationInspection */
                 if (!empty($parameter->type->parts)) {
                     $this->type = '\\' . \implode('\\', $parameter->type->parts);
                 }
@@ -180,6 +182,26 @@ class PHPParameter extends BasePHPElement
     }
 
     /**
+     * @return string|null
+     */
+    public function getType(): ?string
+    {
+        if ($this->typeFromPhpDocPslam) {
+            return $this->typeFromPhpDocPslam;
+        }
+
+        if ($this->type) {
+            return $this->type;
+        }
+
+        if ($this->typeFromPhpDocSimple) {
+            return $this->typeFromPhpDocSimple;
+        }
+
+        return null;
+    }
+
+    /**
      * @param ReflectionParameter $parameter
      *
      * @return string|null Type of the property (content of var annotation)
@@ -243,7 +265,8 @@ class PHPParameter extends BasePHPElement
                         }
 
                         if ($this->typeFromPhpDoc) {
-                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                            $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->typeFromPhpDoc);
                         }
                     }
                 }
@@ -265,7 +288,8 @@ class PHPParameter extends BasePHPElement
                             continue;
                         }
 
-                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedParamTagStr);
+                        /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                        $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedParamTagStr);
                     }
                 }
             }

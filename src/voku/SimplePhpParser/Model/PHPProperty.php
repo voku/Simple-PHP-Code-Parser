@@ -46,6 +46,8 @@ class PHPProperty extends BasePHPElement
     public $typeMaybeWithComment;
 
     /**
+     * "private", "protected" or "public"
+     *
      * @var string
      */
     public $access = '';
@@ -186,6 +188,26 @@ class PHPProperty extends BasePHPElement
     }
 
     /**
+     * @return string|null
+     */
+    public function getType(): ?string
+    {
+        if ($this->typeFromPhpDocPslam) {
+            return $this->typeFromPhpDocPslam;
+        }
+
+        if ($this->type) {
+            return $this->type;
+        }
+
+        if ($this->typeFromPhpDocSimple) {
+            return $this->typeFromPhpDocSimple;
+        }
+
+        return null;
+    }
+
+    /**
      * @param ReflectionProperty $property
      *
      * @return string|null Type of the property (content of var annotation)
@@ -242,7 +264,8 @@ class PHPProperty extends BasePHPElement
                         }
 
                         if ($this->typeFromPhpDoc) {
-                            $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($this->typeFromPhpDoc);
+                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                            $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->typeFromPhpDoc);
                         }
                     }
                 }
@@ -258,7 +281,8 @@ class PHPProperty extends BasePHPElement
                         $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
                         $parsedParamTagStr = $spitedData['parsedParamTagStr'];
 
-                        $this->typeFromPhpDocPslam = (string) \Psalm\Type::parseString($parsedParamTagStr);
+                        /** @noinspection PhpUsageOfSilenceOperatorInspection */
+                        $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedParamTagStr);
                     }
                 }
             }

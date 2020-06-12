@@ -134,6 +134,8 @@ final class Utils
                 $className = self::findParentClassDeclaringConstant($classStr, $constantName, $parserContainer);
             }
 
+            $className = '\\' . \ltrim($className, '\\');
+
             /** @noinspection PhpUsageOfSilenceOperatorInspection */
             return @\constant($className . '::' . $node->name->name);
         }
