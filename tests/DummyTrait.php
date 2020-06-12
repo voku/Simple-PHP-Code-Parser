@@ -17,7 +17,8 @@ trait DummyTrait
     /**
      * @return float
      */
-    public function getLallTrait(): float {
+    public function getLallTrait(): float
+    {
         return $this->lall_trait;
     }
 }
