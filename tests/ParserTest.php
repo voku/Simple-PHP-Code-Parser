@@ -128,6 +128,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         $result = $phpClasses[Dummy4::class]->getMethodsInfo();
 
+        $result = self::removeLocalPathForTheTest($result);
+
         // DEBUG
         //\var_export($result);
 
@@ -145,7 +147,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array<int, int>',
                     ],
                     'line'          => 51,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -165,7 +167,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'false|int',
                     ],
                     'line'          => 59,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -193,7 +195,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'list<int|string>|null',
                     ],
                     'line'          => 69,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -221,7 +223,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => null,
                     ],
                     'line'          => 80,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -249,7 +251,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => null,
                     ],
                     'line'          => 90,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -277,7 +279,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
                     ],
                     'line'          => 104,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => true,
@@ -305,7 +307,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
                     ],
                     'line'          => 119,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => true,
@@ -349,7 +351,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array<array-key, mixed>',
                     ],
                     'line'          => 134,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -369,7 +371,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'float',
                     ],
                     'line'          => 20,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/DummyTrait.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/DummyTrait.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -391,6 +393,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         //\print_r($phpClasses);
 
         $props = $phpClasses[Dummy::class]->getPropertiesInfo();
+
+        $props = self::removeLocalPathForTheTest($props);
 
         // DEBUG
         //\var_export($props);
@@ -443,6 +447,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         $result = $phpClasses[Dummy::class]->getMethodsInfo();
 
+        $result = self::removeLocalPathForTheTest($result);
+
         // DEBUG
         //\var_export($result);
 
@@ -460,7 +466,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array<int, int>',
                     ],
                     'line'          => 51,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -480,7 +486,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'false|int',
                     ],
                     'line'          => 59,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -508,7 +514,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'list<int|string>|null',
                     ],
                     'line'          => 69,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -536,7 +542,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => null,
                     ],
                     'line'          => 80,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -564,7 +570,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => null,
                     ],
                     'line'          => 90,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -592,7 +598,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
                     ],
                     'line'          => 104,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => true,
@@ -620,7 +626,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array{parsedParamTagStr: string, variableName: array<array-key, null>|string}',
                     ],
                     'line'          => 119,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => true,
@@ -664,7 +670,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'typeFromPhpDocPslam'  => 'array<array-key, mixed>',
                     ],
                     'line'          => 134,
-                    'file'          => '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy.php',
+                    'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'         => '',
                     'is_deprecated' => false,
                     'is_static'     => false,
@@ -675,5 +681,38 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             ],
             $result
         );
+    }
+
+    /**
+     * @param array $result
+     *
+     * @return array
+     */
+    public static function removeLocalPathForTheTest(array $result): array
+    {
+        // hack for CI
+        $pathReplace = \realpath(\getcwd() . '/../') . '/';
+        if (!\is_array($result)) {
+            return $result;
+        }
+
+        $helper = [];
+        foreach ($result as $key => $value) {
+            if (\is_string($key)) {
+                $key = (string) \str_replace($pathReplace, '', $key);
+            }
+
+            if (\is_array($value)) {
+                $helper[$key] = self::removeLocalPathForTheTest($value);
+            } else {
+                if (\is_string($value)) {
+                    $helper[$key] = \str_replace($pathReplace, '', $value);
+                } else {
+                    $helper[$key] = $value;
+                }
+            }
+        }
+
+        return $helper;
     }
 }

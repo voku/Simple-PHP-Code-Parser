@@ -15,9 +15,11 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
     {
         $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy3.php');
 
+        $phpCodeErrors = ParserTest::removeLocalPathForTheTest($phpCodeErrors);
+
         static::assertSame(
             [
-                '/home/lmoelleken/testing/git/Simple-PHP-Code-Parser/tests/Dummy3.php' => [
+                'Simple-PHP-Code-Parser/tests/Dummy3.php' => [
                     '[7]: missing return type for voku\tests\foo3()',
                     '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
                     '[24]: missing return type for voku\tests\Dummy3->lall()',
