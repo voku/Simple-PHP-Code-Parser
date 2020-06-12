@@ -275,6 +275,8 @@ class PHPClass extends BasePHPClass
             $allInfo[$method->name] = $infoTmp;
         }
 
+        \asort($allInfo);
+
         /** @psalm-suppress LessSpecificReturnStatement ? */
         return $allInfo;
     }

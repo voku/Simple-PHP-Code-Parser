@@ -139,6 +139,8 @@ class ParserContainer
             $allInfo[$function->name] = $infoTmp;
         }
 
+        \asort($allInfo);
+
         /** @psalm-suppress LessSpecificReturnStatement ? */
         return $allInfo;
     }
