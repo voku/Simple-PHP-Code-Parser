@@ -230,6 +230,10 @@ class PHPParameter extends BasePHPElement
 
     private function readPhpDoc(string $docComment, string $parameterName): void
     {
+        if ($docComment === '') {
+            return;
+        }
+
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 

@@ -64,10 +64,7 @@ class PHPClass extends BasePHPClass
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $propertiesPhp = $this->readPhpDocProperties($docComment->getText());
-            foreach ($propertiesPhp as $propertyPhp) {
-                $this->properties[$propertyPhp->name] = $propertyPhp;
-            }
+            $this->readPhpDocProperties($docComment->getText());
         }
 
         foreach ($node->getProperties() as $property) {
@@ -284,13 +281,13 @@ class PHPClass extends BasePHPClass
     /**
      * @param string $docComment
      *
-     * @return PHPProperty[]
+     * @return void
      */
-    private function readPhpDocProperties(string $docComment): array
+    private function readPhpDocProperties(string $docComment): void
     {
-        // init
-        /** @var PHPProperty[] $classPhpDocProperties */
-        $classPhpDocProperties = [];
+        if ($docComment === '') {
+            return;
+        }
 
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
@@ -345,7 +342,7 @@ class PHPClass extends BasePHPClass
                             $propertyPhp->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
                         }
 
-                        $classPhpDocProperties[$propertyPhp->name] = $propertyPhp;
+                        $this->properties[$propertyPhp->name] = $propertyPhp;
                     }
                 }
             }
@@ -353,7 +350,5 @@ class PHPClass extends BasePHPClass
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
-
-        return $classPhpDocProperties;
     }
 }

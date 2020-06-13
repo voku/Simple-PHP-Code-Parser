@@ -195,6 +195,10 @@ class PHPFunction extends BasePHPElement
 
     protected function readPhpDoc(string $docComment): void
     {
+        if ($docComment === '') {
+            return;
+        }
+
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 

@@ -28,7 +28,7 @@ final class PhpCodeChecker
      * @param string[] $access
      * @param bool     $skipDeprecatedMethods
      * @param bool     $skipFunctionsWithLeadingUnderscore
-     * @pram string[]  $composerAutoloaderProjectPaths
+     * @param string[] $composerAutoloaderProjectPaths
      *
      * @return string[][]
      */
@@ -40,7 +40,10 @@ final class PhpCodeChecker
         bool $skipFunctionsWithLeadingUnderscore = false,
         array $composerAutoloaderProjectPaths = []
     ): array {
-        $phpInfo = PhpCodeParser::getPhpFiles($path, $composerAutoloaderProjectPaths);
+        $phpInfo = PhpCodeParser::getPhpFiles(
+            $path,
+            $composerAutoloaderProjectPaths
+        );
 
         $errors = $phpInfo->getParseErrors();
 

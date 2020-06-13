@@ -84,8 +84,25 @@ final class PhpCodeParser
             $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
         }
 
+        $pathTmp = null;
+        if (\is_file($pathOrCode)) {
+            $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME));
+        } elseif (\is_dir($pathOrCode)) {
+            $pathTmp = \realpath($pathOrCode);
+        }
+
         $classes = $parserContainer->getClasses();
         foreach ($classes as &$class) {
+
+            // remove methods from outside of the current file-path-scope
+            if ($pathTmp) {
+                foreach ($class->methods as $methodKey => $method) {
+                    if (strpos($method->file, $pathTmp) === false) {
+                        unset($class->methods[$methodKey]);
+                    }
+                }
+            }
+
             $class->interfaces = Utils::flattenArray(
                 $visitor->combineImplementedInterfaces($class),
                 false
@@ -190,7 +207,9 @@ final class PhpCodeParser
      * @param string $fileName
      * @param Cache  $cache
      *
-     * @return array{content: string, fileName: string, cacheKey: string}
+     * @return array
+     *
+     * @psalm-return array{content: string, fileName: string, cacheKey: string}
      *
      * @internal
      */
