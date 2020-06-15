@@ -23,7 +23,7 @@ final class ParentConnector extends NodeVisitorAbstract
     }
 
     /**
-     * @param array $nodes
+     * @param \PhpParser\Node[] $nodes
      *
      * @return void
      */
@@ -33,9 +33,9 @@ final class ParentConnector extends NodeVisitorAbstract
     }
 
     /**
-     * @param Node $node
+     * @param \PhpParser\Node $node
      *
-     * @return int|Node|null
+     * @return int|\PhpParser\Node|null
      */
     public function enterNode(Node $node)
     {
@@ -50,7 +50,7 @@ final class ParentConnector extends NodeVisitorAbstract
     }
 
     /**
-     * @param Node $node
+     * @param \PhpParser\Node $node
      *
      * @return void
      */

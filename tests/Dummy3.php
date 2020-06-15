@@ -27,6 +27,76 @@ final class Dummy3 implements DummyInterface
     }
 
     /**
+     * @param int $foo
+     *
+     * @return int
+     */
+    public function lall2($foo): ?int
+    {
+        return $foo + 1;
+    }
+
+    /**
+     * @param int $foo
+     *
+     * @return null|int
+     */
+    public function lall2_1($foo): int
+    {
+        return $foo + 1;
+    }
+
+    /**
+     * @param int $foo
+     *
+     * @return int|string
+     */
+    public function lall3($foo): int
+    {
+        return $foo + 1;
+    }
+
+    /**
+     * @param int|string $foo
+     *
+     * @return int
+     */
+    public function lall3_1(int $foo): int
+    {
+        return $foo + 1;
+    }
+
+    /**
+     * @return \Generator|int[]
+     */
+    public function lall3_2(int $foo): \Generator
+    {
+        yield $foo;
+
+        yield ++$foo;
+    }
+
+    /**
+     * @return \Generator&int[]
+     *
+     * @psalm-return \Generator<int>
+     */
+    public function lall3_2_1(int $foo): \Generator
+    {
+        yield $foo;
+
+        yield ++$foo;
+    }
+
+    /**
+     * @return \voku\tests\Dummy3
+     */
+    public function lall4(): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
      * This is a test-text [...] öäü !"§?.
      *
      * @param \phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag

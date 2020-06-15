@@ -4,44 +4,43 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-use phpDocumentor\Reflection\DocBlock\Tag;
 use PhpParser\Node;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 
 trait PHPDocElement
 {
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $linkTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $seeTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $sinceTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $deprecatedTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $metaTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $internalTags = [];
 
     /**
-     * @var Tag[]
+     * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
     public $removedTags = [];
 
@@ -86,7 +85,7 @@ trait PHPDocElement
     public $hasRemovedTag = false;
 
     /**
-     * @param Node $node
+     * @param \PhpParser\Node $node
      *
      * @return void
      */

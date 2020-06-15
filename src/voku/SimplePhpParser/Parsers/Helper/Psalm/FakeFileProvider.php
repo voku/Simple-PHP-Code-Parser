@@ -1,7 +1,8 @@
-<?php declare(strict_types=1);
-namespace voku\SimplePhpParser\Parsers\Helper\Psalm;
+<?php
 
-use function microtime;
+declare(strict_types=1);
+
+namespace voku\SimplePhpParser\Parsers\Helper\Psalm;
 
 class FakeFileProvider extends \Psalm\Internal\Provider\FileProvider
 {
@@ -92,7 +93,7 @@ class FakeFileProvider extends \Psalm\Internal\Provider\FileProvider
         $file_paths = parent::getFilesInDir($dir_path, $file_extensions);
 
         foreach ($this->fake_files as $file_path => $_) {
-            if (\strpos(\strtolower($file_path), \strtolower($dir_path)) === 0) {
+            if (\stripos($file_path, $dir_path) === 0) {
                 $file_paths[] = $file_path;
             }
         }

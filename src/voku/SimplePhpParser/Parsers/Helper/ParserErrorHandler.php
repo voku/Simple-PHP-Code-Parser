@@ -12,7 +12,7 @@ final class ParserErrorHandler extends ErrorHandler\Collecting
     /**
      * Handle an error generated during lexing, parsing or some other operation.
      *
-     * @param Error $error The error that needs to be handled
+     * @param \PhpParser\Error $error The error that needs to be handled
      *
      * @return void
      */

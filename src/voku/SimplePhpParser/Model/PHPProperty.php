@@ -89,7 +89,7 @@ class PHPProperty extends BasePHPElement
             $this->readPhpDoc($docCommentText);
         }
 
-        if ($node->type !== null) {
+        if (!$this->type && $node->type !== null) {
             if (empty($node->type->name)) {
                 if (!empty($node->type->parts)) {
                     $this->type = '\\' . \implode('\\', $node->type->parts);
@@ -103,11 +103,9 @@ class PHPProperty extends BasePHPElement
             $defaultValue = Utils::getPhpParserValueFromNode($node->props[0]->default, $classStr);
             if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
                 $this->defaultValue = $defaultValue;
-            }
-        }
 
-        if ($this->defaultValue !== null) {
-            $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+                $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+            }
         }
 
         if ($node->isPrivate()) {
@@ -140,16 +138,13 @@ class PHPProperty extends BasePHPElement
             }
         }
 
-        $docComment = $this->readObjectFromBetterReflectionVarHelper($property);
-
+        $docComment = $property->getDocComment();
         if ($docComment !== null) {
-            $docCommentText = '/** ' . $docComment . ' */';
-
-            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+            if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docCommentText);
+            $this->readPhpDoc($docComment);
         }
 
         /** @noinspection ClassMemberExistenceCheckInspection */
@@ -166,7 +161,7 @@ class PHPProperty extends BasePHPElement
                 }
 
                 if ($type->allowsNull()) {
-                    if ($this->type) {
+                    if ($this->type && $this->type !== 'null') {
                         $this->type = 'null|' . $this->type;
                     } else {
                         $this->type = 'null|mixed';
@@ -207,32 +202,6 @@ class PHPProperty extends BasePHPElement
         return null;
     }
 
-    /**
-     * @param ReflectionProperty $property
-     *
-     * @return string|null Type of the property (content of var annotation)
-     */
-    private function readObjectFromBetterReflectionVarHelper(ReflectionProperty $property): ?string
-    {
-        // Get the content of the @var annotation.
-
-        $phpDoc = $property->getDocComment();
-        if (!$phpDoc) {
-            return null;
-        }
-
-        if (\preg_match_all('/(@.*?var\s+[^\s]+\s+)/ui', $phpDoc, $matches)) {
-            $param = '';
-            foreach ($matches[0] as $match) {
-                $param .= $match . "\n";
-            }
-        } else {
-            return null;
-        }
-
-        return $param;
-    }
-
     private function readPhpDoc(string $docComment): void
     {
         if ($docComment === '') {
@@ -240,6 +209,26 @@ class PHPProperty extends BasePHPElement
         }
 
         try {
+            $regexIntValues = '/@.*?var\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
+            if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
+                $this->typeFromPhpDoc = 'int';
+                $this->typeMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
+                $this->typeFromPhpDocSimple = 'int';
+                $this->typeFromPhpDocPslam = $matchesIntValues['intValues'];
+
+                return;
+            }
+
+            $regexAnd = '/@.*?var\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
+            if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
+                $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
+                $this->typeMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
+                $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
+                $this->typeFromPhpDocPslam = $matchesAndValues['type'];
+
+                return;
+            }
+
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('var');
@@ -261,9 +250,7 @@ class PHPProperty extends BasePHPElement
                         }
 
                         $typeTmp = Utils::parseDocTypeObject($type);
-                        if (\is_array($typeTmp) && \count($typeTmp) > 0) {
-                            $this->typeFromPhpDocSimple = \implode('|', $typeTmp);
-                        } elseif (\is_string($typeTmp) && $typeTmp !== '') {
+                        if ($typeTmp !== '') {
                             $this->typeFromPhpDocSimple = $typeTmp;
                         }
 
@@ -292,6 +279,10 @@ class PHPProperty extends BasePHPElement
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+
+            // DEBUG
+            //\var_dump($tmpErrorMessage, $e->getTraceAsString());
+
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }

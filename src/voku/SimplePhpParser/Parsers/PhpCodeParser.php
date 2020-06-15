@@ -32,7 +32,7 @@ final class PhpCodeParser
      * @param string   $pathOrCode
      * @param string[] $composerAutoloaderProjectPaths
      *
-     * @return ParserContainer
+     * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      *
      * @noinspection PhpUnusedParameterInspection
      * @noinspection PhpRedundantCatchClauseInspection
@@ -97,7 +97,7 @@ final class PhpCodeParser
             // remove methods from outside of the current file-path-scope
             if ($pathTmp) {
                 foreach ($class->methods as $methodKey => $method) {
-                    if (strpos($method->file, $pathTmp) === false) {
+                    if ($method->file && \strpos($method->file, $pathTmp) === false) {
                         unset($class->methods[$methodKey]);
                     }
                 }
@@ -115,15 +115,15 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string          $phpCode
-     * @param string|null     $fileName
-     * @param ParserContainer $parserContainer
-     * @param ASTVisitor      $visitor
-     * @param Cache           $cache
-     * @param string          $cacheKey
-     * @param string[]        $composerAutoloaderProjectPaths
+     * @param string                                               $phpCode
+     * @param string|null                                          $fileName
+     * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer $parserContainer
+     * @param \voku\SimplePhpParser\Parsers\Visitors\ASTVisitor    $visitor
+     * @param \voku\cache\Cache                                    $cache
+     * @param string                                               $cacheKey
+     * @param string[]                                             $composerAutoloaderProjectPaths
      *
-     * @return ParserContainer|ParserErrorHandler
+     * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer|\voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler
      */
     public static function process(
         string $phpCode,
@@ -204,8 +204,8 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string $fileName
-     * @param Cache  $cache
+     * @param string            $fileName
+     * @param \voku\cache\Cache $cache
      *
      * @return array
      *

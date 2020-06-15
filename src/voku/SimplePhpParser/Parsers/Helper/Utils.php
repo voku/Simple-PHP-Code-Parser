@@ -61,7 +61,9 @@ final class Utils
     /**
      * @param \PhpParser\Node\Arg|\PhpParser\Node\Const_|\PhpParser\Node\Expr $node
      * @param string|null                                                     $classStr
-     * @param class-string                                                    $classStr
+     * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer|null       $parserContainer
+     *
+     * @psalm-param class-string|null                                         $classStr
      *
      * @return mixed|string
      *                      Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
@@ -206,13 +208,13 @@ final class Utils
     }
 
     /**
-     * @param \phpDocumentor\Reflection\Type|null $type
+     * @param \phpDocumentor\Reflection\Type|\phpDocumentor\Reflection\Type[]|null $type
      *
-     * @return string|string[]
+     * @return string
      *
      * @psalm-suppress InvalidReturnType - false-positive from psalm
      */
-    public static function parseDocTypeObject($type)
+    public static function parseDocTypeObject($type): string
     {
         if ($type === null) {
             return '';
@@ -227,7 +229,7 @@ final class Utils
             return 'object';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\Compound) {
+        if (\is_array($type) || $type instanceof \phpDocumentor\Reflection\Types\Compound) {
             $types = [];
             foreach ($type as $subType) {
                 $types[] = self::parseDocTypeObject($subType);
@@ -236,7 +238,7 @@ final class Utils
             /**
              * @psalm-suppress InvalidReturnStatement - false-positive from psalm
              */
-            return $types;
+            return \implode('|', $types);
         }
 
         if ($type instanceof \phpDocumentor\Reflection\Types\Array_) {

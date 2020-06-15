@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.8.0 (2020-06-16)
+
+- replace PhpReflection with BetterReflection v2
+- fix bugs reported by PhpStan & PhpCodeCheck
+
 ### 0.7.0 (2020-06-02)
 
 - replace PhpReflection with BetterReflection

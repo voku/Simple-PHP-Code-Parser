@@ -57,8 +57,8 @@ abstract class BasePHPElement
     abstract public function readObjectFromBetterReflection($object);
 
     /**
-     * @param NodeAbstract      $mixed_1
-     * @param NodeAbstract|null $mixed_2
+     * @param \PhpParser\NodeAbstract      $mixed_1
+     * @param \PhpParser\NodeAbstract|null $mixed_2
      *
      * @return $this
      */
@@ -85,7 +85,7 @@ abstract class BasePHPElement
      *
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
-    protected function getFQN($node): string
+    protected static function getFQN($node): string
     {
         // init
         $fqn = '';
@@ -110,7 +110,7 @@ abstract class BasePHPElement
     }
 
     /**
-     * @param Node $node
+     * @param \PhpParser\Node $node
      *
      * @return void
      */

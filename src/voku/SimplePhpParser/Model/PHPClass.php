@@ -41,9 +41,10 @@ class PHPClass extends BasePHPClass
     {
         $this->prepareNode($node);
 
-        $this->name = $this->getFQN($node);
+        $this->name = static::getFQN($node);
 
         /** @noinspection NotOptimalIfConditionsInspection */
+        /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\class_exists($this->name, true)) {
             $reflectionClass = ReflectionClass::createFromName($this->name);
             $this->readObjectFromBetterReflection($reflectionClass);
@@ -331,9 +332,7 @@ class PHPClass extends BasePHPClass
                         }
 
                         $typeTmp = Utils::parseDocTypeObject($type);
-                        if (\is_array($typeTmp) && \count($typeTmp) > 0) {
-                            $propertyPhp->typeFromPhpDocSimple = \implode('|', $typeTmp);
-                        } elseif (\is_string($typeTmp)) {
+                        if ($typeTmp !== '') {
                             $propertyPhp->typeFromPhpDocSimple = $typeTmp;
                         }
 

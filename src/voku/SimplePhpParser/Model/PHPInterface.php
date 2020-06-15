@@ -33,7 +33,7 @@ class PHPInterface extends BasePHPClass
     {
         $this->prepareNode($node);
 
-        $this->name = $this->getFQN($node);
+        $this->name = static::getFQN($node);
 
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\interface_exists($this->name, true)) {

@@ -8,8 +8,6 @@ use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
 use Roave\BetterReflection\Reflection\ReflectionFunction;
-use Roave\BetterReflection\Reflection\ReflectionFunctionAbstract;
-use Roave\BetterReflection\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
@@ -66,7 +64,7 @@ class PHPFunction extends BasePHPElement
     {
         $this->prepareNode($node);
 
-        $this->name = $this->getFQN($node);
+        $this->name = static::getFQN($node);
 
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\function_exists($this->name)) {
@@ -74,13 +72,19 @@ class PHPFunction extends BasePHPElement
             $this->readObjectFromBetterReflection($reflectionFunction);
         }
 
-        if ($node->returnType) {
+        if (!$this->returnType && $node->returnType) {
             if (\method_exists($node->returnType, 'toString')) {
                 $this->returnType = $node->returnType->toString();
             } elseif (\property_exists($node->returnType, 'name')) {
                 $this->returnType = $node->returnType->name;
-            } elseif ($node->returnType instanceof \PhpParser\Node\NullableType) {
-                $this->returnType = $node->returnType->type->toString();
+            }
+
+            if ($node->returnType instanceof \PhpParser\Node\NullableType) {
+                if ($this->returnType && $this->returnType !== 'null') {
+                    $this->returnType = 'null|' . $this->returnType;
+                } else {
+                    $this->returnType = 'null|mixed';
+                }
             }
         }
 
@@ -135,6 +139,39 @@ class PHPFunction extends BasePHPElement
             $this->file = $file;
         }
 
+        $returnType = $function->getReturnType();
+        if ($returnType !== null) {
+            if (\method_exists($returnType, 'getName')) {
+                $this->returnType = $returnType->getName();
+            } else {
+                $this->returnType = $returnType . '';
+            }
+
+            if ($returnType->allowsNull()) {
+                if ($this->returnType && $this->returnType !== 'null') {
+                    $this->returnType = 'null|' . $this->returnType;
+                } else {
+                    $this->returnType = 'null|mixed';
+                }
+            }
+        }
+
+        $docComment = $function->getDocComment();
+        if ($docComment !== null) {
+            $this->readPhpDoc($docComment);
+        }
+
+        if (!$this->returnTypeFromPhpDoc) {
+            try {
+                $returnTypeTmp = $function->getDocBlockReturnTypes();
+                if ($returnTypeTmp) {
+                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp);
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
+        }
+
         foreach ($function->getParameters() as $parameter) {
             $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);
             $this->parameters[$param->name] = $param;
@@ -168,31 +205,6 @@ class PHPFunction extends BasePHPElement
         return null;
     }
 
-    /**
-     * @param ReflectionFunctionAbstract|ReflectionMethod $function
-     *
-     * @return string|null Type of the property (content of var annotation)
-     */
-    protected function readObjectFromBetterReflectionReturnHelper($function): ?string
-    {
-        $phpDoc = $function->getDocComment();
-        if (!$phpDoc) {
-            return null;
-        }
-
-        // Get the content of the @return annotation.
-        if (\preg_match_all('/(@.*?return\s+[^\s]+.*)/ui', $phpDoc, $matches)) {
-            $return = '';
-            foreach ($matches[0] as $match) {
-                $return .= $match . "\n";
-            }
-        } else {
-            return null;
-        }
-
-        return $return;
-    }
-
     protected function readPhpDoc(string $docComment): void
     {
         if ($docComment === '') {
@@ -200,6 +212,26 @@ class PHPFunction extends BasePHPElement
         }
 
         try {
+            $regexIntValues = '/@.*?return\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
+            if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
+                $this->returnTypeMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
+                $this->returnTypeFromPhpDoc = 'int';
+                $this->returnTypeFromPhpDocSimple = 'int';
+                $this->returnTypeFromPhpDocPslam = $matchesIntValues['intValues'];
+
+                return;
+            }
+
+            $regexAnd = '/@.*?return\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
+            if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
+                $this->returnTypeMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
+                $this->returnTypeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
+                $this->returnTypeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
+                $this->returnTypeFromPhpDocPslam = $matchesAndValues['type'];
+
+                return;
+            }
+
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
             $parsedReturnTag = $phpDoc->getTagsByName('return');
@@ -212,12 +244,10 @@ class PHPFunction extends BasePHPElement
 
                 $type = $parsedReturnTagReturn->getType();
 
-                $this->returnTypeFromPhpDoc = Utils::normalizePhpType($type . '');
+                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim($type . '', '\\'));
 
                 $typeTmp = Utils::parseDocTypeObject($type);
-                if (\is_array($typeTmp) && \count($typeTmp) > 0) {
-                    $this->returnTypeFromPhpDocSimple = \implode('|', $typeTmp);
-                } elseif (\is_string($typeTmp)) {
+                if ($typeTmp !== '') {
                     $this->returnTypeFromPhpDocSimple = $typeTmp;
                 }
 

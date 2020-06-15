@@ -11,6 +11,7 @@ use Symfony\Component\Console\Formatter\OutputFormatterStyle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
 final class PhpCodeCheckerCommand extends Command
@@ -44,6 +45,41 @@ final class PhpCodeCheckerCommand extends Command
                         new InputArgument('autoload-file', InputArgument::OPTIONAL, 'The path to your autoloader'),
                     ]
                 )
+            )
+            ->addOption(
+                'access',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Check for "public|protected|private" methods.',
+                'public|protected|private'
+            )
+            ->addOption(
+                'skip-mixed-types-as-error',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Skip check for mixed types. (false or true)',
+                'false'
+            )
+            ->addOption(
+                'skip-deprecated-functions',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Skip check for deprecated functions / methods. (false or true)',
+                'false'
+            )
+            ->addOption(
+                'skip-functions-with-leading-underscore',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Skip check for functions / methods with leading underscore. (false or true)',
+                'false'
+            )
+            ->addOption(
+                'skip-parse-errors',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Skip parse errors in the output. (false or true)',
+                'true'
             );
     }
 
@@ -63,6 +99,15 @@ final class PhpCodeCheckerCommand extends Command
             $this->composerAutoloaderProjectPaths[] = $autoloadRealPath;
         }
 
+        $access = $input->getOption('access');
+        \assert(\is_string($access));
+        $access = (array) \explode('|', $access);
+
+        $skipMixedTypesAsError = (bool) $input->getOption('skip-mixed-types-as-error');
+        $skipDeprecatedFunctions = (bool) $input->getOption('skip-deprecated-functions');
+        $skipFunctionsWithLeadingUnderscore = (bool) $input->getOption('skip-functions-with-leading-underscore');
+        $skipParseErrorsAsError = (bool) $input->getOption('skip-parse-errors');
+
         $formatter = $output->getFormatter();
         $formatter->setStyle('file', new OutputFormatterStyle('default', null, ['bold']));
         $formatter->setStyle('error', new OutputFormatterStyle('red', null, []));
@@ -73,22 +118,22 @@ final class PhpCodeCheckerCommand extends Command
         $output->writeln(\str_repeat('=', \strlen($banner)));
         $output->writeln('');
 
-        $access = ['public', 'protected', 'private'];
-        $skipMixedTypesAsError = false;
-        $skipDeprecatedMethods = false;
-        $skipFunctionsWithLeadingUnderscore = false;
-
         $errors = \voku\SimplePhpParser\Parsers\PhpCodeChecker::checkPhpFiles(
             $realPath,
             $access,
             $skipMixedTypesAsError,
-            $skipDeprecatedMethods,
+            $skipDeprecatedFunctions,
             $skipFunctionsWithLeadingUnderscore,
+            $skipParseErrorsAsError,
             $this->composerAutoloaderProjectPaths
         );
 
+        $errorCount = 0;
         foreach ($errors as $file => $errorsInner) {
-            $output->writeln('<file>' . $file . '</file>');
+            $errorCountFile = \count($errorsInner);
+            $errorCount += $errorCountFile;
+
+            $output->writeln('<file>' . $file . '</file>' . ' (' . $errorCountFile . ' errors)');
 
             foreach ($errorsInner as $errorInner) {
                 $output->writeln('<error>' . $errorInner . '</error>');
@@ -97,6 +142,10 @@ final class PhpCodeCheckerCommand extends Command
             /** @noinspection DisconnectedForeachInstructionInspection */
             $output->writeln('');
         }
+
+        $output->writeln('-------------------------------');
+        $output->writeln($errorCount . ' errors in ' . \count($errors) . ' files.');
+        $output->writeln('-------------------------------');
 
         return 0;
     }

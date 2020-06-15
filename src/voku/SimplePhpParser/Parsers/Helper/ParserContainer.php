@@ -12,28 +12,28 @@ use voku\SimplePhpParser\Model\PHPInterface;
 class ParserContainer
 {
     /**
-     * @var PHPConst[]
+     * @var \voku\SimplePhpParser\Model\PHPConst[]
      *
      * @psalm-var array<string, PHPConst>
      */
     private $constants = [];
 
     /**
-     * @var PHPFunction[]
+     * @var \voku\SimplePhpParser\Model\PHPFunction[]
      *
      * @psalm-var array<string, PHPFunction>
      */
     private $functions = [];
 
     /**
-     * @var PHPClass[]
+     * @var \voku\SimplePhpParser\Model\PHPClass[]
      *
      * @psalm-var array<string, PHPClass>
      */
     private $classes = [];
 
     /**
-     * @var PHPInterface[]
+     * @var \voku\SimplePhpParser\Model\PHPInterface[]
      *
      * @psalm-var array<string, PHPInterface>
      */
@@ -45,7 +45,7 @@ class ParserContainer
     private $parse_errors = [];
 
     /**
-     * @return PHPConst[]
+     * @return \voku\SimplePhpParser\Model\PHPConst[]
      */
     public function getConstants(): array
     {
@@ -61,7 +61,7 @@ class ParserContainer
     }
 
     /**
-     * @param PHPConst $constant
+     * @param \voku\SimplePhpParser\Model\PHPConst $constant
      *
      * @return void
      */
@@ -71,7 +71,7 @@ class ParserContainer
     }
 
     /**
-     * @return PHPFunction[]
+     * @return \voku\SimplePhpParser\Model\PHPFunction[]
      */
     public function getFunctions(): array
     {
@@ -79,7 +79,7 @@ class ParserContainer
     }
 
     /**
-     * @param bool $skipDeprecatedMethods
+     * @param bool $skipDeprecatedFunctions
      * @param bool $skipFunctionsWithLeadingUnderscore
      *
      * @return array<mixed>
@@ -89,14 +89,14 @@ class ParserContainer
      * @psalm-suppress MoreSpecificReturnType or Less ?
      */
     public function getFunctionsInfo(
-        bool $skipDeprecatedMethods = false,
+        bool $skipDeprecatedFunctions = false,
         bool $skipFunctionsWithLeadingUnderscore = false
     ): array {
         // init
         $allInfo = [];
 
         foreach ($this->functions as $function) {
-            if ($skipDeprecatedMethods && $function->hasDeprecatedTag) {
+            if ($skipDeprecatedFunctions && $function->hasDeprecatedTag) {
                 continue;
             }
 
@@ -146,7 +146,7 @@ class ParserContainer
     }
 
     /**
-     * @param PHPFunction $function
+     * @param \voku\SimplePhpParser\Model\PHPFunction $function
      *
      * @return void
      */
@@ -158,7 +158,7 @@ class ParserContainer
     /**
      * @param string $name
      *
-     * @return PHPClass|null
+     * @return \voku\SimplePhpParser\Model\PHPClass|null
      */
     public function getClass(string $name): ?PHPClass
     {
@@ -166,7 +166,7 @@ class ParserContainer
     }
 
     /**
-     * @return PHPClass[]
+     * @return \voku\SimplePhpParser\Model\PHPClass[]
      */
     public function getClasses(): array
     {
@@ -174,7 +174,7 @@ class ParserContainer
     }
 
     /**
-     * @param array<string, PHPInterface> $interfaces
+     * @param array<string, \voku\SimplePhpParser\Model\PHPInterface> $interfaces
      *
      * @return void
      */
@@ -186,7 +186,7 @@ class ParserContainer
     }
 
     /**
-     * @param array<string, PHPConst> $constants
+     * @param array<string, \voku\SimplePhpParser\Model\PHPConst> $constants
      *
      * @return void
      */
@@ -198,7 +198,7 @@ class ParserContainer
     }
 
     /**
-     * @param array<string, PHPFunction> $functions
+     * @param array<string, \voku\SimplePhpParser\Model\PHPFunction> $functions
      *
      * @return void
      */
@@ -210,7 +210,7 @@ class ParserContainer
     }
 
     /**
-     * @param array<string, PHPClass> $classes
+     * @param array<string, \voku\SimplePhpParser\Model\PHPClass> $classes
      *
      * @return void
      */
@@ -229,7 +229,7 @@ class ParserContainer
     }
 
     /**
-     * @param PHPClass $class
+     * @param \voku\SimplePhpParser\Model\PHPClass $class
      *
      * @return void
      */
@@ -241,7 +241,7 @@ class ParserContainer
     /**
      * @param string $name
      *
-     * @return PHPInterface|null
+     * @return \voku\SimplePhpParser\Model\PHPInterface|null
      */
     public function getInterface(string $name): ?PHPInterface
     {
@@ -249,7 +249,7 @@ class ParserContainer
     }
 
     /**
-     * @return PHPInterface[]
+     * @return \voku\SimplePhpParser\Model\PHPInterface[]
      */
     public function getInterfaces(): array
     {
@@ -257,7 +257,7 @@ class ParserContainer
     }
 
     /**
-     * @param PHPInterface $interface
+     * @param \voku\SimplePhpParser\Model\PHPInterface $interface
      *
      * @return void
      */

@@ -27,12 +27,12 @@ final class ASTVisitor extends NodeVisitorAbstract
     public $fileName;
 
     /**
-     * @var ParserContainer
+     * @var \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
     private $parserContainer;
 
     /**
-     * @param ParserContainer $parserContainer
+     * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer $parserContainer
      */
     public function __construct(ParserContainer $parserContainer)
     {
@@ -40,9 +40,9 @@ final class ASTVisitor extends NodeVisitorAbstract
     }
 
     /**
-     * @param Node $node
+     * @param \PhpParser\Node $node
      *
-     * @return int|Node|null
+     * @return int|\PhpParser\Node|null
      */
     public function enterNode(Node $node)
     {
@@ -124,7 +124,7 @@ final class ASTVisitor extends NodeVisitorAbstract
     }
 
     /**
-     * @param PHPInterface $interface
+     * @param \voku\SimplePhpParser\Model\PHPInterface $interface
      *
      * @return string[]
      *
@@ -154,7 +154,7 @@ final class ASTVisitor extends NodeVisitorAbstract
     }
 
     /**
-     * @param PHPClass $class
+     * @param \voku\SimplePhpParser\Model\PHPClass $class
      *
      * @return array
      */

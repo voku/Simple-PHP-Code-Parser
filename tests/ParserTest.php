@@ -287,7 +287,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'       => 'int[]|null',
                             'typeFromPhpDocSimple' => 'int[]|null',
-                            'typeFromPhpDocPslam'  => 'list<int>|null',
+                            'typeFromPhpDocPslam'  => 'array<array-key, int>|null',
                             'typeFromDefaultValue' => 'array',
                         ],
                     ],

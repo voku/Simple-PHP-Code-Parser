@@ -26,7 +26,7 @@
         "phpdocumentor/reflection-common": "~2.1",
         "voku/simple-cache": "~4.0",
         "nikic/php-parser": "~4.4",
-        "ondrejmirtes/better-reflection": "~4.2",
+        "ondrejmirtes/better-reflection": "~4.3",
         "vimeo/psalm": "~3.11"
     },
     "require-dev": {

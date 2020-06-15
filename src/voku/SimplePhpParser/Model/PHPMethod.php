@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
-use PhpParser\Node\Stmt\ClassMethod;
-use Roave\BetterReflection\Reflection\ReflectionMethod;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
@@ -40,8 +38,8 @@ class PHPMethod extends PHPFunction
     public $parentName;
 
     /**
-     * @param ClassMethod $node
-     * @param string|null $classStr
+     * @param \PhpParser\Node\Stmt\ClassMethod $node
+     * @param string|null                      $classStr
      *
      * @psalm-param null|class-string $classStr
      *
@@ -51,7 +49,7 @@ class PHPMethod extends PHPFunction
     {
         $this->prepareNode($node);
 
-        $this->parentName = $this->getFQN($node->getAttribute('parent'));
+        $this->parentName = static::getFQN($node->getAttribute('parent'));
 
         $this->name = $node->name->name;
 
@@ -67,13 +65,19 @@ class PHPMethod extends PHPFunction
             }
         }
 
-        if ($node->returnType) {
+        if (!$this->returnType && $node->returnType) {
             if (\method_exists($node->returnType, 'toString')) {
                 $this->returnType = $node->returnType->toString();
             } elseif (\property_exists($node->returnType, 'name')) {
                 $this->returnType = $node->returnType->name;
-            } elseif ($node->returnType instanceof \PhpParser\Node\NullableType) {
-                $this->returnType = $node->returnType->type->toString();
+            }
+
+            if ($node->returnType instanceof \PhpParser\Node\NullableType) {
+                if ($this->returnType && $this->returnType !== 'null') {
+                    $this->returnType = 'null|' . $this->returnType;
+                } else {
+                    $this->returnType = 'null|mixed';
+                }
             }
         }
 
@@ -121,7 +125,7 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param ReflectionMethod $method
+     * @param \Roave\BetterReflection\Reflection\ReflectionMethod $method
      *
      * @return $this
      */
@@ -149,17 +153,34 @@ class PHPMethod extends PHPFunction
             } else {
                 $this->returnType = $returnType . '';
             }
+
+            if ($returnType->allowsNull()) {
+                if ($this->returnType && $this->returnType !== 'null') {
+                    $this->returnType = 'null|' . $this->returnType;
+                } else {
+                    $this->returnType = 'null|mixed';
+                }
+            }
         }
 
-        $docComment = $this->readObjectFromBetterReflectionReturnHelper($method);
+        $docComment = $method->getDocComment();
         if ($docComment !== null) {
-            $docCommentText = '/** ' . $docComment . ' */';
-
-            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+            if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docCommentText);
+            $this->readPhpDoc($docComment);
+        }
+
+        if (!$this->returnTypeFromPhpDoc) {
+            try {
+                $returnTypeTmp = $method->getDocBlockReturnTypes();
+                if ($returnTypeTmp) {
+                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp);
+                }
+            } catch (\Exception $e) {
+                // ignore
+            }
         }
 
         if ($method->isProtected()) {

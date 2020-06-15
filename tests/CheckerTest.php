@@ -20,10 +20,14 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
         static::assertSame(
             [
                 'Simple-PHP-Code-Parser/tests/Dummy3.php' => [
-                    '[7]: missing return type for voku\tests\foo3()',
-                    '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
-                    '[24]: missing return type for voku\tests\Dummy3->lall()',
-                    '[15]: missing property type for voku\tests\Dummy3->$foo',
+                    0 => '[7]: missing return type for voku\tests\foo3()',
+                    1 => '[15]: missing property type for voku\tests\Dummy3->$foo',
+                    2 => '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
+                    3 => '[24]: missing return type for voku\tests\Dummy3->lall()',
+                    4 => '[54]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
+                    5 => '[44]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
+                    6 => '[34]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
+                    7 => '[64]: wrong type "string" in phpdoc from voku\tests\Dummy3->lall3_1()  | parameter:foo',
                 ],
             ],
             $phpCodeErrors
