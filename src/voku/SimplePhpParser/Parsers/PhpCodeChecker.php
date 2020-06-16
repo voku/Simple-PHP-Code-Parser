@@ -34,6 +34,7 @@ final class PhpCodeChecker
      * @param bool     $skipFunctionsWithLeadingUnderscore
      * @param bool     $skipParseErrorsAsError
      * @param string[] $composerAutoloaderProjectPaths
+     * @param string[] $pathExcludeRegex
      *
      * @return string[][]
      */
@@ -44,11 +45,13 @@ final class PhpCodeChecker
         bool $skipDeprecatedFunctions = false,
         bool $skipFunctionsWithLeadingUnderscore = false,
         bool $skipParseErrorsAsError = true,
-        array $composerAutoloaderProjectPaths = []
+        array $composerAutoloaderProjectPaths = [],
+        array $pathExcludeRegex = []
     ): array {
         $phpInfo = PhpCodeParser::getPhpFiles(
             $path,
-            $composerAutoloaderProjectPaths
+            $composerAutoloaderProjectPaths,
+            $pathExcludeRegex
         );
 
         $errors = $phpInfo->getParseErrors();

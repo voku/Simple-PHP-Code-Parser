@@ -43,7 +43,11 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleDirectory(): void
     {
-        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/');
+        $phpCode = PhpCodeParser::getPhpFiles(
+            __DIR__ . '/',
+            [],
+            ['/Dummy5/']
+        );
 
         $phpClasses = $phpCode->getClasses();
 

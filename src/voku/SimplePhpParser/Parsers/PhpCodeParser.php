@@ -23,14 +23,26 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
 final class PhpCodeParser
 {
-    public static function getFromString(string $code): ParserContainer
-    {
-        return self::getPhpFiles($code);
+    /**
+     * @param string   $code
+     * @param string[] $composerAutoloaderProjectPaths
+     *
+     * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
+     */
+    public static function getFromString(
+        string $code,
+        array $composerAutoloaderProjectPaths = []
+    ): ParserContainer {
+        return self::getPhpFiles(
+            $code,
+            $composerAutoloaderProjectPaths
+        );
     }
 
     /**
      * @param string   $pathOrCode
      * @param string[] $composerAutoloaderProjectPaths
+     * @param string[] $pathExcludeRegex
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      *
@@ -39,9 +51,13 @@ final class PhpCodeParser
      */
     public static function getPhpFiles(
         string $pathOrCode,
-        array $composerAutoloaderProjectPaths = []
+        array $composerAutoloaderProjectPaths = [],
+        array $pathExcludeRegex = []
     ): ParserContainer {
-        $phpCodes = self::getCode($pathOrCode);
+        $phpCodes = self::getCode(
+            $pathOrCode,
+            $pathExcludeRegex
+        );
 
         $parserContainer = new ParserContainer();
         $visitor = new ASTVisitor($parserContainer);
@@ -235,14 +251,17 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string $pathOrCode
+     * @param string   $pathOrCode
+     * @param string[] $pathExcludeRegex
      *
      * @return array
      *
      * @psalm-return array<string, array{content: string, fileName: null|string}>
      */
-    private static function getCode(string $pathOrCode): array
-    {
+    private static function getCode(
+        string $pathOrCode,
+        array $pathExcludeRegex = []
+    ): array {
         // init
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
@@ -269,6 +288,12 @@ final class PhpCodeParser
             $path = $fileOrCode->getRealPath();
             if (!$path) {
                 continue;
+            }
+
+            foreach ($pathExcludeRegex as $regex) {
+                if (\preg_match($regex, $path)) {
+                    continue 2;
+                }
             }
 
             $phpFilePromises[] = Worker\enqueueCallable(
