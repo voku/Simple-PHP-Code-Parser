@@ -113,7 +113,19 @@ final class PhpCodeChecker
                     }
                 }
 
-                if (!$typeFound) {
+                if ($typeFound) {
+                    if ($propertyTypes['typeFromPhpDocSimple'] && $propertyTypes['type']) {
+                        $error = self::checkPhpDocType(
+                            $propertyTypes,
+                            ['file' => $class->file, 'line' => $class->line],
+                            $class->name,
+                            $error,
+                            $class->name,
+                            null,
+                            $propertyName
+                        );
+                    }
+                } else {
                     $error[$class->file][] = '[' . $class->line . ']: missing property type for ' . $class->name . '->$' . $propertyName;
                 }
             }
@@ -299,23 +311,26 @@ final class PhpCodeChecker
 
     /**
      * @param array       $types
-     * @param array       $methodOrFunctionInfo
+     * @param array       $fileInfo
      * @param string[][]  $error
-     * @param string      $methodOrFunctionName
+     * @param string      $name
      * @param string|null $className
      * @param string|null $paramName
+     * @param string|null $propertyName
      *
      * @psalm-param array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, ?typeFromDefaultValue: null|string} $types
+     * @psalm-param array{file: null|string, line: null|string}
      *
      * @return array
      */
     private static function checkPhpDocType(
         array $types,
-        array $methodOrFunctionInfo,
-        string $methodOrFunctionName,
+        array $fileInfo,
+        string $name,
         array $error,
         string $className = null,
-        string $paramName = null
+        string $paramName = null,
+        string $propertyName = null
     ): array {
         // init
         $typeFromPhpWithoutNull = null;
@@ -437,10 +452,12 @@ final class PhpCodeChecker
                     }
 
                     if (!$checked) {
-                        if ($paramName) {
-                            $error[$methodOrFunctionInfo['file']][] = '[' . $methodOrFunctionInfo['line'] . ']: missing type "' . $typeFromPhpSingle . '" in phpdoc from ' . $methodOrFunctionName . ' | parameter:' . $paramName;
+                        if ($propertyName) {
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing property type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | property:' . $propertyName;
+                        } elseif ($paramName) {
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing parameter type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | parameter:' . $paramName;
                         } else {
-                            $error[$methodOrFunctionInfo['file']][] = '[' . $methodOrFunctionInfo['line'] . ']: missing return type "' . $typeFromPhpSingle . '" in phpdoc from ' . $methodOrFunctionName;
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing return type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name;
                         }
                     }
                 }
@@ -533,10 +550,12 @@ final class PhpCodeChecker
                     }
 
                     if (!$checked) {
-                        if ($paramName) {
-                            $error[$methodOrFunctionInfo['file']][] = '[' . $methodOrFunctionInfo['line'] . ']: wrong type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $methodOrFunctionName . '  | parameter:' . $paramName;
+                        if ($propertyName) {
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong property type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name . '  | property:' . $propertyName;
+                        } elseif ($paramName) {
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong parameter type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name . '  | parameter:' . $paramName;
                         } else {
-                            $error[$methodOrFunctionInfo['file']][] = '[' . $methodOrFunctionInfo['line'] . ']: wrong return type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $methodOrFunctionName;
+                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong return type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name;
                         }
                     }
                 }

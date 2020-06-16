@@ -17,6 +17,16 @@ final class Dummy3 implements DummyInterface
     public $foo;
 
     /**
+     * @var mixed
+     */
+    public $foo_mixed;
+
+    /**
+     * @var int
+     */
+    public $foo_int;
+
+    /**
      * @param $foo
      *
      * @return mixed

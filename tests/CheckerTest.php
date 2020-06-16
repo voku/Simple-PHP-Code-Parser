@@ -22,16 +22,37 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
                 'Simple-PHP-Code-Parser/tests/Dummy3.php' => [
                     0 => '[7]: missing return type for voku\tests\foo3()',
                     1 => '[15]: missing property type for voku\tests\Dummy3->$foo',
-                    2 => '[24]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
-                    3 => '[24]: missing return type for voku\tests\Dummy3->lall()',
-                    4 => '[54]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
-                    5 => '[44]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
-                    6 => '[34]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
-                    7 => '[64]: wrong type "string" in phpdoc from voku\tests\Dummy3->lall3_1()  | parameter:foo',
+                    2 => '[15]: missing property type for voku\tests\Dummy3->$foo_mixed',
+                    3 => '[34]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
+                    4 => '[34]: missing return type for voku\tests\Dummy3->lall()',
+                    5 => '[64]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
+                    6 => '[54]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
+                    7 => '[44]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
+                    8 => '[74]: wrong parameter type "string" in phpdoc from voku\tests\Dummy3->lall3_1()  | parameter:foo',
                 ],
             ],
             $phpCodeErrors
         );
+
+        if (\PHP_VERSION_ID >= 70400) {
+            $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy5.php');
+
+            $phpCodeErrors = ParserTest::removeLocalPathForTheTest($phpCodeErrors);
+
+            static::assertSame(
+                [
+                    'Simple-PHP-Code-Parser/tests/Dummy5.php' => [
+                        0 => '[12]: missing property type for voku\tests\Dummy5->$foo',
+                        1 => '[12]: missing property type for voku\tests\Dummy5->$foo_mixed',
+                        2 => '[12]: missing property type "int" in phpdoc from voku\tests\Dummy5 | property:foo_int_4',
+                        3 => '[12]: wrong property type "string" in phpdoc from voku\tests\Dummy5  | property:foo_int_4',
+                        4 => '[12]: missing property type "null" in phpdoc from voku\tests\Dummy5 | property:foo_int_6',
+                        5 => '[12]: wrong property type "null" in phpdoc from voku\tests\Dummy5  | property:foo_int_7',
+                    ],
+                ],
+                $phpCodeErrors
+            );
+        }
     }
 
     public function testSimpleStringInput(): void
