@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.9.0 (2020-06-16) 
+
+- "PhpCodeChecker" -> check wrong phpdocs from class properties
+- "PhpCodeParser" -> allow to exclude some files
+
 ### 0.8.0 (2020-06-16)
 
 - replace PhpReflection with BetterReflection v2
