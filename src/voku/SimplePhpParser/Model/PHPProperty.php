@@ -43,7 +43,7 @@ class PHPProperty extends BasePHPElement
     /**
      * @var string|null
      */
-    public $typeMaybeWithComment;
+    public $typeFromPhpDocMaybeWithComment;
 
     /**
      * "private", "protected" or "public"
@@ -79,7 +79,7 @@ class PHPProperty extends BasePHPElement
         $this->prepareNode($node);
 
         $docComment = $node->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             $docCommentText = $docComment->getText();
 
             if (\stripos($docCommentText, 'inheritdoc') !== false) {
@@ -128,6 +128,11 @@ class PHPProperty extends BasePHPElement
     {
         $this->name = $property->getName();
 
+        $file = $property->getDeclaringClass()->getFileName();
+        if ($file) {
+            $this->file = $file;
+        }
+
         $this->is_static = $property->isStatic();
 
         if ($this->is_static) {
@@ -139,7 +144,7 @@ class PHPProperty extends BasePHPElement
         }
 
         $docComment = $property->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
@@ -212,7 +217,7 @@ class PHPProperty extends BasePHPElement
             $regexIntValues = '/@.*?var\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
             if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
                 $this->typeFromPhpDoc = 'int';
-                $this->typeMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
+                $this->typeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
                 $this->typeFromPhpDocSimple = 'int';
                 $this->typeFromPhpDocPslam = $matchesIntValues['intValues'];
 
@@ -222,7 +227,7 @@ class PHPProperty extends BasePHPElement
             $regexAnd = '/@.*?var\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
             if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
                 $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
+                $this->typeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
                 $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->typeFromPhpDocPslam = $matchesAndValues['type'];
 
@@ -240,13 +245,13 @@ class PHPProperty extends BasePHPElement
 
                         $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
-                        $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
+                        $typeFromPhpDocMaybeWithCommentTmp = \trim((string) $parsedParamTag);
                         if (
-                            $typeMaybeWithCommentTmp
+                            $typeFromPhpDocMaybeWithCommentTmp
                             &&
-                            \strpos($typeMaybeWithCommentTmp, '$') !== 0
+                            \strpos($typeFromPhpDocMaybeWithCommentTmp, '$') !== 0
                         ) {
-                            $this->typeMaybeWithComment = $typeMaybeWithCommentTmp;
+                            $this->typeFromPhpDocMaybeWithComment = $typeFromPhpDocMaybeWithCommentTmp;
                         }
 
                         $typeTmp = Utils::parseDocTypeObject($type);
@@ -278,7 +283,7 @@ class PHPProperty extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
 
             // DEBUG
             //\var_dump($tmpErrorMessage, $e->getTraceAsString());

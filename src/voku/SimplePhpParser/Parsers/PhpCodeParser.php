@@ -107,24 +107,43 @@ final class PhpCodeParser
             $pathTmp = \realpath($pathOrCode);
         }
 
-        $classes = $parserContainer->getClasses();
-        foreach ($classes as &$class) {
-
-            // remove methods from outside of the current file-path-scope
-            if ($pathTmp) {
-                foreach ($class->methods as $methodKey => $method) {
-                    if ($method->file && \strpos($method->file, $pathTmp) === false) {
-                        unset($class->methods[$methodKey]);
-                    }
-                }
-            }
-
-            $class->interfaces = Utils::flattenArray(
-                $visitor->combineImplementedInterfaces($class),
+        $classesTmp = &$parserContainer->getClassesByReference();
+        /** @noinspection AlterInForeachInspection */
+        foreach ($classesTmp as &$classTmp) {
+            $classTmp->interfaces = Utils::flattenArray(
+                $visitor->combineImplementedInterfaces($classTmp),
                 false
             );
 
-            self::mergeIngeritdocData($class, $classes, $interfaces);
+            self::mergeInheritdocData($classTmp, $classesTmp, $interfaces);
+        }
+
+        // remove properties / methods / classes from outside of the current file-path-scope
+        if ($pathTmp) {
+            $classesTmp2 = &$parserContainer->getClassesByReference();
+            foreach ($classesTmp2 as $classKey => $classTmp2) {
+                foreach ($classTmp2->constants as $constantKey => $constant) {
+                    if ($constant->file && \strpos($constant->file, $pathTmp) === false) {
+                        unset($classTmp2->constants[$constantKey]);
+                    }
+                }
+
+                foreach ($classTmp2->properties as $propertyKey => $property) {
+                    if ($property->file && \strpos($property->file, $pathTmp) === false) {
+                        unset($classTmp2->properties[$propertyKey]);
+                    }
+                }
+
+                foreach ($classTmp2->methods as $methodKey => $method) {
+                    if ($method->file && \strpos($method->file, $pathTmp) === false) {
+                        unset($classTmp2->methods[$methodKey]);
+                    }
+                }
+
+                if ($classTmp2->file && \strpos($classTmp2->file, $pathTmp) === false) {
+                    unset($classesTmp2[$classKey]);
+                }
+            }
         }
 
         return $parserContainer;
@@ -217,6 +236,7 @@ final class PhpCodeParser
         $traverser->addVisitor(new ParentConnector());
         $traverser->addVisitor($nameResolver);
         $traverser->addVisitor($visitor);
+        /** @noinspection UnusedFunctionResultInspection */
         $traverser->traverse($parsedCode);
 
         return $parserContainer;
@@ -325,100 +345,146 @@ final class PhpCodeParser
      *
      * @return void
      */
-    private static function mergeIngeritdocData(
+    private static function mergeInheritdocData(
         \voku\SimplePhpParser\Model\PHPClass $class,
         array $classes,
         array $interfaces
     ): void {
-        foreach ($class->methods as $method) {
+        /** @noinspection AlterInForeachInspection */
+        foreach ($class->properties as &$property) {
+            if (!$property->is_inheritdoc) {
+                continue;
+            }
+
+            if (!isset($classes[$class->parentClass])) {
+                continue;
+            }
+
+            if (!isset($classes[$class->parentClass]->properties[$property->name])) {
+                continue;
+            }
+
+            $parentMethod = $classes[$class->parentClass]->properties[$property->name];
+
+            /** @noinspection AlterInForeachInspection */
+            /** @psalm-suppress RawObjectIteration */
+            foreach ($property as $key => &$value) {
+                if (
+                    $value === null
+                    &&
+                    $parentMethod->{$key} !== null
+                    &&
+                    \stripos($key, 'typeFromPhpDoc') !== false
+                ) {
+                    $value = $parentMethod->{$key};
+                }
+            }
+        }
+
+        foreach ($class->methods as &$method) {
             if (!$method->is_inheritdoc) {
                 continue;
             }
 
             foreach ($class->interfaces as $interfaceStr) {
-                /** @noinspection UnnecessaryIssetArgumentsInspection */
-                if (isset($interfaces[$interfaceStr], $interfaces[$interfaceStr]->methods[$method->name])) {
-                    $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
+                if (!isset($interfaces[$interfaceStr])) {
+                    continue;
+                }
+
+                if (!isset($interfaces[$interfaceStr]->methods[$method->name])) {
+                    continue;
+                }
+
+                $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
+
+                /** @noinspection AlterInForeachInspection */
+                /** @psalm-suppress RawObjectIteration */
+                foreach ($method as $key => &$value) {
+                    if (
+                        $value === null
+                        &&
+                        $interfaceMethod->{$key} !== null
+                        &&
+                        \stripos($key, 'typeFromPhpDoc') !== false
+                    ) {
+                        $value = $interfaceMethod->{$key};
+                    }
+
+                    if ($key !== 'parameters') {
+                        continue;
+                    }
 
                     /** @noinspection AlterInForeachInspection */
-                    /** @psalm-suppress RawObjectIteration */
-                    foreach ($method as $key => &$value) {
-                        if (
-                            $value === null
-                            &&
-                            $interfaceMethod->{$key} !== null
-                            &&
-                            \stripos($key, 'typeFromPhpDoc') !== false
-                        ) {
-                            $value = $interfaceMethod->{$key};
+                    foreach ($value as $parameterName => &$parameter) {
+                        \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
+
+                        if (!isset($interfaceMethod->parameters[$parameterName])) {
+                            continue;
                         }
 
-                        if ($key === 'parameters') {
-                            foreach ($value as $parameterName => $parameter) {
-                                \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
+                        $interfaceMethodParameter = $interfaceMethod->parameters[$parameterName];
 
-                                if (!isset($interfaceMethod->parameters[$parameterName])) {
-                                    continue;
-                                }
-
-                                $interfaceMethodParameter = $interfaceMethod->parameters[$parameterName];
-
-                                /** @noinspection AlterInForeachInspection */
-                                /** @psalm-suppress RawObjectIteration */
-                                foreach ($parameter as $keyInner => &$valueInner) {
-                                    if (
-                                        $valueInner === null
-                                        &&
-                                        $interfaceMethodParameter->{$keyInner} !== null
-                                        &&
-                                        \stripos($keyInner, 'typeFromPhpDoc') !== false
-                                    ) {
-                                        $valueInner = $interfaceMethodParameter->{$keyInner};
-                                    }
-                                }
+                        /** @noinspection AlterInForeachInspection */
+                        /** @psalm-suppress RawObjectIteration */
+                        foreach ($parameter as $keyInner => &$valueInner) {
+                            if (
+                                $valueInner === null
+                                &&
+                                $interfaceMethodParameter->{$keyInner} !== null
+                                &&
+                                \stripos($keyInner, 'typeFromPhpDoc') !== false
+                            ) {
+                                $valueInner = $interfaceMethodParameter->{$keyInner};
                             }
                         }
                     }
                 }
             }
 
-            /** @noinspection UnnecessaryIssetArgumentsInspection */
-            if (isset($classes[$class->parentClass], $classes[$class->parentClass]->methods[$method->name])) {
-                $parentMethod = $classes[$class->parentClass]->methods[$method->name];
+            if (!isset($classes[$class->parentClass])) {
+                continue;
+            }
 
-                /** @psalm-suppress RawObjectIteration */
-                foreach ($method as $key => &$value) {
-                    if (
-                        $value === null
-                        &&
-                        $parentMethod->{$key} !== null
-                        &&
-                        \stripos($key, 'typeFromPhpDoc') !== false
-                    ) {
-                        $value = $parentMethod->{$key};
+            if (!isset($classes[$class->parentClass]->methods[$method->name])) {
+                continue;
+            }
+
+            $parentMethod = $classes[$class->parentClass]->methods[$method->name];
+
+            /** @psalm-suppress RawObjectIteration */
+            foreach ($method as $key => &$value) {
+                if (
+                    $value === null
+                    &&
+                    $parentMethod->{$key} !== null
+                    &&
+                    \stripos($key, 'typeFromPhpDoc') !== false
+                ) {
+                    $value = $parentMethod->{$key};
+                }
+
+                if ($key !== 'parameters') {
+                    continue;
+                }
+
+                foreach ($value as $parameterName => &$parameter) {
+                    \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
+
+                    if (!isset($parentMethod->parameters[$parameterName])) {
+                        continue;
                     }
 
-                    if ($key === 'parameters') {
-                        foreach ($value as $parameterName => $parameter) {
-                            \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
-
-                            if (!isset($parentMethod->parameters[$parameterName])) {
-                                continue;
-                            }
-
-                            $parentMethodParameter = $parentMethod->parameters[$parameterName];
-                            /** @psalm-suppress RawObjectIteration */
-                            foreach ($parameter as $keyInner => &$valueInner) {
-                                if (
-                                    $valueInner === null
-                                    &&
-                                    $parentMethodParameter->{$keyInner} !== null
-                                    &&
-                                    \stripos($keyInner, 'typeFromPhpDoc') !== false
-                                ) {
-                                    $valueInner = $parentMethodParameter->{$keyInner};
-                                }
-                            }
+                    $parentMethodParameter = $parentMethod->parameters[$parameterName];
+                    /** @psalm-suppress RawObjectIteration */
+                    foreach ($parameter as $keyInner => &$valueInner) {
+                        if (
+                            $valueInner === null
+                            &&
+                            $parentMethodParameter->{$keyInner} !== null
+                            &&
+                            \stripos($keyInner, 'typeFromPhpDoc') !== false
+                        ) {
+                            $valueInner = $parentMethodParameter->{$keyInner};
                         }
                     }
                 }

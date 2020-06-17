@@ -26,6 +26,8 @@ class PHPDefineConstant extends PHPConst
             \property_exists($node->args[0], 'value')
             &&
             \property_exists($node->args[0]->value, 'value')
+            &&
+            $node->args[0]->value instanceof \PhpParser\Node\Scalar\String_
         ) {
             $constName = (string) $node->args[0]->value->value;
         }

@@ -361,7 +361,7 @@ final class Utils
     ): string {
         do {
             $class = $parserContainer->getClass($classStr);
-            if ($class && isset($class->constants[$constantName])) {
+            if ($class && $class->name && isset($class->constants[$constantName])) {
                 return $class->name;
             }
 

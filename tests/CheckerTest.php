@@ -34,6 +34,8 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
             $phpCodeErrors
         );
 
+        // --------------------------
+
         if (\PHP_VERSION_ID >= 70400) {
             $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy5.php');
 
@@ -53,6 +55,14 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
                 $phpCodeErrors
             );
         }
+
+        // --------------------------
+
+        $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy7.php');
+
+        $phpCodeErrors = ParserTest::removeLocalPathForTheTest($phpCodeErrors);
+
+        static::assertSame([], $phpCodeErrors);
     }
 
     public function testSimpleStringInput(): void

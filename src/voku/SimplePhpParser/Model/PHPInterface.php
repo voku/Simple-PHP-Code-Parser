@@ -10,9 +10,9 @@ use Roave\BetterReflection\Reflection\ReflectionClass;
 class PHPInterface extends BasePHPClass
 {
     /**
-     * @var string
+     * @var string|null
      *
-     * @psalm-var class-string
+     * @psalm-var null|class-string
      */
     public $name;
 
@@ -36,6 +36,7 @@ class PHPInterface extends BasePHPClass
         $this->name = static::getFQN($node);
 
         /** @noinspection NotOptimalIfConditionsInspection */
+        /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\interface_exists($this->name, true)) {
             $reflectionInterface = ReflectionClass::createFromName($this->name);
             $this->readObjectFromBetterReflection($reflectionInterface);
@@ -91,6 +92,19 @@ class PHPInterface extends BasePHPClass
         /** @var class-string[] $interfaceNames */
         $interfaceNames = $interface->getInterfaceNames();
         $this->parentInterfaces = $interfaceNames;
+
+        foreach ($this->parentInterfaces as $parentInterface) {
+            /** @noinspection ArgumentEqualsDefaultValueInspection */
+            if (
+                !$this->parserContainer->getInterface($parentInterface)
+                &&
+                \interface_exists($parentInterface, true)
+            ) {
+                $reflectionInterface = ReflectionClass::createFromName($this->name);
+                $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
+                $this->parserContainer->addInterface($class);
+            }
+        }
 
         foreach ($interface->getReflectionConstants() as $constant) {
             $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);

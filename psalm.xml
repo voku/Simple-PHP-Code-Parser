@@ -15,7 +15,10 @@
 
     <issueHandlers>
         <InternalClass errorLevel="suppress" />
+        <MoreSpecificReturnType errorLevel="suppress" />
+        <LessSpecificReturnStatement errorLevel="suppress" />
         <MoreSpecificImplementedParamType errorLevel="suppress" />
+        <UnresolvableInclude errorLevel="suppress" />
     </issueHandlers>
 
 </psalm>

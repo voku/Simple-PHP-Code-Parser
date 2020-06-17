@@ -103,10 +103,10 @@ final class PhpCodeCheckerCommand extends Command
         \assert(\is_string($access));
         $access = (array) \explode('|', $access);
 
-        $skipMixedTypesAsError = (bool) $input->getOption('skip-mixed-types-as-error');
-        $skipDeprecatedFunctions = (bool) $input->getOption('skip-deprecated-functions');
-        $skipFunctionsWithLeadingUnderscore = (bool) $input->getOption('skip-functions-with-leading-underscore');
-        $skipParseErrorsAsError = (bool) $input->getOption('skip-parse-errors');
+        $skipMixedTypesAsError = $input->getOption('skip-mixed-types-as-error') !== 'false';
+        $skipDeprecatedFunctions = $input->getOption('skip-deprecated-functions') !== 'false';
+        $skipFunctionsWithLeadingUnderscore = $input->getOption('skip-functions-with-leading-underscore') !== 'false';
+        $skipParseErrorsAsError = $input->getOption('skip-parse-errors') !== 'false';
 
         $formatter = $output->getFormatter();
         $formatter->setStyle('file', new OutputFormatterStyle('default', null, ['bold']));

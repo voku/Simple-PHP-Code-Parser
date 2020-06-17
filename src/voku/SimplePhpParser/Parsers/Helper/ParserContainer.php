@@ -84,9 +84,7 @@ class ParserContainer
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string}}>
-     *
-     * @psalm-suppress MoreSpecificReturnType or Less ?
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
      */
     public function getFunctionsInfo(
         bool $skipDeprecatedFunctions = false,
@@ -107,7 +105,7 @@ class ParserContainer
             $paramsTypes = [];
             foreach ($function->parameters as $tagParam) {
                 $paramsTypes[$tagParam->name]['type'] = $tagParam->type;
-                $paramsTypes[$tagParam->name]['typeMaybeWithComment'] = $tagParam->typeMaybeWithComment;
+                $paramsTypes[$tagParam->name]['typeFromPhpDocMaybeWithComment'] = $tagParam->typeFromPhpDocMaybeWithComment;
                 $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocSimple'] = $tagParam->typeFromPhpDocSimple;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocPslam'] = $tagParam->typeFromPhpDocPslam;
@@ -116,7 +114,7 @@ class ParserContainer
 
             $returnTypes = [];
             $returnTypes['type'] = $function->returnType;
-            $returnTypes['typeMaybeWithComment'] = $function->returnTypeMaybeWithComment;
+            $returnTypes['typeFromPhpDocMaybeWithComment'] = $function->returnTypeFromPhpDocMaybeWithComment;
             $returnTypes['typeFromPhpDoc'] = $function->returnTypeFromPhpDoc;
             $returnTypes['typeFromPhpDocSimple'] = $function->returnTypeFromPhpDocSimple;
             $returnTypes['typeFromPhpDocPslam'] = $function->returnTypeFromPhpDocPslam;
@@ -141,7 +139,6 @@ class ParserContainer
 
         \asort($allInfo);
 
-        /** @psalm-suppress LessSpecificReturnStatement ? */
         return $allInfo;
     }
 
@@ -169,6 +166,14 @@ class ParserContainer
      * @return \voku\SimplePhpParser\Model\PHPClass[]
      */
     public function getClasses(): array
+    {
+        return $this->classes;
+    }
+
+    /**
+     * @return \voku\SimplePhpParser\Model\PHPClass[]
+     */
+    public function &getClassesByReference(): array
     {
         return $this->classes;
     }
@@ -263,6 +268,6 @@ class ParserContainer
      */
     public function addInterface(PHPInterface $interface): void
     {
-        $this->interfaces[$interface->name] = $interface;
+        $this->interfaces[$interface->name ?? \md5(\serialize($interface))] = $interface;
     }
 }

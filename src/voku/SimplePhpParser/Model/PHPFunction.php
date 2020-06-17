@@ -42,7 +42,7 @@ class PHPFunction extends BasePHPElement
     /**
      * @var string|null
      */
-    public $returnTypeMaybeWithComment;
+    public $returnTypeFromPhpDocMaybeWithComment;
 
     /**
      * @var string
@@ -95,7 +95,7 @@ class PHPFunction extends BasePHPElement
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
@@ -113,9 +113,9 @@ class PHPFunction extends BasePHPElement
 
         $this->collectTags($node);
 
-        $nodeDoc = $node->getDocComment();
-        if ($nodeDoc) {
-            $this->readPhpDoc($nodeDoc->getText());
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            $this->readPhpDoc($docComment->getText());
         }
 
         return $this;
@@ -157,7 +157,7 @@ class PHPFunction extends BasePHPElement
         }
 
         $docComment = $function->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             $this->readPhpDoc($docComment);
         }
 
@@ -177,9 +177,9 @@ class PHPFunction extends BasePHPElement
             $this->parameters[$param->name] = $param;
         }
 
-        $docCommentText = $function->getDocComment();
-        if ($docCommentText) {
-            $this->readPhpDoc($docCommentText);
+        $docComment = $function->getDocComment();
+        if ($docComment) {
+            $this->readPhpDoc($docComment);
         }
 
         return $this;
@@ -214,7 +214,7 @@ class PHPFunction extends BasePHPElement
         try {
             $regexIntValues = '/@.*?return\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
             if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
-                $this->returnTypeMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
+                $this->returnTypeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
                 $this->returnTypeFromPhpDoc = 'int';
                 $this->returnTypeFromPhpDocSimple = 'int';
                 $this->returnTypeFromPhpDocPslam = $matchesIntValues['intValues'];
@@ -224,7 +224,7 @@ class PHPFunction extends BasePHPElement
 
             $regexAnd = '/@.*?return\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
             if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
-                $this->returnTypeMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
+                $this->returnTypeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
                 $this->returnTypeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->returnTypeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->returnTypeFromPhpDocPslam = $matchesAndValues['type'];
@@ -240,7 +240,7 @@ class PHPFunction extends BasePHPElement
                 /** @var Return_ $parsedReturnTagReturn */
                 $parsedReturnTagReturn = $parsedReturnTag[0];
 
-                $this->returnTypeMaybeWithComment = \trim((string) $parsedReturnTagReturn);
+                $this->returnTypeFromPhpDocMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
                 $type = $parsedReturnTagReturn->getType();
 
@@ -268,7 +268,7 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }

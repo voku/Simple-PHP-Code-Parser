@@ -82,8 +82,6 @@ abstract class BasePHPElement
      * @return string
      *
      * @psalm-return class-string
-     *
-     * @psalm-suppress MoreSpecificReturnType or Less ?
      */
     protected static function getFQN($node): string
     {
@@ -105,7 +103,6 @@ abstract class BasePHPElement
             }
         }
 
-        /** @psalm-suppress LessSpecificReturnStatement ? */
         return \rtrim($fqn, '\\');
     }
 

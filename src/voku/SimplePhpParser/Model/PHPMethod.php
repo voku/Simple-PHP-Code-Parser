@@ -16,12 +16,12 @@ class PHPMethod extends PHPFunction
     public $access = '';
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_static;
 
     /**
-     * @var bool
+     * @var bool|null
      */
     public $is_final;
 
@@ -60,7 +60,7 @@ class PHPMethod extends PHPFunction
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $tmpErrorMessage = $this->parentName . '->' . $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->parentName . '->' . $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
@@ -83,15 +83,15 @@ class PHPMethod extends PHPFunction
 
         $this->collectTags($node);
 
-        $nodeDoc = $node->getDocComment();
-        if ($nodeDoc) {
-            $docCommentText = $nodeDoc->getText();
+        $docComment = $node->getDocComment();
+        if ($docComment) {
+            $docComment = $docComment->getText();
 
-            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+            if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docCommentText);
+            $this->readPhpDoc($docComment);
         }
 
         if (\strncmp($this->name, 'PS_UNRESERVE_PREFIX_', 20) === 0) {
@@ -164,7 +164,7 @@ class PHPMethod extends PHPFunction
         }
 
         $docComment = $method->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }

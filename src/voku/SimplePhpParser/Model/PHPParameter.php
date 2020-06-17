@@ -44,7 +44,7 @@ class PHPParameter extends BasePHPElement
     /**
      * @var string|null
      */
-    public $typeMaybeWithComment;
+    public $typeFromPhpDocMaybeWithComment;
 
     /**
      * @var bool|null
@@ -72,7 +72,7 @@ class PHPParameter extends BasePHPElement
     {
         $parameterVar = $parameter->var;
         if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
-            $this->parseError[] = ($this->line ?? '') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
+            $this->parseError[] = ($this->line ?? '?') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
 
             $this->name = \md5(\uniqid('error', true));
 
@@ -85,7 +85,7 @@ class PHPParameter extends BasePHPElement
             $this->prepareNode($node);
 
             $docComment = $node->getDocComment();
-            if ($docComment !== null) {
+            if ($docComment) {
                 $docCommentText = $docComment->getText();
 
                 if (\stripos($docCommentText, 'inheritdoc') !== false) {
@@ -144,7 +144,7 @@ class PHPParameter extends BasePHPElement
         $method = $parameter->getDeclaringFunction();
 
         $docComment = $method->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             if (\stripos($docComment, 'inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
@@ -209,7 +209,7 @@ class PHPParameter extends BasePHPElement
             $regexIntValues = '/@.*?param\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
             if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
                 $this->typeFromPhpDoc = 'int';
-                $this->typeMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
+                $this->typeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
                 $this->typeFromPhpDocSimple = 'int';
                 $this->typeFromPhpDocPslam = $matchesIntValues['intValues'];
 
@@ -219,7 +219,7 @@ class PHPParameter extends BasePHPElement
             $regexAnd = '/@.*?param\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
             if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
                 $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
+                $this->typeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
                 $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->typeFromPhpDocPslam = $matchesAndValues['type'];
 
@@ -243,13 +243,13 @@ class PHPParameter extends BasePHPElement
 
                         $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
-                        $typeMaybeWithCommentTmp = \trim((string) $parsedParamTag);
+                        $typeFromPhpDocMaybeWithCommentTmp = \trim((string) $parsedParamTag);
                         if (
-                            $typeMaybeWithCommentTmp
+                            $typeFromPhpDocMaybeWithCommentTmp
                             &&
-                            \strpos($typeMaybeWithCommentTmp, '$') !== 0
+                            \strpos($typeFromPhpDocMaybeWithCommentTmp, '$') !== 0
                         ) {
-                            $this->typeMaybeWithComment = $typeMaybeWithCommentTmp;
+                            $this->typeFromPhpDocMaybeWithComment = $typeFromPhpDocMaybeWithCommentTmp;
                         }
 
                         $typeTmp = Utils::parseDocTypeObject($type);
@@ -287,7 +287,7 @@ class PHPParameter extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }

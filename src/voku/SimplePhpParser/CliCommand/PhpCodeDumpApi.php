@@ -79,8 +79,9 @@ final class PhpCodeDumpApi extends Command
         $output->writeln('');
 
         foreach ($phpParser->getClasses() as $class) {
+            /** @noinspection DisconnectedForeachInstructionInspection */
             $output->writeln('');
-            $output->writeln(\sprintf('<class>%s</class>', $class->name));
+            $output->writeln(\sprintf('<class>%s</class>', $class->name ?? '?'));
 
             foreach ($class->methods as $method) {
                 if ($method->access !== 'public') {

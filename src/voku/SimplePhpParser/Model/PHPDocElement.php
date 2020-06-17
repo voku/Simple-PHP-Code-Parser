@@ -92,7 +92,7 @@ trait PHPDocElement
     protected function collectTags(Node $node): void
     {
         $docComment = $node->getDocComment();
-        if ($docComment !== null) {
+        if ($docComment) {
             try {
                 $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
 
@@ -117,7 +117,7 @@ trait PHPDocElement
                 $this->hasInternalTag = $phpDoc->hasTag('internal');
                 $this->hasRemovedTag = $phpDoc->hasTag('removed');
             } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }

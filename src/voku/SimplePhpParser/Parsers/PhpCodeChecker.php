@@ -103,7 +103,7 @@ final class PhpCodeChecker
             ) as $propertyName => $propertyTypes) {
                 $typeFound = false;
                 foreach ($propertyTypes as $key => $type) {
-                    if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
+                    if ($key === 'typeFromPhpDocMaybeWithComment' || $key === 'typeFromDefaultValue') {
                         continue;
                     }
 
@@ -120,16 +120,16 @@ final class PhpCodeChecker
                     if ($propertyTypes['typeFromPhpDocSimple'] && $propertyTypes['type']) {
                         $error = self::checkPhpDocType(
                             $propertyTypes,
-                            ['file' => $class->file, 'line' => $class->line],
-                            $class->name,
+                            ['file' => $class->file, 'line' => $class->line ?? null],
+                            ($class->name ?? '?'),
                             $error,
-                            $class->name,
+                            ($class->name ?? null),
                             null,
                             $propertyName
                         );
                     }
                 } else {
-                    $error[$class->file][] = '[' . $class->line . ']: missing property type for ' . $class->name . '->$' . $propertyName;
+                    $error[$class->file ?? ''][] = '[' . ($class->line ?? '?') . ']: missing property type for ' . ($class->name ?? '?') . '->$' . $propertyName;
                 }
             }
 
@@ -141,7 +141,7 @@ final class PhpCodeChecker
                 foreach ($methodInfo['paramsTypes'] as $paramName => $paramTypes) {
                     $typeFound = false;
                     foreach ($paramTypes as $key => $type) {
-                        if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
+                        if ($key === 'typeFromPhpDocMaybeWithComment' || $key === 'typeFromDefaultValue') {
                             continue;
                         }
 
@@ -158,14 +158,14 @@ final class PhpCodeChecker
                             $error = self::checkPhpDocType(
                                 $paramTypes,
                                 $methodInfo,
-                                $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()',
+                                ($class->name ?? '?') . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()',
                                 $error,
-                                $class->name,
+                                ($class->name ?? null),
                                 $paramName
                             );
                         }
                     } else {
-                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: missing parameter type for ' . $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '() | parameter:' . $paramName;
+                        $error[$methodInfo['file'] ?? ''][] = '[' . ($methodInfo['line'] ?? '?') . ']: missing parameter type for ' . ($class->name ?? '?') . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '() | parameter:' . $paramName;
                     }
                 }
 
@@ -183,7 +183,7 @@ final class PhpCodeChecker
                 ) {
                     $typeFound = false;
                     foreach ($methodInfo['returnTypes'] as $key => $type) {
-                        if ($key === 'typeMaybeWithComment') {
+                        if ($key === 'typeFromPhpDocMaybeWithComment') {
                             continue;
                         }
 
@@ -201,18 +201,18 @@ final class PhpCodeChecker
                             $error = self::checkPhpDocType(
                                 $methodInfo['returnTypes'],
                                 $methodInfo,
-                                $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()',
+                                ($class->name ?? '?') . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()',
                                 $error,
-                                $class->name,
+                                $class->name ?? null,
                                 null
                             );
                         }
                     } else {
-                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: missing return type for ' . $class->name . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()';
+                        $error[$methodInfo['file'] ?? ''][] = '[' . ($methodInfo['line'] ?? '?') . ']: missing return type for ' . ($class->name ?? '?') . ($methodInfo['is_static'] ? '::' : '->') . $methodName . '()';
                     }
 
                     if (!$skipParseErrorsAsError && $methodInfo['error']) {
-                        $error[$methodInfo['file']][] = '[' . $methodInfo['line'] . ']: ' . $methodInfo['error'];
+                        $error[$methodInfo['file'] ?? ''][] = '[' . ($methodInfo['line'] ?? '?') . ']: ' . $methodInfo['error'];
                     }
                 }
             }
@@ -246,7 +246,7 @@ final class PhpCodeChecker
             foreach ($functionInfo['paramsTypes'] as $paramName => $paramTypes) {
                 $typeFound = false;
                 foreach ($paramTypes as $key => $type) {
-                    if ($key === 'typeMaybeWithComment' || $key === 'typeFromDefaultValue') {
+                    if ($key === 'typeFromPhpDocMaybeWithComment' || $key === 'typeFromDefaultValue') {
                         continue;
                     }
 
@@ -270,13 +270,13 @@ final class PhpCodeChecker
                         );
                     }
                 } else {
-                    $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: missing parameter type for ' . $functionName . '() | parameter:' . $paramName;
+                    $error[$functionInfo['file'] ?? ''][] = '[' . ($functionInfo['line'] ?? '?') . ']: missing parameter type for ' . $functionName . '() | parameter:' . $paramName;
                 }
             }
 
             $typeFound = false;
             foreach ($functionInfo['returnTypes'] as $key => $type) {
-                if ($key === 'typeMaybeWithComment') {
+                if ($key === 'typeFromPhpDocMaybeWithComment') {
                     continue;
                 }
 
@@ -301,11 +301,11 @@ final class PhpCodeChecker
                     );
                 }
             } else {
-                $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: missing return type for ' . $functionName . '()';
+                $error[$functionInfo['file'] ?? ''][] = '[' . ($functionInfo['line'] ?? '?') . ']: missing return type for ' . $functionName . '()';
             }
 
             if (!$skipParseErrorsAsError && $functionInfo['error']) {
-                $error[$functionInfo['file']][] = '[' . $functionInfo['line'] . ']: ' . $functionInfo['error'];
+                $error[$functionInfo['file'] ?? ''][] = '[' . ($functionInfo['line'] ?? '?') . ']: ' . $functionInfo['error'];
             }
         }
 
@@ -321,8 +321,8 @@ final class PhpCodeChecker
      * @param string|null $paramName
      * @param string|null $propertyName
      *
-     * @psalm-param array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeMaybeWithComment: null|string, ?typeFromDefaultValue: null|string} $types
-     * @psalm-param array{file: null|string, line: null|string}
+     * @psalm-param array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue?: null|string} $types
+     * @psalm-param array{file: null|string, line: null|int} $fileInfo
      *
      * @return array
      */
@@ -340,7 +340,7 @@ final class PhpCodeChecker
         $typeFromPhpDocInput = $types['typeFromPhpDocSimple'];
         $typeFromPhpInput = $types['type'];
 
-        $removeEmptyStringFunc = static function ($tmp) {
+        $removeEmptyStringFunc = static function (?string $tmp): bool {
             return $tmp !== '';
         };
         $typeFromPhpDoc = \array_filter(
@@ -417,8 +417,6 @@ final class PhpCodeChecker
 
                     /** @noinspection ArgumentEqualsDefaultValueInspection */
                     if (
-                        $typeFromPhpSingle
-                        &&
                         (
                             \class_exists($typeFromPhpSingle, true)
                             ||
@@ -456,11 +454,11 @@ final class PhpCodeChecker
 
                     if (!$checked) {
                         if ($propertyName) {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing property type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | property:' . $propertyName;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: missing property type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | property:' . $propertyName;
                         } elseif ($paramName) {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing parameter type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | parameter:' . $paramName;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: missing parameter type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name . ' | parameter:' . $paramName;
                         } else {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: missing return type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: missing return type "' . $typeFromPhpSingle . '" in phpdoc from ' . $name;
                         }
                     }
                 }
@@ -525,8 +523,6 @@ final class PhpCodeChecker
 
                         /** @noinspection ArgumentEqualsDefaultValueInspection */
                         if (
-                            $typeFromPhpWithoutNull
-                            &&
                             $typeFromPhpDocSingle
                             &&
                             (
@@ -554,11 +550,11 @@ final class PhpCodeChecker
 
                     if (!$checked) {
                         if ($propertyName) {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong property type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name . '  | property:' . $propertyName;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: wrong property type "' . ($typeFromPhpDocSingle ?? '?') . '" in phpdoc from ' . $name . '  | property:' . $propertyName;
                         } elseif ($paramName) {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong parameter type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name . '  | parameter:' . $paramName;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: wrong parameter type "' . ($typeFromPhpDocSingle ?? '?') . '" in phpdoc from ' . $name . '  | parameter:' . $paramName;
                         } else {
-                            $error[$fileInfo['file']][] = '[' . $fileInfo['line'] . ']: wrong return type "' . $typeFromPhpDocSingle . '" in phpdoc from ' . $name;
+                            $error[$fileInfo['file'] ?? ''][] = '[' . ($fileInfo['line'] ?? '?') . ']: wrong return type "' . ($typeFromPhpDocSingle ?? '?') . '" in phpdoc from ' . $name;
                         }
                     }
                 }
