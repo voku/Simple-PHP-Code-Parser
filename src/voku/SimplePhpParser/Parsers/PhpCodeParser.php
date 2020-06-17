@@ -313,6 +313,10 @@ final class PhpCodeParser
                 continue;
             }
 
+            if (\substr($path, -\strlen('.php')) !== '.php') {
+                continue;
+            }
+
             foreach ($pathExcludeRegex as $regex) {
                 if (\preg_match($regex, $path)) {
                     continue 2;

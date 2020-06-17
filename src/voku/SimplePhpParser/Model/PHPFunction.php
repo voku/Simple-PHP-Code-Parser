@@ -101,7 +101,7 @@ class PHPFunction extends BasePHPElement
         }
 
         foreach ($node->getParams() as $parameter) {
-            $paramNameTmp = $parameter->var->name;
+            $paramNameTmp = $parameter->var instanceof \PhpParser\Node\Expr\Variable ? $parameter->var->name : '?';
             \assert(\is_string($paramNameTmp));
 
             if (isset($this->parameters[$paramNameTmp])) {

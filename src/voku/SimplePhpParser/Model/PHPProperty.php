@@ -136,7 +136,9 @@ class PHPProperty extends BasePHPElement
         $this->is_static = $property->isStatic();
 
         if ($this->is_static) {
-            $this->defaultValue = $property->getValue();
+            if (\class_exists($property->getDeclaringClass()->getName(), true)) {
+                $this->defaultValue = $property->getValue();
+            }
 
             if ($this->defaultValue !== null) {
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));

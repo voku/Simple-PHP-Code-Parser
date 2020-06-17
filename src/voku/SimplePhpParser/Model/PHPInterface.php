@@ -100,9 +100,9 @@ class PHPInterface extends BasePHPClass
                 &&
                 \interface_exists($parentInterface, true)
             ) {
-                $reflectionInterface = ReflectionClass::createFromName($this->name);
-                $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
-                $this->parserContainer->addInterface($class);
+                $reflectionInterface = ReflectionClass::createFromName($parentInterface);
+                $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
+                $this->parserContainer->addInterface($parentInterfaceNew);
             }
         }
 
