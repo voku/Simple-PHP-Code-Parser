@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.10.0 (2020-06-18)
+
+- "PhpCodeParser" -> ignore errors outside the current file-path-scope
+- "PhpCodeParser" -> use more generic autoloader logic
+- "PhpCodeChecker" -> fix more inheritdoc errors
+
 ### 0.9.0 (2020-06-16) 
 
 - "PhpCodeChecker" -> check wrong phpdocs from class properties
