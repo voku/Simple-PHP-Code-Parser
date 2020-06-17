@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.11.0 (2020-06-18)
+
+- "PHPInterface" -> fix recursion
+- "PhpCodeParser" -> analyse only ".php" files in the given path
+
 ### 0.10.0 (2020-06-18)
 
 - "PhpCodeParser" -> ignore errors outside the current file-path-scope
