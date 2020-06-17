@@ -23,19 +23,19 @@ use voku\SimplePhpParser\CliCommand\PhpCodeCheckerCommand;
     $devOrPharLoader->unregister();
 
     $autoloaderInWorkingDirectory = getcwd() . '/vendor/autoload.php';
-    $composerAutoloaderProjectPaths = [];
+    $autoloaderProjectPaths = [];
     if (is_file($autoloaderInWorkingDirectory)) {
-        $composerAutoloaderProjectPaths[] = \dirname($autoloaderInWorkingDirectory, 2);
+        $autoloaderProjectPaths[] = \dirname($autoloaderInWorkingDirectory, 2);
 
         /** @noinspection PhpIncludeInspection */
         require_once $autoloaderInWorkingDirectory;
     }
 
-    $autoloadProjectAutoloaderFile = static function (string $file) use (&$composerAutoloaderProjectPaths): void {
+    $autoloadProjectAutoloaderFile = static function (string $file) use (&$autoloaderProjectPaths): void {
         $path = \dirname(__DIR__) . $file;
         if (!\extension_loaded('phar')) {
             if (is_file($path)) {
-                $composerAutoloaderProjectPaths[] = \dirname($path, 2);
+                $autoloaderProjectPaths[] = \dirname($path, 2);
 
                 /** @noinspection PhpIncludeInspection */
                 require_once $path;
@@ -43,16 +43,16 @@ use voku\SimplePhpParser\CliCommand\PhpCodeCheckerCommand;
         } else {
             $pharPath = \Phar::running(false);
             if ($pharPath === '') {
-                if (is_file($path)) {
-                    $composerAutoloaderProjectPaths[] = \dirname($path, 2);
+                if (\is_file($path)) {
+                    $autoloaderProjectPaths[] = \dirname($path, 2);
 
                     /** @noinspection PhpIncludeInspection */
                     require_once $path;
                 }
             } else {
                 $path = \dirname($pharPath) . $file;
-                if (is_file($path)) {
-                    $composerAutoloaderProjectPaths[] = \dirname($path, 2);
+                if (\is_file($path)) {
+                    $autoloaderProjectPaths[] = \dirname($path, 2);
 
                     /** @noinspection PhpIncludeInspection */
                     require_once $path;
@@ -65,16 +65,16 @@ use voku\SimplePhpParser\CliCommand\PhpCodeCheckerCommand;
 
     $devOrPharLoader->register(true);
 
-    $reversedComposerAutoloaderProjectPaths = array_reverse($composerAutoloaderProjectPaths);
+    $reversedAutoloaderProjectPaths = array_reverse($autoloaderProjectPaths);
 
     $app = new Application('simple-php-code-parser');
 
     /** @noinspection UnusedFunctionResultInspection */
-    $app->add(new PhpCodeCheckerCommand($reversedComposerAutoloaderProjectPaths));
+    $app->add(new PhpCodeCheckerCommand($reversedAutoloaderProjectPaths));
 
 
     /** @noinspection UnusedFunctionResultInspection */
-    $app->add(new \voku\SimplePhpParser\CliCommand\PhpCodeDumpApi($reversedComposerAutoloaderProjectPaths));
+    $app->add(new \voku\SimplePhpParser\CliCommand\PhpCodeDumpApi($reversedAutoloaderProjectPaths));
 
     /** @noinspection PhpUnhandledExceptionInspection */
     $app->run();

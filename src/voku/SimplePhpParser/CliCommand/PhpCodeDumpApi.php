@@ -18,16 +18,16 @@ final class PhpCodeDumpApi extends Command
     /**
      * @var string[]
      */
-    private $composerAutoloaderProjectPaths = [];
+    private $autoloaderProjectPaths = [];
 
     /**
-     * @param string[] $composerAutoloaderProjectPaths
+     * @param string[] $autoloaderProjectPaths
      */
-    public function __construct(array $composerAutoloaderProjectPaths)
+    public function __construct(array $autoloaderProjectPaths)
     {
         parent::__construct();
 
-        $this->composerAutoloaderProjectPaths = $composerAutoloaderProjectPaths;
+        $this->autoloaderProjectPaths = $autoloaderProjectPaths;
     }
 
     public function configure(): void
@@ -58,7 +58,7 @@ final class PhpCodeDumpApi extends Command
             $autoloadRealPath = \realpath($autoloadPath);
             \assert(\is_string($autoloadRealPath));
 
-            $this->composerAutoloaderProjectPaths[] = $autoloadRealPath;
+            $this->autoloaderProjectPaths[] = $autoloadRealPath;
         }
 
         $formatter = $output->getFormatter();
@@ -69,7 +69,7 @@ final class PhpCodeDumpApi extends Command
 
         $phpParser = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(
             $realPath,
-            $this->composerAutoloaderProjectPaths
+            $this->autoloaderProjectPaths
         );
 
         $banner = \sprintf('List of classes and their public API in : %s', $realPath);

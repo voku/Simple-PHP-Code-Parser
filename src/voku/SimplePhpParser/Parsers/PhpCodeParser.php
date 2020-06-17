@@ -25,23 +25,23 @@ final class PhpCodeParser
 {
     /**
      * @param string   $code
-     * @param string[] $composerAutoloaderProjectPaths
+     * @param string[] $autoloaderProjectPaths
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
     public static function getFromString(
         string $code,
-        array $composerAutoloaderProjectPaths = []
+        array $autoloaderProjectPaths = []
     ): ParserContainer {
         return self::getPhpFiles(
             $code,
-            $composerAutoloaderProjectPaths
+            $autoloaderProjectPaths
         );
     }
 
     /**
      * @param string   $pathOrCode
-     * @param string[] $composerAutoloaderProjectPaths
+     * @param string[] $autoloaderProjectPaths
      * @param string[] $pathExcludeRegex
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
@@ -51,7 +51,7 @@ final class PhpCodeParser
      */
     public static function getPhpFiles(
         string $pathOrCode,
-        array $composerAutoloaderProjectPaths = [],
+        array $autoloaderProjectPaths = [],
         array $pathExcludeRegex = []
     ): ParserContainer {
         $phpCodes = self::getCode(
@@ -73,7 +73,7 @@ final class PhpCodeParser
                 $visitor,
                 $cache,
                 $cacheKey,
-                $composerAutoloaderProjectPaths
+                $autoloaderProjectPaths
             );
         }
 
@@ -137,7 +137,7 @@ final class PhpCodeParser
      * @param \voku\SimplePhpParser\Parsers\Visitors\ASTVisitor    $visitor
      * @param \voku\cache\Cache                                    $cache
      * @param string                                               $cacheKey
-     * @param string[]                                             $composerAutoloaderProjectPaths
+     * @param string[]                                             $autoloaderProjectPaths
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer|\voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler
      */
@@ -148,17 +148,20 @@ final class PhpCodeParser
         ASTVisitor $visitor,
         Cache $cache,
         string $cacheKey,
-        array $composerAutoloaderProjectPaths
+        array $autoloaderProjectPaths
     ) {
         $cacheKey .= '--process';
 
-        foreach ($composerAutoloaderProjectPaths as $projectPath) {
+        foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath . '/vendor/autoload.php')) {
                 /** @noinspection PhpIncludeInspection */
                 require_once $projectPath . '/vendor/autoload.php';
             } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
                 /** @noinspection PhpIncludeInspection */
                 require_once $projectPath . '/../vendor/autoload.php';
+            } elseif (\file_exists($projectPath) && \is_file($projectPath)) {
+                /** @noinspection PhpIncludeInspection */
+                require_once $projectPath;
             }
         }
 
