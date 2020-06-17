@@ -26,7 +26,8 @@ abstract class Dummy6 implements DummyInterface
     /**
      * @return int|string
      */
-    public function getRowCount() {
+    public function getRowCount()
+    {
         return $this->ResultRowCount;
     }
 
