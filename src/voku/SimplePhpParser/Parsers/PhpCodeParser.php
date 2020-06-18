@@ -254,7 +254,7 @@ final class PhpCodeParser
      */
     public static function file_get_contents_with_cache(string $fileName, Cache $cache): array
     {
-        $cacheKey = 'simple-php-code-parser-' . \md5($fileName) . '--' . \filemtime($fileName);
+        $cacheKey = 'simple-php-code-parser-' . \md5($fileName) . '--' . \filemtime($fileName) . '--' . \PHP_VERSION;
 
         if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
             return $cache->getItem($cacheKey);
@@ -299,7 +299,7 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode);
+            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode) . '--' . \PHP_VERSION;
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
