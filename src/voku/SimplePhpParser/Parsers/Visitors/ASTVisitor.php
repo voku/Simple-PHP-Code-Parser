@@ -59,7 +59,8 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             case $node instanceof Const_:
 
-                $constant = (new PHPConst($this->parserContainer))->readObjectFromPhpNode($node);
+                $constant = new PHPConst($this->parserContainer);
+                $constant = $constant->readObjectFromPhpNode($node);
                 if (!$constant->file) {
                     $constant->file = $this->fileName;
                 }
@@ -83,7 +84,8 @@ final class ASTVisitor extends NodeVisitorAbstract
                     &&
                     $node->name->parts[0] === 'define'
                 ) {
-                    $constant = (new PHPDefineConstant($this->parserContainer))->readObjectFromPhpNode($node);
+                    $constant = new PHPDefineConstant($this->parserContainer);
+                    $constant = $constant->readObjectFromPhpNode($node);
                     if (!$constant->file) {
                         $constant->file = $this->fileName;
                     }
@@ -104,7 +106,8 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             case $node instanceof Class_:
 
-                $class = (new PHPClass($this->parserContainer))->readObjectFromPhpNode($node);
+                $class = new PHPClass($this->parserContainer);
+                $class = $class->readObjectFromPhpNode($node);
                 if (!$class->file) {
                     $class->file = $this->fileName;
                 }

@@ -1,5 +1,9 @@
 # Changelog
 
+### master
+
+- "PhpCodeParser" -> fix cache key
+
 ### 0.11.0 (2020-06-18)
 
 - "PHPInterface" -> fix recursion

@@ -169,7 +169,7 @@ final class PhpCodeParser
         string $cacheKey,
         array $autoloaderProjectPaths
     ) {
-        $cacheKey .= '--process';
+        $cacheKey .= '--process--' . md5(\implode('|', $autoloaderProjectPaths));
 
         foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath . '/vendor/autoload.php')) {
