@@ -66,7 +66,7 @@ final class PhpCodeParser
                 require_once $projectPath;
             }
         }
-        restore_error_handler();
+        \restore_error_handler();
 
         $phpCodes = self::getCode(
             $pathOrCode,
@@ -183,7 +183,7 @@ final class PhpCodeParser
         string $cacheKey,
         array $autoloaderProjectPaths
     ) {
-        $cacheKey .= '--process--' . md5(\implode('|', $autoloaderProjectPaths));
+        $cacheKey .= '--process--' . \md5(\implode('|', $autoloaderProjectPaths));
 
         foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath . '/vendor/autoload.php')) {
@@ -197,7 +197,7 @@ final class PhpCodeParser
                 require_once $projectPath;
             }
         }
-        restore_error_handler();
+        \restore_error_handler();
 
         new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
         $providers = new \Psalm\Internal\Provider\Providers(
