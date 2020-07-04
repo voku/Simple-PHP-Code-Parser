@@ -90,6 +90,10 @@ $phpCodeErrors = \voku\SimplePhpParser\Parsers\PhpCodeChecker::checkFromString($
 var_dump($phpCodeErrors); // ['missing property type for voku\tests\SimpleClass->$foo']
 ```
 
+### "phar" build
+
+```php ~/Downloads/box.phar compile --debug```
+
 ### Support
 
 For support and donations please visit [Github](https://github.com/voku/simple_html_dom/) | [Issues](https://github.com/voku/simple_html_dom/issues) | [PayPal](https://paypal.me/moelleken) | [Patreon](https://www.patreon.com/voku).

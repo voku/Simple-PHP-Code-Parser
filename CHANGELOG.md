@@ -1,8 +1,9 @@
 # Changelog
 
-### master
+### 0.12.0 (2020-07-05)
 
 - "PhpCodeParser" -> fix cache key
+- "PhpCodeChecker" -> fix the autoloader parameter
 
 ### 0.11.0 (2020-06-18)
 
