@@ -14,6 +14,10 @@ function foo3(int $foo = 0)
  */
 final class Dummy3 implements DummyInterface
 {
+    public const CASE_LOWER = \CASE_LOWER;
+
+    public const CASE_SPECIAL = 123;
+
     public $foo;
 
     /**
@@ -102,6 +106,36 @@ final class Dummy3 implements DummyInterface
      * @return \voku\tests\Dummy3
      */
     public function lall4(): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall5(int $case = \CASE_LOWER): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall6(int $case = self::CASE_LOWER): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall7(int $case = self::CASE_SPECIAL): DummyInterface
     {
         return new self;
     }
