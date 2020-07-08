@@ -163,22 +163,7 @@ class PHPParameter extends BasePHPElement
                 $this->type = '\\' . \ltrim($this->type, '\\');
             }
 
-            if ($type instanceof ReflectionParameter) {
-                // fix for this issue: https://github.com/Roave/BetterReflection/pull/678
-                if ($type->isDefaultValueConstant()) {
-                    $constNameTmp = $type->getDefaultValueConstantName();
-                    if (defined($constNameTmp)) {
-                        $defaultTmp = constant($constNameTmp);
-                        if ($defaultTmp === null) {
-                            if ($this->type && $this->type !== 'null') {
-                                $this->type = 'null|' . $this->type;
-                            } else {
-                                $this->type = 'null|mixed';
-                            }
-                        }
-                    }
-                }
-            } else if ($type->allowsNull()) {
+            if ($type->allowsNull()) {
                 if ($this->type && $this->type !== 'null') {
                     $this->type = 'null|' . $this->type;
                 } else {
