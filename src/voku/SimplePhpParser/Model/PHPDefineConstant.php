@@ -54,11 +54,7 @@ class PHPDefineConstant extends PHPConst
      */
     public function readObjectFromBetterReflection($constant): PHPConst
     {
-        if (\is_string($constant[0])) {
-            $this->name = \utf8_encode($constant[0]);
-        } else {
-            $this->name = (string) $constant[0];
-        }
+        $this->name = (string) $constant[0];
 
         $constantValue = $constant[1];
         if ($constantValue !== null) {
@@ -66,8 +62,6 @@ class PHPDefineConstant extends PHPConst
 
             if (\is_resource($constantValue)) {
                 $this->value = '__RESOURCE__';
-            } elseif (\is_string($constantValue) || \is_float($constantValue)) {
-                $this->value = \utf8_encode((string) $constantValue);
             } else {
                 $this->value = $constantValue;
             }

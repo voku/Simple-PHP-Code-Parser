@@ -18,6 +18,8 @@ final class Dummy3 implements DummyInterface
 
     public const CASE_SPECIAL = 123;
 
+    public const CASE_NULL = null;
+
     public $foo;
 
     /**
@@ -136,6 +138,26 @@ final class Dummy3 implements DummyInterface
      * @return \voku\tests\Dummy3
      */
     public function lall7(int $case = self::CASE_SPECIAL): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall8(int $case = self::CASE_NULL): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param null|int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall9(int $case = self::CASE_NULL): DummyInterface
     {
         return new self;
     }
