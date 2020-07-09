@@ -159,7 +159,9 @@ final class Utils
                 return null;
             }
 
-            return $node->name->parts[0];
+            if (\defined($node->name->parts[0])) {
+                return \constant($node->name->parts[0]);
+            }
         }
 
         return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;

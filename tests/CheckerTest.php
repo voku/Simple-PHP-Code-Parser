@@ -20,16 +20,16 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
         static::assertSame(
             [
                 'Simple-PHP-Code-Parser/tests/Dummy3.php' => [
-                    0 => '[7]: missing return type for voku\tests\foo3()',
-                    1 => '[15]: missing property type for voku\tests\Dummy3->$foo',
-                    2 => '[15]: missing property type for voku\tests\Dummy3->$foo_mixed',
-                    3 => '[150]: missing parameter type "null" in phpdoc from voku\tests\Dummy3->lall8() | parameter:case',
-                    4 => '[40]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
-                    5 => '[40]: missing return type for voku\tests\Dummy3->lall()',
-                    6 => '[70]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
-                    7 => '[60]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
-                    8 => '[50]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
-                    9 => '[80]: wrong parameter type "string" in phpdoc from voku\tests\Dummy3->lall3_1()  | parameter:foo',
+                    0 => '[9]: missing return type for voku\tests\foo3()',
+                    1 => '[19]: missing property type for voku\tests\Dummy3->$foo',
+                    2 => '[19]: missing property type for voku\tests\Dummy3->$foo_mixed',
+                    3 => '[154]: missing parameter type "null" in phpdoc from voku\tests\Dummy3->lall8() | parameter:case',
+                    4 => '[44]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
+                    5 => '[44]: missing return type for voku\tests\Dummy3->lall()',
+                    6 => '[74]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
+                    7 => '[64]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
+                    8 => '[54]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
+                    9 => '[84]: wrong parameter type "string" in phpdoc from voku\tests\Dummy3->lall3_1()  | parameter:foo',
                 ],
             ],
             $phpCodeErrors

@@ -134,8 +134,11 @@ class PHPParameter extends BasePHPElement
         $this->name = $parameter->getName();
 
         if ($parameter->isDefaultValueAvailable()) {
-            $this->defaultValue = $parameter->getDefaultValue();
-
+            try {
+                $this->defaultValue = $parameter->getDefaultValue();
+            } catch (\Roave\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+                // nothing
+            }
             if ($this->defaultValue !== null) {
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
             }
@@ -152,7 +155,11 @@ class PHPParameter extends BasePHPElement
             $this->readPhpDoc($docComment, $this->name);
         }
 
-        $type = $parameter->getType();
+        try {
+            $type = $parameter->getType();
+        } catch (\Roave\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+            $type = null;
+        }
         if ($type !== null) {
             if (\method_exists($type, 'getName')) {
                 $this->type = Utils::normalizePhpType($type->getName());

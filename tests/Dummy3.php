@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace voku\tests;
 
+use const SORT_ASC as SORT_ASC_TEST;
+
 function foo3(int $foo = 0)
 {
     return new Dummy();
 }
+
+const SORT_ASC_TEST_2 = SORT_ASC;
 
 /**
  * @internal
@@ -158,6 +162,26 @@ final class Dummy3 implements DummyInterface
      * @return \voku\tests\Dummy3
      */
     public function lall9(int $case = self::CASE_NULL): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall10(int $case = SORT_ASC_TEST): DummyInterface
+    {
+        return new self;
+    }
+
+    /**
+     * @param int $case
+     *
+     * @return \voku\tests\Dummy3
+     */
+    public function lall11(int $case = SORT_ASC_TEST_2): DummyInterface
     {
         return new self;
     }
