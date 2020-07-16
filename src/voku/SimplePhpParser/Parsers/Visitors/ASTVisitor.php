@@ -10,12 +10,14 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Stmt\Class_;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
+use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeVisitorAbstract;
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
+use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
@@ -101,6 +103,17 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $interface->file = $this->fileName;
                 }
                 $this->parserContainer->addInterface($interface);
+
+                break;
+
+            case $node instanceof Trait_:
+
+                $trait = new PHPTrait($this->parserContainer);
+                $trait = $trait->readObjectFromPhpNode($node);
+                if (!$trait->file) {
+                    $trait->file = $this->fileName;
+                }
+                $this->parserContainer->addTrait($trait);
 
                 break;
 

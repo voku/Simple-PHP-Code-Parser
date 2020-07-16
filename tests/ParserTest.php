@@ -58,6 +58,69 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('int $RowOffset', $parsedParamTag->typeFromPhpDocMaybeWithComment);
     }
 
+    public function testSimpleOneClassWithTrait(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(Dummy8::class, $phpClasses[Dummy8::class]->name);
+
+        $method = $phpClasses[Dummy8::class]->methods['getLallTrait'];
+
+        static::assertSame('getLallTrait', $method->name);
+    }
+
+    public function testSimpleOneTrait(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyTrait.php');
+        $phpTraits = $phpCode->getTraits();
+
+        static::assertSame(DummyTrait::class, $phpTraits[DummyTrait::class]->name);
+
+        $method = $phpTraits[DummyTrait::class]->methods['getLallTrait'];
+
+        static::assertSame('getLallTrait', $method->name);
+
+        static::assertSame(
+            [
+                'getLallTrait' => [
+                    'fullDescription' => '',
+                    'paramsTypes'     => [],
+                    'returnTypes'     => [
+                        'type'                           => 'float',
+                        'typeFromPhpDocMaybeWithComment' => 'float',
+                        'typeFromPhpDoc'                 => 'float',
+                        'typeFromPhpDocSimple'           => 'float',
+                        'typeFromPhpDocPslam'            => 'float',
+                    ],
+                    'line'          => 20,
+                    'file'          => 'Simple-PHP-Code-Parser/tests/DummyTrait.php',
+                    'error'         => '',
+                    'is_deprecated' => false,
+                    'is_static'     => false,
+                    'is_meta'       => false,
+                    'is_internal'   => false,
+                    'is_removed'    => false,
+                ],
+            ],
+            self::removeLocalPathForTheTest($phpTraits[DummyTrait::class]->getMethodsInfo())
+        );
+
+        static::assertSame(
+            [
+                'lall_trait' => [
+                    'type'                           => null,
+                    'typeFromPhpDocMaybeWithComment' => 'null|float|int',
+                    'typeFromPhpDoc'                 => 'null|float|int',
+                    'typeFromPhpDocSimple'           => 'null|float|int',
+                    'typeFromPhpDocPslam'            => 'float|int|null',
+                    'typeFromDefaultValue'           => null,
+                ],
+            ],
+            self::removeLocalPathForTheTest($phpTraits[DummyTrait::class]->getPropertiesInfo())
+        );
+    }
+
     public function testSimpleDirectory(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(

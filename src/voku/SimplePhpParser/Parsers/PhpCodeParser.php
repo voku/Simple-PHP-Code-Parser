@@ -99,6 +99,7 @@ final class PhpCodeParser
 
         foreach ($phpFilePromiseResponses as $response) {
             if ($response instanceof ParserContainer) {
+                $parserContainer->setTraits($response->getTraits());
                 $parserContainer->setClasses($response->getClasses());
                 $parserContainer->setInterfaces($response->getInterfaces());
                 $parserContainer->setConstants($response->getConstants());

@@ -8,6 +8,7 @@ use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
+use voku\SimplePhpParser\Model\PHPTrait;
 
 class ParserContainer
 {
@@ -31,6 +32,13 @@ class ParserContainer
      * @psalm-var array<string, PHPClass>
      */
     private $classes = [];
+
+    /**
+     * @var \voku\SimplePhpParser\Model\PHPTrait[]
+     *
+     * @psalm-var array<string, PHPTrait>
+     */
+    private $traits = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPInterface[]
@@ -226,6 +234,18 @@ class ParserContainer
         }
     }
 
+    /**
+     * @param array<string, \voku\SimplePhpParser\Model\PHPTrait> $traits
+     *
+     * @return void
+     */
+    public function setTraits($traits): void
+    {
+        foreach ($traits as $traitName => $trait) {
+            $this->traits[$traitName] = $trait;
+        }
+    }
+
     public function setParseError(ParserErrorHandler $error): void
     {
         foreach ($error->getErrors() as $errorInner) {
@@ -241,6 +261,34 @@ class ParserContainer
     public function addClass(PHPClass $class): void
     {
         $this->classes[$class->name ?: \md5(\serialize($class))] = $class;
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return \voku\SimplePhpParser\Model\PHPTrait|null
+     */
+    public function getTrait(string $name): ?PHPTrait
+    {
+        return $this->traits[$name] ?? null;
+    }
+
+    /**
+     * @return \voku\SimplePhpParser\Model\PHPTrait[]
+     */
+    public function getTraits(): array
+    {
+        return $this->traits;
+    }
+
+    /**
+     * @param \voku\SimplePhpParser\Model\PHPTrait $trait
+     *
+     * @return void
+     */
+    public function addTrait(PHPTrait $trait): void
+    {
+        $this->traits[$trait->name ?: \md5(\serialize($trait))] = $trait;
     }
 
     /**

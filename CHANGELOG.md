@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.13.0 (2020-07-16)
+
+- "PHPTrait" -> add support for "Trait"-files
+
 ### 0.12.0 (2020-07-05)
 
 - "PhpCodeParser" -> fix cache key
