@@ -28,7 +28,6 @@ jobs:
     - php: nightly
     - name: "Coding style"
       php: 7.4
-      install:
       script:
         - find -L . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n 1 -P 4 -- php -l
         - tools/php-cs-fixer fix --dry-run
@@ -36,6 +35,7 @@ jobs:
       php: 7.4
       install:
         - travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader phpstan/phpstan
+        - travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader vimeo/psalm
       script:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
