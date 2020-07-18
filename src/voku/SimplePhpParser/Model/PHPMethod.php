@@ -69,6 +69,7 @@ class PHPMethod extends PHPFunction
             if (\method_exists($node->returnType, 'toString')) {
                 $this->returnType = $node->returnType->toString();
             } elseif (\property_exists($node->returnType, 'name')) {
+                /** @psalm-suppress UndefinedPropertyFetch - FP? */
                 $this->returnType = $node->returnType->name;
             }
 
@@ -111,7 +112,14 @@ class PHPMethod extends PHPFunction
         }
 
         foreach ($node->getParams() as $parameter) {
-            $parameterNameTmp = $parameter->var->name;
+            $parameterVar = $parameter->var;
+            if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
+                $this->parseError[] = ($this->line ?? '?') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
+
+                return $this;
+            }
+
+            $parameterNameTmp = $parameterVar->name;
             \assert(\is_string($parameterNameTmp));
 
             if (isset($this->parameters[$parameterNameTmp])) {
