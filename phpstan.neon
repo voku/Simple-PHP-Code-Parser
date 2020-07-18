@@ -5,9 +5,6 @@ parameters:
     level: max
     paths:
         - %currentWorkingDirectory%/src/
-    excludes_analyse:
-        - %currentWorkingDirectory%/vendor/*
-        - %currentWorkingDirectory%/tests/*
     ignoreErrors:
         - '#should be compatible with#'
         - '#Argument of an invalid type voku\\SimplePhpParser\\Model\\PHP.* supplied for foreach, only iterables are supported\.#'
