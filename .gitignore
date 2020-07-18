@@ -14,3 +14,6 @@ build/logs/
 # php box
 /.box_dump/
 /simple-php-code-parser.phar
+
+# phive
+/tools/
