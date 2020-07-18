@@ -10,11 +10,13 @@
 
 You can simply scan a string, a file or a full directory and you can see a simple data structure from your php code.
 - Classes (**PHPClass**)
-- Class Properties (**PHPProperties**)
-- Class Constants (**PHPConst**)
-- Class Methods (**PHPMethod**)
+- Properties (**PHPProperties**)
+- Constants (**PHPConst**)
+- Methods (**PHPMethod**)
+- Interfaces (**PHPInterface**)
+- Traits (**PHPTrait**)
 - Functions (**PHPFunction**)
-- Function / Method Parameter (**PHPParameter**)
+- Parameter (**PHPParameter**)
 
 This code is forked from [JetBrains/phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs/tree/master/tests) but you can't use the classes from "phpstorm-stubs" directly, 
 because they are in a test namespace and the autoloader is "autoload-dev", so here is a extended version with support for [ondrejmirtes/BetterReflection](https://github.com/ondrejmirtes/BetterReflection).
