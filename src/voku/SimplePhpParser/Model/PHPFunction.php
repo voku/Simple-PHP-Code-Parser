@@ -261,7 +261,7 @@ class PHPFunction extends BasePHPElement
 
                 $type = $parsedReturnTagReturn->getType();
 
-                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim($type, '\\'));
+                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim((string)$type, '\\'));
 
                 $typeTmp = Utils::parseDocTypeObject($type);
                 if ($typeTmp !== '') {
@@ -278,7 +278,7 @@ class PHPFunction extends BasePHPElement
                                + $phpDoc->getTagsByName('phpstan-return');
 
             if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
-                $parsedReturnTagReturn = $parsedReturnTag[0];
+                $parsedReturnTagReturn = (string)$parsedReturnTag[0];
 
                 $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
