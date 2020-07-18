@@ -96,7 +96,12 @@ class PHPFunction extends BasePHPElement
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = \sprintf(
+                    '%s:%s | %s',
+                    $this->name,
+                    $this->line ?? '?',
+                    \print_r($e->getMessage(), true)
+                );
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
@@ -104,7 +109,11 @@ class PHPFunction extends BasePHPElement
         foreach ($node->getParams() as $parameter) {
             $parameterVar = $parameter->var;
             if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
-                $this->parseError[] = ($this->line ?? '?') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
+                $this->parseError[] = \sprintf(
+                    '%s:%s | maybe at this position an expression is required',
+                    $this->line ?? '?',
+                    $this->pos ?? ''
+                );
 
                 return $this;
             }
@@ -252,7 +261,7 @@ class PHPFunction extends BasePHPElement
 
                 $type = $parsedReturnTagReturn->getType();
 
-                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim($type . '', '\\'));
+                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim((string) $type, '\\'));
 
                 $typeTmp = Utils::parseDocTypeObject($type);
                 if ($typeTmp !== '') {
@@ -269,12 +278,17 @@ class PHPFunction extends BasePHPElement
                                + $phpDoc->getTagsByName('phpstan-return');
 
             if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
-                $parsedReturnTagReturn = $parsedReturnTag[0] . '';
+                $parsedReturnTagReturn = (string) $parsedReturnTag[0];
 
                 $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = \sprintf(
+                '%s:%s | %s',
+                $this->name,
+                $this->line ?? '?',
+                \print_r($e->getMessage(), true)
+            );
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }
