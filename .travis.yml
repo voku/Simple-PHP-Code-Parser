@@ -22,7 +22,7 @@ jobs:
     - name: "Coding style"
       php: 7.3
       install:
-        - phive install
+        - travis_retry phive install --force-accept-unsigned
       script:
         - find -L . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n 1 -P 4 -- php -l
         - tools/php-cs-fixer fix --dry-run
@@ -34,6 +34,13 @@ jobs:
       script:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
+      after-script:
+    - name: "Static analysis"
+      php: 7.3
+      install:
+        - travis_retry phive install --force-accept-unsigned
+      script:
+        - tools/box compile
       after-script:
   allow_failures:
     - php: nightly
@@ -64,7 +71,7 @@ install:
   - |
     if [ "${CODE_COVERAGE}" == true ]; then
         travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
-        travis_retry phive install
+        travis_retry phive install --force-accept-unsigned
     fi
 
 script:
