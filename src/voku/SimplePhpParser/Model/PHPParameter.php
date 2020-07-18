@@ -276,8 +276,7 @@ class PHPParameter extends BasePHPElement
                         }
 
                         if ($this->typeFromPhpDoc) {
-                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                            $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->typeFromPhpDoc);
+                            $this->typeFromPhpDocPslam = Utils::modernPhpdoc($this->typeFromPhpDoc);
                         }
                     }
                 }
@@ -299,8 +298,7 @@ class PHPParameter extends BasePHPElement
                             continue;
                         }
 
-                        /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                        $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedParamTagStr);
+                        $this->typeFromPhpDocPslam = Utils::modernPhpdoc($parsedParamTagStr);
                     }
                 }
             }

@@ -16,6 +16,8 @@ use phpDocumentor\Reflection\Type;
 
 /**
  * Value Object representing a True type.
+ *
+ * @psalm-immutable
  */
 final class BooleanTrue implements Type
 {

@@ -287,8 +287,7 @@ final class PHPTrait extends BasePHPClass
                         }
 
                         if ($propertyPhp->typeFromPhpDoc) {
-                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                            $propertyPhp->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($propertyPhp->typeFromPhpDoc);
+                            $propertyPhp->typeFromPhpDocPslam = Utils::modernPhpdoc($propertyPhp->typeFromPhpDoc);
                         }
 
                         $this->properties[$propertyPhp->name] = $propertyPhp;

@@ -262,8 +262,7 @@ class PHPProperty extends BasePHPElement
                         }
 
                         if ($this->typeFromPhpDoc) {
-                            /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                            $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->typeFromPhpDoc);
+                            $this->typeFromPhpDocPslam = Utils::modernPhpdoc($this->typeFromPhpDoc);
                         }
                     }
                 }
@@ -279,8 +278,7 @@ class PHPProperty extends BasePHPElement
                         $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
                         $parsedParamTagStr = $spitedData['parsedParamTagStr'];
 
-                        /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                        $this->typeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedParamTagStr);
+                        $this->typeFromPhpDocPslam = Utils::modernPhpdoc($parsedParamTagStr);
                     }
                 }
             }

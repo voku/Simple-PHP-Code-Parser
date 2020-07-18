@@ -356,6 +356,33 @@ final class Utils
         return $docBlockFactory;
     }
 
+    public static function modernPhpdoc(string $input): string
+    {
+        static $LAXER = null;
+        static $TYPE_PARSER = null;
+
+        if ($LAXER === null) {
+            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer();
+        }
+
+        if ($TYPE_PARSER === null) {
+            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser(new \PHPStan\PhpDocParser\Parser\ConstExprParser());
+        }
+
+        $tokens = new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
+        $typeNode = $TYPE_PARSER->parse($tokens);
+
+        return \str_replace(
+            [
+                ' | ',
+            ],
+            [
+                '|',
+            ],
+            \trim((string) $typeNode, ')(')
+        );
+    }
+
     private static function findParentClassDeclaringConstant(
         string $classStr,
         string $constantName,

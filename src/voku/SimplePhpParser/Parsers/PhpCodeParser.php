@@ -200,15 +200,6 @@ final class PhpCodeParser
         }
         \restore_error_handler();
 
-        new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider();
-        $providers = new \Psalm\Internal\Provider\Providers(
-            new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeFileProvider()
-        );
-        new \Psalm\Internal\Analyzer\ProjectAnalyzer(
-            new \voku\SimplePhpParser\Parsers\Helper\Psalm\FakeConfig(),
-            $providers
-        );
-
         $parser = (new ParserFactory())->create(
             ParserFactory::PREFER_PHP7,
             new Emulative(

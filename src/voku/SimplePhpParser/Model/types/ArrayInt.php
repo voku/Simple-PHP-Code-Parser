@@ -14,6 +14,9 @@ namespace phpDocumentor\Reflection\Types;
 
 use phpDocumentor\Reflection\Type;
 
+/**
+ * @psalm-immutable
+ */
 final class ArrayInt implements Type
 {
     /**

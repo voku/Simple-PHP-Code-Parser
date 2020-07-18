@@ -252,8 +252,7 @@ class PHPFunction extends BasePHPElement
                 }
 
                 if ($this->returnTypeFromPhpDoc) {
-                    /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                    $this->returnTypeFromPhpDocPslam = (string) @\Psalm\Type::parseString($this->returnTypeFromPhpDoc);
+                    $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($this->returnTypeFromPhpDoc);
                 }
             }
 
@@ -264,8 +263,7 @@ class PHPFunction extends BasePHPElement
             if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
                 $parsedReturnTagReturn = $parsedReturnTag[0] . '';
 
-                /** @noinspection PhpUsageOfSilenceOperatorInspection */
-                $this->returnTypeFromPhpDocPslam = (string) @\Psalm\Type::parseString($parsedReturnTagReturn);
+                $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);

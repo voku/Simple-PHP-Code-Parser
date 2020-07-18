@@ -16,6 +16,8 @@ use phpDocumentor\Reflection\Type;
 
 /**
  * Value Object representing a False type.
+ *
+ * @psalm-immutable
  */
 final class BooleanFalse implements Type
 {
