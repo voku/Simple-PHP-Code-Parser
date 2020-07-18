@@ -16,10 +16,10 @@
         }
     ],
     "require": {
-        "php": ">=7.1.0",
+        "php": ">=7.1",
         "ext-simplexml": "*",
         "amphp/parallel": "~1.4",
-        "composer/composer": "1.10.6",
+        "composer/composer": "~1.10",
         "phpdocumentor/type-resolver": "~1.0 || ~1.1",
         "phpdocumentor/reflection-docblock": "~4.3 || ~5.1",
         "phpdocumentor/reflection-common": "~2.1",
