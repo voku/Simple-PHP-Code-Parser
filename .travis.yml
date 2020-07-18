@@ -46,7 +46,7 @@ jobs:
 
 before_install:
   - |
-    # Install phive if not cached
+    # Download phive if not cached
     if [ ! -r "${HOME}/.phive/phive.phar" ]; then
         mkdir -p ~/bin
         travis_retry wget -O "${HOME}/.phive/phive.phar" "https://phar.io/releases/phive.phar"
@@ -59,26 +59,20 @@ before_install:
         fi
         rm "${HOME}/.phive/phive.phar.asc"
     fi
-    install --verbose --mode=0755 -T "${HOME}/.phive/phive.phar" "${HOME}/bin/phive"
-    export PATH="${HOME}/bin:${PATH}"
+  - install --verbose --mode=0755 -T "${HOME}/.phive/phive.phar" "${HOME}/bin/phive"
+  - export PATH="${HOME}/bin:${PATH}"
   - travis_retry phive install --force-accept-unsigned --trust-gpg-keys E82B2FB314E9906E
 
 install:
   - composer validate --strict
   - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
   - mkdir -p build/logs
-  - |
-    if [ "${CODE_COVERAGE}" == true ]; then
-        travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
-    fi
+  - test "${CODE_COVERAGE}" == true && travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
 
 script:
   - vendor/bin/phpunit
 
 after_script:
-  - |
-    if [ "${CODE_COVERAGE}" == true ]; then
-        vendor/bin/php-coveralls -v
-        tools/ocular code-coverage:upload --format=php-clover build/logs/clover.xml
-        bash <(curl -s "https://codecov.io/bash")
-    fi
+  - test "${CODE_COVERAGE}" == true && vendor/bin/php-coveralls -v
+  - test "${CODE_COVERAGE}" == true && tools/ocular code-coverage:upload --format=php-clover build/logs/clover.xml
+  - test "${CODE_COVERAGE}" == true && bash <(curl -s "https://codecov.io/bash") -Z
