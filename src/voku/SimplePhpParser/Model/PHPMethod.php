@@ -60,7 +60,13 @@ class PHPMethod extends PHPFunction
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $tmpErrorMessage = $this->parentName . '->' . $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = sprintf(
+                    '%s->%s:%s | %s',
+                    $this->parentName,
+                    $this->name,
+                    $this->line ?? '?',
+                    \print_r($e->getMessage(), true)
+                );
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
@@ -114,7 +120,11 @@ class PHPMethod extends PHPFunction
         foreach ($node->getParams() as $parameter) {
             $parameterVar = $parameter->var;
             if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
-                $this->parseError[] = ($this->line ?? '?') . ':' . ($this->pos ?? '') . ' | may be at this position an expression is required';
+                $this->parseError[] = sprintf(
+                    '%s:%s | maybe at this position an expression is required',
+                    $this->line ?? '?',
+                    $this->pos ?? ''
+                );
 
                 return $this;
             }
