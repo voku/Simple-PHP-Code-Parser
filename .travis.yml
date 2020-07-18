@@ -28,6 +28,7 @@ jobs:
     - php: nightly
     - name: "Coding style"
       php: 7.4
+      install: "skip"
       script:
         - find -L . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n 1 -P 4 -- php -l
         - tools/php-cs-fixer fix --dry-run
