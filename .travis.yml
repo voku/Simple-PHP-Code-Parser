@@ -35,7 +35,7 @@ jobs:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
       after-script:
-    - name: "Static analysis"
+    - name: "Compile PHAR"
       php: 7.3
       install:
         - travis_retry phive install --force-accept-unsigned
