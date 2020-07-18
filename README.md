@@ -30,7 +30,7 @@ We will use:
 ### Install via "composer require"
 
 ```shell
-composer require --dev voku/simple-php-code-parser
+composer require voku/simple-php-code-parser
 ```
 
 ### Quick Start
