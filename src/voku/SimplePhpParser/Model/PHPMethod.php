@@ -60,7 +60,7 @@ class PHPMethod extends PHPFunction
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
-                $tmpErrorMessage = sprintf(
+                $tmpErrorMessage = \sprintf(
                     '%s->%s:%s | %s',
                     $this->parentName,
                     $this->name,
@@ -120,7 +120,7 @@ class PHPMethod extends PHPFunction
         foreach ($node->getParams() as $parameter) {
             $parameterVar = $parameter->var;
             if ($parameterVar instanceof \PhpParser\Node\Expr\Error) {
-                $this->parseError[] = sprintf(
+                $this->parseError[] = \sprintf(
                     '%s:%s | maybe at this position an expression is required',
                     $this->line ?? '?',
                     $this->pos ?? ''
