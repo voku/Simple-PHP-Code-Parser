@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Scalar\String_;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPDefineConstant extends PHPConst
@@ -19,23 +20,12 @@ class PHPDefineConstant extends PHPConst
     {
         $this->prepareNode($node);
 
-        $constName = '';
-        if (
-            \count($node->args) > 0
-            &&
-            \property_exists($node->args[0], 'value')
-            &&
-            \property_exists($node->args[0]->value, 'value')
-            &&
-            $node->args[0]->value instanceof \PhpParser\Node\Scalar\String_
-        ) {
-            $constName = (string) $node->args[0]->value->value;
-        }
-        $constName = $this->getConstantFQN($node, $constName);
+        $constName = (isset($node->args[0]->value->value) && $node->args[0]->value instanceof String_)
+            ? $this->getConstantFQN($node, (string) $node->args[0]->value->value)
+            : '';
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
             $constName = \strtoupper($constName);
         }
-
         $this->name = $constName;
 
         $this->value = Utils::getPhpParserValueFromNode($node->args[1]);
@@ -57,17 +47,14 @@ class PHPDefineConstant extends PHPConst
         $this->name = (string) $constant[0];
 
         $constantValue = $constant[1];
-        if ($constantValue !== null) {
-            $this->type = Utils::normalizePhpType(\gettype($this->value));
-
-            if (\is_resource($constantValue)) {
-                $this->value = '__RESOURCE__';
-            } else {
-                $this->value = $constantValue;
-            }
-        } else {
+        if ($constantValue === null) {
             $this->value = null;
+            return $this;
         }
+
+        $this->type = Utils::normalizePhpType(\gettype($this->value));
+
+        $this->value = \is_resource($constantValue) ? '__RESOURCE__' : $constantValue;
 
         return $this;
     }
