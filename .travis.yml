@@ -22,7 +22,6 @@ jobs:
     - name: "Coding style"
       php: 7.3
       install:
-        - travis_retry phive install --force-accept-unsigned
       script:
         - find -L . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n 1 -P 4 -- php -l
         - tools/php-cs-fixer fix --dry-run
@@ -30,7 +29,7 @@ jobs:
     - name: "Static analysis"
       php: 7.3
       install:
-        - travis_retry composer require --optimize-autoloader phpstan/phpstan
+        - travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader phpstan/phpstan
       script:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
@@ -38,7 +37,7 @@ jobs:
     - name: "Compile PHAR"
       php: 7.3
       install:
-        - travis_retry phive install --force-accept-unsigned
+        - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
       script:
         - tools/box compile
       after-script:
@@ -60,25 +59,23 @@ before_install:
         fi
         rm "${HOME}/.phive/phive.phar.asc"
     fi
-    install --mode=0755 -T "${HOME}/.phive/phive.phar" "${HOME}/bin/phive"
+    install --verbose --mode=0755 -T "${HOME}/.phive/phive.phar" "${HOME}/bin/phive"
     export PATH="${HOME}/bin:${PATH}"
+  - travis_retry phive install --force-accept-unsigned --trust-gpg-keys E82B2FB314E9906E
 
 install:
   - composer validate --strict
-  - travis_retry composer install --no-interaction --prefer-dist --optimize-autoloader
+  - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
   - mkdir -p build/logs
-  # Code coverage
   - |
     if [ "${CODE_COVERAGE}" == true ]; then
         travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
-        travis_retry phive install --force-accept-unsigned
     fi
 
 script:
   - vendor/bin/phpunit
 
 after_script:
-  # Code coverage
   - |
     if [ "${CODE_COVERAGE}" == true ]; then
         vendor/bin/php-coveralls -v
