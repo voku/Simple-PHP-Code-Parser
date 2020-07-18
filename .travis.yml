@@ -15,7 +15,11 @@ jobs:
   include:
     - php: 7.4
     - php: 7.3
-      env: CODE_COVERAGE=true
+      after_script:
+        - travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
+        - vendor/bin/php-coveralls -v
+        - tools/ocular code-coverage:upload --format=php-clover build/logs/clover.xml
+        - bash <(curl -s "https://codecov.io/bash") -Z
     - php: 7.2
     - php: 7.1
     - php: nightly
@@ -67,12 +71,6 @@ install:
   - composer validate --strict
   - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
   - mkdir -p build/logs
-  - test "${CODE_COVERAGE}" == true && travis_retry composer require --no-interaction --prefer-dist --optimize-autoloader php-coveralls/php-coveralls
 
 script:
   - vendor/bin/phpunit
-
-after_script:
-  - test "${CODE_COVERAGE}" == true && vendor/bin/php-coveralls -v
-  - test "${CODE_COVERAGE}" == true && tools/ocular code-coverage:upload --format=php-clover build/logs/clover.xml
-  - test "${CODE_COVERAGE}" == true && bash <(curl -s "https://codecov.io/bash") -Z
