@@ -1,6 +1,9 @@
-language: php
+os:
+  - linux
 
-sudo: false
+dist: xenial
+
+language: php
 
 git:
   depth: 2
@@ -29,7 +32,6 @@ jobs:
       script:
         - find -L . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n 1 -P 4 -- php -l
         - tools/php-cs-fixer fix --dry-run
-      after-script:
     - name: "Static analysis"
       php: 7.4
       install:
@@ -37,14 +39,12 @@ jobs:
       script:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
-      after-script:
     - name: "Compile PHAR"
       php: 7.4
       install:
         - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
       script:
         - tools/box compile
-      after-script:
   allow_failures:
     - php: nightly
 
