@@ -49,6 +49,7 @@ class PHPDefineConstant extends PHPConst
         $constantValue = $constant[1];
         if ($constantValue === null) {
             $this->value = null;
+
             return $this;
         }
 
