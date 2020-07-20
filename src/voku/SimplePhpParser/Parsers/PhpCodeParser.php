@@ -389,7 +389,9 @@ final class PhpCodeParser
             ) {
                 $reflectionClassTmp = ReflectionClass::createFromName($class->parentClass);
                 $classTmp = (new \voku\SimplePhpParser\Model\PHPClass($parserContainer))->readObjectFromBetterReflection($reflectionClassTmp);
-                $classes[$classTmp->name] = $classTmp;
+                if ($classTmp->name) {
+                    $classes[$classTmp->name] = $classTmp;
+                }
             }
 
             if (!isset($classes[$class->parentClass])) {
@@ -433,7 +435,9 @@ final class PhpCodeParser
                 ) {
                     $reflectionInterfaceTmp = ReflectionClass::createFromName($interfaceStr);
                     $interfaceTmp = (new PHPInterface($parserContainer))->readObjectFromBetterReflection($reflectionInterfaceTmp);
-                    $interfaces[$interfaceTmp->name] = $interfaceTmp;
+                    if ($interfaceTmp->name) {
+                        $interfaces[$interfaceTmp->name] = $interfaceTmp;
+                    }
                 }
 
                 if (!isset($interfaces[$interfaceStr])) {
