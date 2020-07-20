@@ -16,7 +16,7 @@ const SORT_ASC_TEST_2 = SORT_ASC;
 /**
  * @internal
  */
-final class Dummy3 implements DummyInterface
+final class Dummy3 implements DummyInterface, DummyInterface2, DummyInterface3
 {
     public const CASE_LOWER = \CASE_LOWER;
 
@@ -202,5 +202,49 @@ final class Dummy3 implements DummyInterface
             'parsedParamTagStr' => 'foo',
             'variableName'      => [null],
         ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withComplexReturnArrayInheritDoc(?\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag)
+    {
+        return [
+            'parsedParamTagStr' => 'foo',
+            'variableName'      => [null],
+        ];
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function withComplexReturnArrayInheritDocWithDifferentVariableNames($param)
+    {
+        return [
+            'parsedParamTagStr' => 'foo',
+            'variableName'      => [null],
+        ];
+    }
+
+    /**
+     * Create a new Hub instance.
+     *
+     * @param  \Psr\Container\ContainerInterface|null  $container
+     * @return void
+     */
+    public function __construct(\Psr\Container\ContainerInterface $container = null)
+    {
+    }
+
+    /**
+     * Create a new collection by invoking the callback a given amount of times.
+     *
+     * @param  int  $number
+     * @param  null|self  $self
+     * @return void
+     */
+    public static function self($number, ?self $self)
+    {
+       // ...
     }
 }

@@ -58,6 +58,17 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('int $RowOffset', $parsedParamTag->typeFromPhpDocMaybeWithComment);
     }
 
+    public function testSimpleOneClassV4(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy9.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $getFieldArray = $phpClasses[Dummy9::class]->methods['getFieldArray'];
+        static::assertSame('getFieldArray', $getFieldArray->name);
+
+        static::assertSame('voku\tests\Dummy6', $phpClasses[Dummy9::class]->parentClass);
+    }
+
     public function testSimpleOneClassWithTrait(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');

@@ -90,7 +90,9 @@ class PHPProperty extends BasePHPElement
         }
 
         if (!$this->type && $node->type !== null) {
+            /** @noinspection MissingIssetImplementationInspection */
             if (empty($node->type->name)) {
+                /** @noinspection MissingIssetImplementationInspection */
                 if (!empty($node->type->parts)) {
                     $this->type = '\\' . \implode('\\', $node->type->parts);
                 }

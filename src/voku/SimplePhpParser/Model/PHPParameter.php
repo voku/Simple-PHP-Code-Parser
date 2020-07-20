@@ -172,21 +172,25 @@ class PHPParameter extends BasePHPElement
 
             // fix for this issue: https://github.com/Roave/BetterReflection/pull/678
             try {
-                if ($parameter->isDefaultValueConstant()) {
-                    $constNameTmp = $parameter->getDefaultValueConstantName();
-                    if (\defined($constNameTmp)) {
-                        $defaultTmp = \constant($constNameTmp);
-                        if ($defaultTmp === null) {
-                            if ($this->type && $this->type !== 'null') {
-                                $this->type = 'null|' . $this->type;
-                            } else {
-                                $this->type = 'null|mixed';
-                            }
+                $constNameTmp = $parameter->getDefaultValueConstantName();
+                if (\defined($constNameTmp)) {
+                    $defaultTmp = \constant($constNameTmp);
+                    if ($defaultTmp === null) {
+                        if ($this->type && $this->type !== 'null') {
+                            $this->type = 'null|' . $this->type;
+                        } else {
+                            $this->type = 'null|mixed';
                         }
                     }
                 }
             } catch (\LogicException $e) {
-                // ignore
+                if ($type->allowsNull()) {
+                    if ($this->type && $this->type !== 'null') {
+                        $this->type = 'null|' . $this->type;
+                    } else {
+                        $this->type = 'null|mixed';
+                    }
+                }
             }
         }
 

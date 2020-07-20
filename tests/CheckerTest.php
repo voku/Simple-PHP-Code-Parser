@@ -23,9 +23,9 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
                     0 => '[9]: missing return type for voku\tests\foo3()',
                     1 => '[19]: missing property type for voku\tests\Dummy3->$foo',
                     2 => '[19]: missing property type for voku\tests\Dummy3->$foo_mixed',
-                    3 => '[154]: missing parameter type "null" in phpdoc from voku\tests\Dummy3->lall8() | parameter:case',
-                    4 => '[44]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
-                    5 => '[44]: missing return type for voku\tests\Dummy3->lall()',
+                    3 => '[44]: missing parameter type for voku\tests\Dummy3->lall() | parameter:foo',
+                    4 => '[44]: missing return type for voku\tests\Dummy3->lall()',
+                    5 => '[154]: missing parameter type "null" in phpdoc from voku\tests\Dummy3->lall8() | parameter:case',
                     6 => '[74]: wrong return type "string" in phpdoc from voku\tests\Dummy3->lall3()',
                     7 => '[64]: wrong return type "null" in phpdoc from voku\tests\Dummy3->lall2_1()',
                     8 => '[54]: missing return type "null" in phpdoc from voku\tests\Dummy3->lall2()',
@@ -60,6 +60,14 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
         // --------------------------
 
         $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy7.php');
+
+        $phpCodeErrors = ParserTest::removeLocalPathForTheTest($phpCodeErrors);
+
+        static::assertSame([], $phpCodeErrors);
+
+        // --------------------------
+
+        $phpCodeErrors = PhpCodeChecker::checkPhpFiles(__DIR__ . '/Dummy9.php');
 
         $phpCodeErrors = ParserTest::removeLocalPathForTheTest($phpCodeErrors);
 

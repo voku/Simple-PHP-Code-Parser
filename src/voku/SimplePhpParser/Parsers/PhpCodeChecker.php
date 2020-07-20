@@ -339,13 +339,26 @@ final class PhpCodeChecker
         $typeFromPhpWithoutNull = null;
         $typeFromPhpDocInput = $types['typeFromPhpDocSimple'];
         $typeFromPhpInput = $types['type'];
+        if (
+            isset($types['typeFromDefaultValue'])
+            &&
+            $types['typeFromDefaultValue'] === 'null'
+        ) {
+            if ($typeFromPhpInput) {
+                $typeFromPhpInput .= '|null';
+            } else {
+                $typeFromPhpInput = 'null';
+            }
+        }
 
         $removeEmptyStringFunc = static function (?string $tmp): bool {
             return $tmp !== '';
         };
-        $typeFromPhpDoc = \array_filter(
-            \explode('|', $typeFromPhpDocInput ?? ''),
-            $removeEmptyStringFunc
+        $typeFromPhpDoc = \array_unique(
+            \array_filter(
+                \explode('|', $typeFromPhpDocInput ?? ''),
+                $removeEmptyStringFunc
+            )
         );
         /** @noinspection AlterInForeachInspection */
         foreach ($typeFromPhpDoc as $keyTmp => $typeFromPhpDocSingle) {
@@ -364,9 +377,11 @@ final class PhpCodeChecker
                 $typeFromPhpDoc[$keyTmp] = \ltrim($typeFromPhpDoc[$keyTmp], '\\');
             }
         }
-        $typeFromPhp = \array_filter(
-            \explode('|', $typeFromPhpInput ?? ''),
-            $removeEmptyStringFunc
+        $typeFromPhp = \array_unique(
+            \array_filter(
+                \explode('|', $typeFromPhpInput ?? ''),
+                $removeEmptyStringFunc
+            )
         );
         /** @noinspection AlterInForeachInspection */
         foreach ($typeFromPhp as $keyTmp => $typeFromPhpSingle) {

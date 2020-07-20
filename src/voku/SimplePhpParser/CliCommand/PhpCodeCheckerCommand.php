@@ -144,7 +144,7 @@ final class PhpCodeCheckerCommand extends Command
         }
 
         $output->writeln('-------------------------------');
-        $output->writeln($errorCount . ' errors in ' . \count($errors) . ' files.');
+        $output->writeln($errorCount . ' errors detected.');
         $output->writeln('-------------------------------');
 
         return 0;
