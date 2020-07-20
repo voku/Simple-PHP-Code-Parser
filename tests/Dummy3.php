@@ -245,6 +245,6 @@ final class Dummy3 implements DummyInterface, DummyInterface2, DummyInterface3
      */
     public static function self($number, ?self $self)
     {
-       // ...
+        // ...
     }
 }
