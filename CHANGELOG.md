@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.13.1 (2020-07-21)
+
+- "PhpCodeParser" -> fix for inheritdoc comments
+
 ### 0.13.0 (2020-07-16)
 
 - "PHPTrait" -> add support for "Trait"-files
