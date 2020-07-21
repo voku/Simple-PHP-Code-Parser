@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.com/voku/Simple-PHP-Code-Parser.svg?branch=master)](https://travis-ci.com/voku/Simple-PHP-Code-Parser)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/2feaf2a179a24a5fac99cbf67e72df2f)](https://www.codacy.com/manual/voku/Simple-PHP-Code-Parser?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=voku/Simple-PHP-Code-Parser&amp;utm_campaign=Badge_Grade)
+[![StyleCI](https://github.styleci.io/repos/262177713/shield?branch=analysis-QM2ejO)](https://github.styleci.io/repos/262177713?branch=analysis-QM2ejO)
 [![Latest Stable Version](https://poser.pugx.org/voku/Simple-PHP-Code-Parser/v/stable)](https://packagist.org/packages/voku/simple-php-code-parser) 
 [![Total Downloads](https://poser.pugx.org/voku/simple-php-code-parser/downloads)](https://packagist.org/packages/voku/simple-php-code-parser) 
 [![License](https://poser.pugx.org/voku/simple-php-code-parser/license)](https://packagist.org/packages/voku/simple-php-code-parser)
