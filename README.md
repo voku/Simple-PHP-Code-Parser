@@ -22,10 +22,10 @@ This code is forked from [JetBrains/phpstorm-stubs](https://github.com/JetBrains
 because they are in a test namespace and the autoloader is "autoload-dev", so here is a extended version.
 
 We will use:
-- "PHP-Parser"
-- "BetterReflection"
-- "phpDocumentor"
-- "PHPStan/phpdoc-parser"
+- [nikic/PHP-Parser](https://github.com/nikic/PHP-Parser)
+- [ondrejmirtes/BetterReflection](https://github.com/ondrejmirtes/BetterReflection)
+- [phpDocumentor](https://github.com/phpDocumentor/)
+- [PHPStan/phpdoc-parser](https://github.com/phpstan/phpdoc-parser)
 
 ### Install via "composer require"
 
