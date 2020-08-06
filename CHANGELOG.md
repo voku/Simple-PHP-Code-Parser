@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.13.2 (2020-08-07)
+
+- "PhpCodeParser" -> add "getFromClassName()"
+
 ### 0.13.1 (2020-07-21)
 
 - "PhpCodeParser" -> fix for inheritdoc comments
