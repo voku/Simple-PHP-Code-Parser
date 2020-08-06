@@ -206,7 +206,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $code = '
         <?php
         /** 
-         * @property $foo 
+         * @property int[] $foo 
          */
         abstract class Foo { 
             /**
@@ -220,6 +220,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpClasses = $phpCode->getClasses();
 
         static::assertSame('Foo', $phpClasses['Foo']->name);
+        static::assertSame('int[]', $phpClasses['Foo']->properties['foo']->typeFromPhpDoc);
     }
 
     public function testGetMethodsInfoFromExtendedClass(): void
