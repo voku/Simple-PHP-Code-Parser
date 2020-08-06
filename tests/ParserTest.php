@@ -167,6 +167,14 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertCount(4, $phpClasses);
     }
 
+    public function testFromClassName(): void
+    {
+        $phpCode = PhpCodeParser::getFromClassName(Dummy::class);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame('array<int, int>', $phpClasses['voku\tests\Dummy']->methods['withReturnType']->returnTypeFromPhpDocPslam);
+    }
+
     public function testSimpleStringInputConstants(): void
     {
         $code = '<?php

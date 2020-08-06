@@ -51,6 +51,24 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses['voku\tests\SimpleClass']); // "PHPClass"-object
 ```
 
+Parse one class:
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromClassName(Dummy::class);
+$phpClasses = $phpCode->getClasses();
+
+var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
+
+var_dump($phpClasses[Dummy::class]->methods); // "PHPMethod[]"-objects
+
+var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']); // "PHPMethod"-object
+
+var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters); // "PHPParameter[]"-objects
+
+var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['useRandInt']); // "PHPParameter"-object
+
+var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['useRandInt']->type); // "bool"
+````
+
 Parse one file:
 ```php
 $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');

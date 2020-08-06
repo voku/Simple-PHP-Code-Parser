@@ -42,6 +42,28 @@ final class PhpCodeParser
     }
 
     /**
+     * @param string   $className
+     * @param string[] $autoloaderProjectPaths
+     *
+     * @pslam-param class-string $className
+     *
+     * @throws \Roave\BetterReflection\Reflector\Exception\IdentifierNotFound
+     *
+     * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
+     */
+    public static function getFromClassName(
+        string $className,
+        array $autoloaderProjectPaths = []
+    ): ParserContainer {
+        $reflectionClass = ReflectionClass::createFromName($className);
+
+        return self::getPhpFiles(
+            (string)$reflectionClass->getFileName(),
+            $autoloaderProjectPaths
+        );
+    }
+
+    /**
      * @param string   $pathOrCode
      * @param string[] $autoloaderProjectPaths
      * @param string[] $pathExcludeRegex
