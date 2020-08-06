@@ -58,7 +58,7 @@ final class PhpCodeParser
         $reflectionClass = ReflectionClass::createFromName($className);
 
         return self::getPhpFiles(
-            (string)$reflectionClass->getFileName(),
+            (string) $reflectionClass->getFileName(),
             $autoloaderProjectPaths
         );
     }
