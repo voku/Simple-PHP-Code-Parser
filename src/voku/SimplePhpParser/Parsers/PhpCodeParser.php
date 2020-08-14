@@ -279,8 +279,8 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string            $fileName
-     * @param \voku\cache\Cache $cache
+     * @param string $fileName
+     * @param string $cacheKey
      *
      * @return array
      *
@@ -288,14 +288,8 @@ final class PhpCodeParser
      *
      * @internal
      */
-    public static function file_get_contents_with_cache(string $fileName, Cache $cache): array
+    public static function file_get_contents_with_cache(string $fileName, string $cacheKey): array
     {
-        $cacheKey = 'simple-php-code-parser-' . \md5($fileName) . '--' . \filemtime($fileName) . '--' . \PHP_VERSION;
-
-        if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
-            return $cache->getItem($cacheKey);
-        }
-
         $content = (string) \file_get_contents($fileName);
 
         $return = [
@@ -303,8 +297,6 @@ final class PhpCodeParser
             'fileName' => $fileName,
             'cacheKey' => $cacheKey,
         ];
-
-        $cache->setItem($cacheKey, $return);
 
         return $return;
     }
@@ -359,10 +351,23 @@ final class PhpCodeParser
                 }
             }
 
+            $cacheKey = 'simple-php-code-parser-' . \md5($path) . '--' . \filemtime($path) . '--' . \PHP_VERSION . '--01';
+            if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
+                $response = $cache->getItem($cacheKey);
+                /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
+                /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */
+                $response = $response;
+
+                $phpCodes[$response['cacheKey']]['content'] = $response['content'];
+                $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
+
+                continue;
+            }
+
             $phpFilePromises[] = Worker\enqueueCallable(
                 [self::class, 'file_get_contents_with_cache'],
                 $path,
-                $cache
+                $cacheKey
             );
         }
         $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
@@ -370,6 +375,8 @@ final class PhpCodeParser
             /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
             /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */
             $response = $response;
+
+            $cache->setItem($response['cacheKey'], $response);
 
             $phpCodes[$response['cacheKey']]['content'] = $response['content'];
             $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];

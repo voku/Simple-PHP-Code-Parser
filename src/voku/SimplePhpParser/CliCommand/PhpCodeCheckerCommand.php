@@ -80,6 +80,12 @@ final class PhpCodeCheckerCommand extends Command
                 InputOption::VALUE_OPTIONAL,
                 'Skip parse errors in the output. (false or true)',
                 'true'
+            )->addOption(
+                'path-exclude-regex',
+                null,
+                InputOption::VALUE_OPTIONAL,
+                'Skip some paths via regex e.g. "#/vendor/|/other/.*/path/#i"',
+                '#/vendor/|/tests/#i'
             );
     }
 
@@ -108,6 +114,8 @@ final class PhpCodeCheckerCommand extends Command
         $skipFunctionsWithLeadingUnderscore = $input->getOption('skip-functions-with-leading-underscore') !== 'false';
         $skipParseErrorsAsError = $input->getOption('skip-parse-errors') !== 'false';
 
+        $pathExcludeRegex = $input->getOption('path-exclude-regex');
+
         $formatter = $output->getFormatter();
         $formatter->setStyle('file', new OutputFormatterStyle('default', null, ['bold']));
         $formatter->setStyle('error', new OutputFormatterStyle('red', null, []));
@@ -125,7 +133,8 @@ final class PhpCodeCheckerCommand extends Command
             $skipDeprecatedFunctions,
             $skipFunctionsWithLeadingUnderscore,
             $skipParseErrorsAsError,
-            $this->autoloaderProjectPaths
+            $this->autoloaderProjectPaths,
+            [$pathExcludeRegex]
         );
 
         $errorCount = 0;
