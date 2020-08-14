@@ -27,11 +27,18 @@ We will use:
 - [phpDocumentor](https://github.com/phpDocumentor/)
 - [PHPStan/phpdoc-parser](https://github.com/phpstan/phpdoc-parser)
 
+
 ### Install via "composer require"
 
 ```shell
 composer require voku/simple-php-code-parser
 ```
+
+
+### Warning :zap:
+
+Same as Better Reflection this is NOT suited to runtime usage, since performance is much worse than PHP built-in reflection.
+
 
 ### Quick Start
 
