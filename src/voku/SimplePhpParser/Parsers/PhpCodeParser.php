@@ -316,7 +316,7 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode) . '--' . \PHP_VERSION;
+            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode);
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
@@ -341,7 +341,7 @@ final class PhpCodeParser
                 }
             }
 
-            $cacheKey = 'simple-php-code-parser-' . \md5($path) . '--' . \filemtime($path) . '--' . \PHP_VERSION . '--01';
+            $cacheKey = 'simple-php-code-parser-' . \md5($path) . '--' . \filemtime($path);
             if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
                 $response = $cache->getItem($cacheKey);
                 /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
