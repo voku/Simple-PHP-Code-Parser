@@ -99,29 +99,32 @@ final class PhpCodeParser
 
         $parserContainer = new ParserContainer();
         $visitor = new ASTVisitor($parserContainer);
-        $cache = new Cache(null, null, false);
 
         $phpFilePromises = [];
-        foreach ($phpCodes as $cacheKey => $codeAndFileName) {
-            $phpFilePromises[] = Worker\enqueueCallable(
-                [self::class, 'process'],
-                $codeAndFileName['content'],
-                $codeAndFileName['fileName'],
-                $parserContainer,
-                $visitor,
-                $cache,
-                $cacheKey,
-                $autoloaderProjectPaths
-            );
-        }
+        $processPromiseResponses = [];
+        $phpCodesChunks = \array_chunk($phpCodes, Utils::getCpuCores(), true);
 
-        try {
-            $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
-        } catch (\Amp\Parallel\Worker\TaskFailureThrowable $exception) {
-            throw new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true));
-        }
+        foreach ($phpCodesChunks as $phpCodesChunk) {
+            foreach ($phpCodesChunk as $cacheKey => $codeAndFileName) {
+                $phpFilePromises[] = Worker\enqueueCallable(
+                    [self::class, 'process'],
+                    $codeAndFileName['content'],
+                    $codeAndFileName['fileName'],
+                    $parserContainer,
+                    $visitor,
+                    $autoloaderProjectPaths
+                );
+            }
 
-        foreach ($phpFilePromiseResponses as $response) {
+            try {
+                $processPromiseResponses += Promise\wait(Promise\all($phpFilePromises));
+            } catch (\Amp\Parallel\Worker\TaskFailureThrowable $exception) {
+                throw new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true));
+            }
+        }
+        \assert(\is_array($processPromiseResponses));
+
+        foreach ($processPromiseResponses as $response) {
             if ($response instanceof ParserContainer) {
                 $parserContainer->setTraits($response->getTraits());
                 $parserContainer->setClasses($response->getClasses());
@@ -198,8 +201,6 @@ final class PhpCodeParser
      * @param string|null                                          $fileName
      * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer $parserContainer
      * @param \voku\SimplePhpParser\Parsers\Visitors\ASTVisitor    $visitor
-     * @param \voku\cache\Cache                                    $cache
-     * @param string                                               $cacheKey
      * @param string[]                                             $autoloaderProjectPaths
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer|\voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler
@@ -209,12 +210,8 @@ final class PhpCodeParser
         ?string $fileName,
         ParserContainer $parserContainer,
         ASTVisitor $visitor,
-        Cache $cache,
-        string $cacheKey,
         array $autoloaderProjectPaths
     ) {
-        $cacheKey .= '--process--' . \md5(\implode('|', $autoloaderProjectPaths));
-
         foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath . '/vendor/autoload.php')) {
                 /** @noinspection PhpIncludeInspection */
@@ -253,14 +250,8 @@ final class PhpCodeParser
             ]
         );
 
-        if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
-            $parsedCode = $cache->getItem($cacheKey);
-        } else {
-            /** @var \PhpParser\Node[]|null $parsedCode */
-            $parsedCode = $parser->parse($phpCode, $errorHandler);
-
-            $cache->setItem($cacheKey, $parsedCode);
-        }
+        /** @var \PhpParser\Node[]|null $parsedCode */
+        $parsedCode = $parser->parse($phpCode, $errorHandler);
 
         if ($parsedCode === null) {
             return $errorHandler;
@@ -292,13 +283,11 @@ final class PhpCodeParser
     {
         $content = (string) \file_get_contents($fileName);
 
-        $return = [
+        return [
             'content'  => $content,
             'fileName' => $fileName,
             'cacheKey' => $cacheKey,
         ];
-
-        return $return;
     }
 
     /**
@@ -335,6 +324,7 @@ final class PhpCodeParser
 
         $cache = new Cache(null, null, false);
 
+        $phpFileArray = [];
         foreach ($phpFileIterators as $fileOrCode) {
             $path = $fileOrCode->getRealPath();
             if (!$path) {
@@ -364,13 +354,24 @@ final class PhpCodeParser
                 continue;
             }
 
-            $phpFilePromises[] = Worker\enqueueCallable(
-                [self::class, 'file_get_contents_with_cache'],
-                $path,
-                $cacheKey
-            );
+            $phpFileArray[$cacheKey] = $path;
         }
-        $phpFilePromiseResponses = Promise\wait(Promise\all($phpFilePromises));
+
+        $phpFilePromiseResponses = [];
+        $phpFileArrayChunks = \array_chunk($phpFileArray, Utils::getCpuCores(), true);
+        foreach ($phpFileArrayChunks as $phpFileArrayChunk) {
+            foreach ($phpFileArrayChunk as $cacheKey => $path) {
+                $phpFilePromises[] = Worker\enqueueCallable(
+                    [self::class, 'file_get_contents_with_cache'],
+                    $path,
+                    $cacheKey
+                );
+            }
+
+            $phpFilePromiseResponses += Promise\wait(Promise\all($phpFilePromises));
+        }
+        \assert(\is_array($phpFilePromiseResponses));
+
         foreach ($phpFilePromiseResponses as $response) {
             /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
             /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */

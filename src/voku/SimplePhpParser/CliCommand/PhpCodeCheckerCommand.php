@@ -115,6 +115,7 @@ final class PhpCodeCheckerCommand extends Command
         $skipParseErrorsAsError = $input->getOption('skip-parse-errors') !== 'false';
 
         $pathExcludeRegex = $input->getOption('path-exclude-regex');
+        \assert(\is_string($pathExcludeRegex));
 
         $formatter = $output->getFormatter();
         $formatter->setStyle('file', new OutputFormatterStyle('default', null, ['bold']));

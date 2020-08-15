@@ -65,8 +65,8 @@ final class Utils
      *
      * @psalm-param class-string|null                                         $classStr
      *
-     * @return mixed|string
-     *                      Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
+     * @return mixed
+     *               Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
      */
     public static function getPhpParserValueFromNode(
         $node,
@@ -114,10 +114,10 @@ final class Utils
         if ($node instanceof \PhpParser\Node\Expr\Array_) {
             $defaultValue = [];
             foreach ($node->items as $item) {
-                /**
-                 * @psalm-suppress PossiblyNullPropertyFetch - false-positive ?
-                 * @psalm-suppress PossiblyNullArgument - false-positive ?
-                 */
+                if ($item === null) {
+                    continue;
+                }
+
                 $defaultValue[] = self::getPhpParserValueFromNode($item->value);
             }
 
@@ -381,6 +381,43 @@ final class Utils
             ],
             \trim((string) $typeNode, ')(')
         );
+    }
+
+    /**
+     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb
+     *
+     * returns number of cpu cores
+     * Copyleft 2018, license: WTFPL
+     */
+    public static function getCpuCores(): int
+    {
+        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
+            $str = \trim((string) \shell_exec('wmic cpu get NumberOfCores 2>&1'));
+            if (!$str || !\preg_match('#(\d+)#', $str, $matches)) {
+                return 1;
+            }
+
+            return (int) $matches[1];
+        }
+
+        /** @noinspection PhpUsageOfSilenceOperatorInspection */
+        $ret = @\shell_exec('nproc');
+        if (\is_string($ret)) {
+            $ret = \trim($ret);
+            if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
+                return (int) $tmp;
+            }
+        }
+
+        if (\is_readable('/proc/cpuinfo')) {
+            $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
+            $count = \substr_count($cpuinfo, 'processor');
+            if ($count > 0) {
+                return $count;
+            }
+        }
+
+        return 1;
     }
 
     private static function findParentClassDeclaringConstant(
