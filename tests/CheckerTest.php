@@ -233,7 +233,7 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public'], true);
 
-        if (\PHP_VERSION_ID <= 70100) {
+        if (\PHP_VERSION_ID <= 70199) {
             static::assertSame(
                 [
                     '[44]: missing parameter type for fsockopen() | parameter:errno',
