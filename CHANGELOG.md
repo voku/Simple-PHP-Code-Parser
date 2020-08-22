@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.14.0 (2020-08-23)
+
+- "PhpCodeCheckerCommand" -> allow to exclude some files
+- optimize parallel execution (cpu cores === max parallel executions)
+- update vendor (phpdocumentor & better-reflection)
+
 ### 0.13.2 (2020-08-07)
 
 - "PhpCodeParser" -> add "getFromClassName()"
