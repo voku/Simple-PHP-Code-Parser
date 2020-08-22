@@ -236,8 +236,10 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
         if (\PHP_VERSION_ID <= 70199) {
             static::assertSame(
                 [
-                    '[44]: missing parameter type for fsockopen() | parameter:errno',
-                    '[44]: missing parameter type for fsockopen() | parameter:errstr',
+                    '' => [
+                        '[44]: missing parameter type for fsockopen() | parameter:errno',
+                        '[44]: missing parameter type for fsockopen() | parameter:errstr',
+                    ],
                 ],
                 $phpCodeErrors
             );
