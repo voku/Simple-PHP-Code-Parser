@@ -233,15 +233,9 @@ final class CheckerTest extends \PHPUnit\Framework\TestCase
 
         $phpCodeErrors = PhpCodeChecker::checkFromString($code, ['public'], true);
 
-        /*
         static::assertSame(
             [],
             $phpCodeErrors
-        );
-         */
-
-        static::markTestIncomplete(
-            'bug is already reported: https://github.com/phpDocumentor/ReflectionDocBlock/issues/251'
         );
     }
 }
