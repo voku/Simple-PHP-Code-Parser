@@ -19,6 +19,9 @@
         <LessSpecificReturnStatement errorLevel="suppress" />
         <MoreSpecificImplementedParamType errorLevel="suppress" />
         <UnresolvableInclude errorLevel="suppress" />
+        <ParamNameMismatch errorLevel="suppress" />
+        <ForbiddenCode errorLevel="suppress" />
+        <RedundantCondition errorLevel="suppress" />
     </issueHandlers>
 
 </psalm>

@@ -393,6 +393,7 @@ final class Utils
     {
         if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
             $str = \trim((string) \shell_exec('wmic cpu get NumberOfCores 2>&1'));
+            $matches = [];
             if (!$str || !\preg_match('#(\d+)#', $str, $matches)) {
                 return 1;
             }
