@@ -94,16 +94,12 @@ abstract class BasePHPElement
             \property_exists($node, 'namespacedName')
         ) {
             /** @psalm-suppress NoInterfaceProperties ? */
-            if ($node->namespacedName === null) {
-                $fqn = $node->name->parts[0];
-            } else {
-                foreach ($node->namespacedName->parts as $part) {
-                    $fqn .= "${part}\\";
-                }
-            }
+            $fqn = $node->namespacedName === null
+                ? $node->name->parts[0];
+                : \implode('\\', $node->namespacedName->parts)
         }
 
-        return \rtrim($fqn, '\\');
+        return $fqn;
     }
 
     /**
