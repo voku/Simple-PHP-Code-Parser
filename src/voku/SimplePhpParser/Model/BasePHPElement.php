@@ -95,8 +95,8 @@ abstract class BasePHPElement
         ) {
             /** @psalm-suppress NoInterfaceProperties ? */
             $fqn = $node->namespacedName === null
-                ? $node->name->parts[0];
-                : \implode('\\', $node->namespacedName->parts)
+                ? $node->name->parts[0]
+                : \implode('\\', $node->namespacedName->parts);
         }
 
         return $fqn;
