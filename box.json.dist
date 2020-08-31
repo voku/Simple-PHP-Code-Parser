@@ -1,4 +1,0 @@
-{
-    "main": "bin/simple-php-code-parser.php",
-    "output": "simple-php-code-parser.phar"
-}

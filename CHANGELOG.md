@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.15.0 (2020-08-31)
+
+- move "PhpCodeChecker" in a separate repository
+- move "PhpCodeDumpApi" in a separate repository
+- clean-up vendor dependencies
+
 ### 0.14.0 (2020-08-23)
 
 - "PhpCodeCheckerCommand" -> allow to exclude some files

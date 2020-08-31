@@ -102,21 +102,6 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
 
-Check types:
-```php
-$code = '<?php
-namespace voku\tests;
-class SimpleClass {
-    public $foo;
-    public int $foo1;
-    private $foo2;
-}';
-
-$phpCodeErrors = \voku\SimplePhpParser\Parsers\PhpCodeChecker::checkFromString($code, ['public']);
-
-var_dump($phpCodeErrors); // ['missing property type for voku\tests\SimpleClass->$foo']
-```
-
 ### "phar" build
 
 ```php ~/Downloads/box.phar compile --debug```

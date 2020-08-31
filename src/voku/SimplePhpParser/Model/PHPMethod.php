@@ -101,10 +101,6 @@ class PHPMethod extends PHPFunction
             $this->readPhpDoc($docComment);
         }
 
-        if (\strncmp($this->name, 'PS_UNRESERVE_PREFIX_', 20) === 0) {
-            $this->name = \substr($this->name, \strlen('PS_UNRESERVE_PREFIX_'));
-        }
-
         $this->is_final = $node->isFinal();
 
         $this->is_static = $node->isStatic();

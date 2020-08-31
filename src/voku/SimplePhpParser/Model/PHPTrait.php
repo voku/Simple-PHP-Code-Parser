@@ -126,7 +126,7 @@ final class PHPTrait extends BasePHPClass
      *
      * @return array
      *
-     * @psalm-return array<string, array{type: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromPhpDoc: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocPslam: null|string, typeFromDefaultValue: null|string}>
+     * @psalm-return array<string, array{type: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromPhpDoc: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocExtended: null|string, typeFromDefaultValue: null|string}>
      */
     public function getPropertiesInfo(
         array $access = ['public', 'protected', 'private'],
@@ -149,7 +149,7 @@ final class PHPTrait extends BasePHPClass
             $types['typeFromPhpDocMaybeWithComment'] = $property->typeFromPhpDocMaybeWithComment;
             $types['typeFromPhpDoc'] = $property->typeFromPhpDoc;
             $types['typeFromPhpDocSimple'] = $property->typeFromPhpDocSimple;
-            $types['typeFromPhpDocPslam'] = $property->typeFromPhpDocPslam;
+            $types['typeFromPhpDocExtended'] = $property->typeFromPhpDocExtended;
             $types['typeFromDefaultValue'] = $property->typeFromDefaultValue;
 
             $allInfo[$property->name] = $types;
@@ -165,7 +165,7 @@ final class PHPTrait extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_static: null|bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocPslam: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_static: null|bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],
@@ -194,7 +194,7 @@ final class PHPTrait extends BasePHPClass
                 $paramsTypes[$tagParam->name]['typeFromPhpDocMaybeWithComment'] = $tagParam->typeFromPhpDocMaybeWithComment;
                 $paramsTypes[$tagParam->name]['typeFromPhpDoc'] = $tagParam->typeFromPhpDoc;
                 $paramsTypes[$tagParam->name]['typeFromPhpDocSimple'] = $tagParam->typeFromPhpDocSimple;
-                $paramsTypes[$tagParam->name]['typeFromPhpDocPslam'] = $tagParam->typeFromPhpDocPslam;
+                $paramsTypes[$tagParam->name]['typeFromPhpDocExtended'] = $tagParam->typeFromPhpDocExtended;
                 $paramsTypes[$tagParam->name]['typeFromDefaultValue'] = $tagParam->typeFromDefaultValue;
             }
 
@@ -203,7 +203,7 @@ final class PHPTrait extends BasePHPClass
             $returnTypes['typeFromPhpDocMaybeWithComment'] = $method->returnTypeFromPhpDocMaybeWithComment;
             $returnTypes['typeFromPhpDoc'] = $method->returnTypeFromPhpDoc;
             $returnTypes['typeFromPhpDocSimple'] = $method->returnTypeFromPhpDocSimple;
-            $returnTypes['typeFromPhpDocPslam'] = $method->returnTypeFromPhpDocPslam;
+            $returnTypes['typeFromPhpDocExtended'] = $method->returnTypeFromPhpDocExtended;
 
             $infoTmp = [];
             $infoTmp['fullDescription'] = \trim($method->summary . "\n\n" . $method->description);
@@ -287,7 +287,7 @@ final class PHPTrait extends BasePHPClass
                         }
 
                         if ($propertyPhp->typeFromPhpDoc) {
-                            $propertyPhp->typeFromPhpDocPslam = Utils::modernPhpdoc($propertyPhp->typeFromPhpDoc);
+                            $propertyPhp->typeFromPhpDocExtended = Utils::modernPhpdoc($propertyPhp->typeFromPhpDoc);
                         }
 
                         $this->properties[$propertyPhp->name] = $propertyPhp;

@@ -40,12 +40,6 @@ jobs:
       script:
         - vendor/bin/phpstan analyse
         - vendor/bin/psalm
-    - name: "Compile PHAR"
-      php: 7.4
-      install:
-        - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
-      script:
-        - tools/box compile
   allow_failures:
     - php: nightly
 

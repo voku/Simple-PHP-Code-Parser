@@ -38,7 +38,7 @@ class PHPProperty extends BasePHPElement
     /**
      * @var string|null
      */
-    public $typeFromPhpDocPslam;
+    public $typeFromPhpDocExtended;
 
     /**
      * @var string|null
@@ -196,8 +196,8 @@ class PHPProperty extends BasePHPElement
      */
     public function getType(): ?string
     {
-        if ($this->typeFromPhpDocPslam) {
-            return $this->typeFromPhpDocPslam;
+        if ($this->typeFromPhpDocExtended) {
+            return $this->typeFromPhpDocExtended;
         }
 
         if ($this->type) {
@@ -223,7 +223,7 @@ class PHPProperty extends BasePHPElement
                 $this->typeFromPhpDoc = 'int';
                 $this->typeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
                 $this->typeFromPhpDocSimple = 'int';
-                $this->typeFromPhpDocPslam = $matchesIntValues['intValues'];
+                $this->typeFromPhpDocExtended = $matchesIntValues['intValues'];
 
                 return;
             }
@@ -233,7 +233,7 @@ class PHPProperty extends BasePHPElement
                 $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->typeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
                 $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeFromPhpDocPslam = $matchesAndValues['type'];
+                $this->typeFromPhpDocExtended = $matchesAndValues['type'];
 
                 return;
             }
@@ -264,14 +264,14 @@ class PHPProperty extends BasePHPElement
                         }
 
                         if ($this->typeFromPhpDoc) {
-                            $this->typeFromPhpDocPslam = Utils::modernPhpdoc($this->typeFromPhpDoc);
+                            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($this->typeFromPhpDoc);
                         }
                     }
                 }
             }
 
             /** @noinspection AdditionOperationOnArraysInspection */
-            $parsedParamTags = $phpDoc->getTagsByName('pslam-var')
+            $parsedParamTags = $phpDoc->getTagsByName('Psalm-var')
                                + $phpDoc->getTagsByName('phpstan-var');
 
             if (!empty($parsedParamTags)) {
@@ -280,7 +280,7 @@ class PHPProperty extends BasePHPElement
                         $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
                         $parsedParamTagStr = $spitedData['parsedParamTagStr'];
 
-                        $this->typeFromPhpDocPslam = Utils::modernPhpdoc($parsedParamTagStr);
+                        $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                     }
                 }
             }

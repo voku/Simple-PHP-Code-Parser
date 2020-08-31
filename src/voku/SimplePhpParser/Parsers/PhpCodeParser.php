@@ -45,7 +45,7 @@ final class PhpCodeParser
      * @param string   $className
      * @param string[] $autoloaderProjectPaths
      *
-     * @pslam-param class-string $className
+     * @Psalm-param class-string $className
      *
      * @throws \Roave\BetterReflection\Reflector\Exception\IdentifierNotFound
      *

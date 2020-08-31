@@ -37,7 +37,7 @@ class PHPFunction extends BasePHPElement
     /**
      * @var string|null
      */
-    public $returnTypeFromPhpDocPslam;
+    public $returnTypeFromPhpDocExtended;
 
     /**
      * @var string|null
@@ -207,8 +207,8 @@ class PHPFunction extends BasePHPElement
      */
     public function getReturnType(): ?string
     {
-        if ($this->returnTypeFromPhpDocPslam) {
-            return $this->returnTypeFromPhpDocPslam;
+        if ($this->returnTypeFromPhpDocExtended) {
+            return $this->returnTypeFromPhpDocExtended;
         }
 
         if ($this->returnType) {
@@ -234,7 +234,7 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
                 $this->returnTypeFromPhpDoc = 'int';
                 $this->returnTypeFromPhpDocSimple = 'int';
-                $this->returnTypeFromPhpDocPslam = $matchesIntValues['intValues'];
+                $this->returnTypeFromPhpDocExtended = $matchesIntValues['intValues'];
 
                 return;
             }
@@ -244,7 +244,7 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
                 $this->returnTypeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
                 $this->returnTypeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->returnTypeFromPhpDocPslam = $matchesAndValues['type'];
+                $this->returnTypeFromPhpDocExtended = $matchesAndValues['type'];
 
                 return;
             }
@@ -269,7 +269,7 @@ class PHPFunction extends BasePHPElement
                 }
 
                 if ($this->returnTypeFromPhpDoc) {
-                    $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($this->returnTypeFromPhpDoc);
+                    $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($this->returnTypeFromPhpDoc);
                 }
             }
 
@@ -280,7 +280,7 @@ class PHPFunction extends BasePHPElement
             if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Generic) {
                 $parsedReturnTagReturn = (string) $parsedReturnTag[0];
 
-                $this->returnTypeFromPhpDocPslam = Utils::modernPhpdoc($parsedReturnTagReturn);
+                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = \sprintf(
