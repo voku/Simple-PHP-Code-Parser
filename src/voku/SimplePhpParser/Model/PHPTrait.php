@@ -32,7 +32,7 @@ final class PHPTrait extends BasePHPClass
         /** @noinspection NotOptimalIfConditionsInspection */
         /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\trait_exists($this->name, true)) {
-            $reflectionClass = ReflectionClass::createFromName($this->name);
+            $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromBetterReflection($reflectionClass);
         }
 

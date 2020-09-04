@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Interface_;
 use Roave\BetterReflection\Reflection\ReflectionClass;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPInterface extends BasePHPClass
 {
@@ -38,7 +39,7 @@ class PHPInterface extends BasePHPClass
         /** @noinspection NotOptimalIfConditionsInspection */
         /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\interface_exists($this->name, true)) {
-            $reflectionInterface = ReflectionClass::createFromName($this->name);
+            $reflectionInterface = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromBetterReflection($reflectionInterface);
         }
 
@@ -100,7 +101,7 @@ class PHPInterface extends BasePHPClass
                 &&
                 \interface_exists($parentInterface, true)
             ) {
-                $reflectionInterface = ReflectionClass::createFromName($parentInterface);
+                $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
                 $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
                 $this->parserContainer->addInterface($parentInterfaceNew);
             }

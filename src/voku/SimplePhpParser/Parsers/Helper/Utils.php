@@ -7,6 +7,11 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 use PhpParser\Node\Expr\UnaryMinus;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
+use Roave\BetterReflection\BetterReflection;
+use Roave\BetterReflection\Reflection\ReflectionClass;
+use Roave\BetterReflection\Reflection\ReflectionFunction;
+use Roave\BetterReflection\Reflector\ClassReflector;
+use Roave\BetterReflection\Reflector\FunctionReflector;
 
 final class Utils
 {
@@ -314,6 +319,42 @@ final class Utils
     }
 
     /**
+     * @param string $functionName
+     *
+     * @return \Roave\BetterReflection\Reflection\ReflectionFunction
+     */
+    public static function createFunctionReflectionInstance(string $functionName): ReflectionFunction
+    {
+        static $FUNCTION_REFLECTION_INSTANCE = null;
+
+        if ($FUNCTION_REFLECTION_INSTANCE === null) {
+            $FUNCTION_REFLECTION_INSTANCE = (new BetterReflection())->functionReflector();
+        }
+        \assert($FUNCTION_REFLECTION_INSTANCE instanceof FunctionReflector);
+
+        return $FUNCTION_REFLECTION_INSTANCE->reflect($functionName);
+    }
+
+    /**
+     * @param string $className
+     *
+     * @return \Roave\BetterReflection\Reflection\ReflectionClass
+     *
+     * @psalm-param class-string $className
+     */
+    public static function createClassReflectionInstance(string $className): ReflectionClass
+    {
+        static $CLASS_REFLECTION_INSTANCE = null;
+
+        if ($CLASS_REFLECTION_INSTANCE === null) {
+            $CLASS_REFLECTION_INSTANCE = (new BetterReflection())->classReflector();
+        }
+        \assert($CLASS_REFLECTION_INSTANCE instanceof ClassReflector);
+
+        return $CLASS_REFLECTION_INSTANCE->reflect($className);
+    }
+
+    /**
      * Factory method for easy instantiation.
      *
      * @param string[] $additionalTags
@@ -324,6 +365,12 @@ final class Utils
      */
     public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactory
     {
+        static $DOC_BLOCK_FACTORY_INSTANCE = null;
+
+        if ($DOC_BLOCK_FACTORY_INSTANCE !== null) {
+            return $DOC_BLOCK_FACTORY_INSTANCE;
+        }
+
         $fqsenResolver = new \phpDocumentor\Reflection\FqsenResolver();
         $tagFactory = new \phpDocumentor\Reflection\DocBlock\StandardTagFactory($fqsenResolver);
         $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
@@ -352,6 +399,8 @@ final class Utils
         foreach ($additionalTags as $tagName => $tagHandler) {
             $docBlockFactory->registerTagHandler($tagName, $tagHandler);
         }
+
+        $DOC_BLOCK_FACTORY_INSTANCE = $docBlockFactory;
 
         return $docBlockFactory;
     }

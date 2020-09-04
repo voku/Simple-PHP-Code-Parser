@@ -68,7 +68,7 @@ class PHPFunction extends BasePHPElement
 
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\function_exists($this->name)) {
-            $reflectionFunction = ReflectionFunction::createFromName($this->name);
+            $reflectionFunction = Utils::createFunctionReflectionInstance($this->name);
             $this->readObjectFromBetterReflection($reflectionFunction);
         }
 

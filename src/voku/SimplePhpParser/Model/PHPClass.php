@@ -46,7 +46,7 @@ class PHPClass extends BasePHPClass
         /** @noinspection NotOptimalIfConditionsInspection */
         /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\class_exists($this->name, true)) {
-            $reflectionClass = ReflectionClass::createFromName($this->name);
+            $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromBetterReflection($reflectionClass);
         }
 
@@ -137,7 +137,7 @@ class PHPClass extends BasePHPClass
                 &&
                 \class_exists($this->parentClass, true)
             ) {
-                $reflectionClass = ReflectionClass::createFromName($this->parentClass);
+                $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
                 $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
                 $this->parserContainer->addClass($class);
             }

@@ -13,7 +13,6 @@ use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Roave\BetterReflection\Reflection\ReflectionClass;
 use SplFileInfo;
 use voku\cache\Cache;
 use voku\SimplePhpParser\Model\PHPInterface;
@@ -45,7 +44,7 @@ final class PhpCodeParser
      * @param string   $className
      * @param string[] $autoloaderProjectPaths
      *
-     * @Psalm-param class-string $className
+     * @psalm-param class-string $className
      *
      * @throws \Roave\BetterReflection\Reflector\Exception\IdentifierNotFound
      *
@@ -55,7 +54,7 @@ final class PhpCodeParser
         string $className,
         array $autoloaderProjectPaths = []
     ): ParserContainer {
-        $reflectionClass = ReflectionClass::createFromName($className);
+        $reflectionClass = Utils::createClassReflectionInstance($className);
 
         return self::getPhpFiles(
             (string) $reflectionClass->getFileName(),
@@ -417,7 +416,7 @@ final class PhpCodeParser
                 &&
                 \class_exists($class->parentClass, true)
             ) {
-                $reflectionClassTmp = ReflectionClass::createFromName($class->parentClass);
+                $reflectionClassTmp = Utils::createClassReflectionInstance($class->parentClass);
                 $classTmp = (new \voku\SimplePhpParser\Model\PHPClass($parserContainer))->readObjectFromBetterReflection($reflectionClassTmp);
                 if ($classTmp->name) {
                     $classes[$classTmp->name] = $classTmp;
@@ -463,7 +462,7 @@ final class PhpCodeParser
                     &&
                     \interface_exists($interfaceStr, true)
                 ) {
-                    $reflectionInterfaceTmp = ReflectionClass::createFromName($interfaceStr);
+                    $reflectionInterfaceTmp = Utils::createClassReflectionInstance($interfaceStr);
                     $interfaceTmp = (new PHPInterface($parserContainer))->readObjectFromBetterReflection($reflectionInterfaceTmp);
                     if ($interfaceTmp->name) {
                         $interfaces[$interfaceTmp->name] = $interfaceTmp;
