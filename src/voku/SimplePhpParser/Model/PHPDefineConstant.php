@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
+use Roave\BetterReflection\Reflection\ReflectionConstant;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPDefineConstant extends PHPConst
@@ -39,24 +40,15 @@ class PHPDefineConstant extends PHPConst
     }
 
     /**
-     * @param array $constant
+     * @param ReflectionConstant $constant
      *
      * @return $this
      */
     public function readObjectFromBetterReflection($constant): PHPConst
     {
-        $this->name = (string) $constant[0];
-
-        $constantValue = $constant[1];
-        if ($constantValue === null) {
-            $this->value = null;
-
-            return $this;
-        }
-
+        $this->name = $constant->getName();
+        $this->value = $constant->getValue();
         $this->type = Utils::normalizePhpType(\gettype($this->value));
-
-        $this->value = \is_resource($constantValue) ? '__RESOURCE__' : $constantValue;
 
         return $this;
     }

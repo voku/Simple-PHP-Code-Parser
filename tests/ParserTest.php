@@ -223,6 +223,25 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('int[]', $phpClasses['Foo']->properties['foo']->typeFromPhpDoc);
     }
 
+    public function testSpecialPhpDocComment(): void
+    {
+        $code = '
+        <?php
+        /**
+        * Add a route like `$router->route(\'/blog/\', function(){...});` where function returns html.
+        *
+        * @export(Router.route)
+        */
+        function route($pattern, $callback){}
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpFunctions = $phpCode->getFunctions();
+
+        static::assertSame('route', $phpFunctions['route']->name);
+        static::assertSame(['export' => '@export (Router.route)'], $phpFunctions['route']->tagNames);
+    }
+
     public function testGetMethodsInfoFromExtendedClass(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(

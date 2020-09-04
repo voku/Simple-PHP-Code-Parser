@@ -46,6 +46,8 @@ trait PHPDocElement
 
     /**
      * @var string[]
+     *
+     * @psalm-var array<string, string>
      */
     public $tagNames = [];
 
@@ -98,7 +100,7 @@ trait PHPDocElement
 
                 $tags = $phpDoc->getTags();
                 foreach ($tags as $tag) {
-                    $this->tagNames[] = $tag->getName();
+                    $this->tagNames[$tag->getName()] = $tag->render();
                 }
 
                 $this->linkTags = $phpDoc->getTagsByName('link');

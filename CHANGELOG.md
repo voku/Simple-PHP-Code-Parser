@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.15.2 (2020-09-04)
+
+- save special phpdoc @tags and the content of these tags
+
 ### 0.15.1 (2020-09-04)
 
 - optimize performance via static cache
