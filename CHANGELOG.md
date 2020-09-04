@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.15.1 (2020-09-04)
+
+- optimize performance via static cache
+
 ### 0.15.0 (2020-08-31)
 
 - move "PhpCodeChecker" in a separate repository
