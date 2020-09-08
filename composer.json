@@ -29,7 +29,7 @@
         "ondrejmirtes/better-reflection": "~4.3"
     },
     "require-dev": {
-        "phpunit/phpunit": "~6.0 || ~7.0",
+        "phpunit/phpunit": "~6.0 || ~7.0 || ~9.0",
         "jetbrains/phpstorm-stubs": "dev-master as v2019.3"
     },
     "autoload": {
