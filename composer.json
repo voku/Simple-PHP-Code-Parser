@@ -19,7 +19,6 @@
         "php": ">=7.1",
         "ext-simplexml": "*",
         "amphp/parallel": "~1.4",
-        "composer/composer": "~1.10",
         "phpdocumentor/type-resolver": "~1.0 || ~1.3",
         "phpdocumentor/reflection-docblock": "~4.3 || ~5.1 || 5.x-dev",
         "phpdocumentor/reflection-common": "~2.1 || ~2.2",
