@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 
 namespace {
-    \define("LALL", 'foo');
+    \define('LALL', 'foo');
 }
 
 namespace voku\tests {
