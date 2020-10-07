@@ -231,6 +231,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         * Add a route like `$router->route(\'/blog/\', function(){...});` where function returns html.
         *
         * @export(Router.route)
+        *
+        * @return mixed[][][]|false
         */
         function route($pattern, $callback){}
         ';
@@ -239,7 +241,52 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpFunctions = $phpCode->getFunctions();
 
         static::assertSame('route', $phpFunctions['route']->name);
-        static::assertSame(['export' => '@export (Router.route)'], $phpFunctions['route']->tagNames);
+        static::assertSame(['export' => '@export (Router.route)', 'return' => '@return array[][]|false'], $phpFunctions['route']->tagNames);
+    }
+
+    public function testGetFunctionsInfo(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(
+            __DIR__ . '/Dummy.php'
+        );
+        $phpFunctionsInfo = $phpCode->getFunctionsInfo();
+
+        $result = $phpFunctionsInfo;
+
+        $result = self::removeLocalPathForTheTest($result);
+
+        // DEBUG
+        //\var_export($result);
+
+        static::assertSame([
+            'voku\\tests\\foo' => [
+                'fullDescription' => '',
+                'paramsTypes'     => [
+                    'foo' => [
+                        'type'                           => 'int',
+                        'typeFromPhpDocMaybeWithComment' => null,
+                        'typeFromPhpDoc'                 => null,
+                        'typeFromPhpDocSimple'           => null,
+                        'typeFromPhpDocExtended'         => null,
+                        'typeFromDefaultValue'           => 'int',
+                    ],
+                ],
+                'returnTypes' => [
+                    'type'                           => null,
+                    'typeFromPhpDocMaybeWithComment' => '\\Dummy',
+                    'typeFromPhpDoc'                 => 'Dummy',
+                    'typeFromPhpDocSimple'           => '\\Dummy',
+                    'typeFromPhpDocExtended'         => 'Dummy',
+                ],
+                'line'          => 10,
+                'file'          => 'Simple-PHP-Code-Parser/tests/Dummy.php',
+                'error'         => '',
+                'is_deprecated' => false,
+                'is_meta'       => false,
+                'is_internal'   => false,
+                'is_removed'    => false,
+            ],
+        ], $result);
     }
 
     public function testGetMethodsInfoFromExtendedClass(): void

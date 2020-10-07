@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.15.3 (2020-10-06)
+
+- update vendor libs
+- PHP 7.2 as minimal requirement
+- remove custom PseudoTypes for phpDocumentor (PseudoTypes are now build in into phpDocumentor itself)
+- add more tests for "PhpCodeParser->getFunctionsInfo()"
+
 ### 0.15.2 (2020-09-04)
 
 - save special phpdoc @tags and the content of these tags

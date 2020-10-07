@@ -279,11 +279,11 @@ final class Utils
             return 'string|int|float|bool';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\BooleanTrue) {
+        if ($type instanceof \phpDocumentor\Reflection\PseudoTypes\True_) {
             return 'true';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\BooleanFalse) {
+        if ($type instanceof \phpDocumentor\Reflection\PseudoTypes\False_) {
             return 'false';
         }
 
@@ -375,13 +375,6 @@ final class Utils
         $tagFactory = new \phpDocumentor\Reflection\DocBlock\StandardTagFactory($fqsenResolver);
         $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
         $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
-
-        $typeResolver->addKeyword('array[]', \phpDocumentor\Reflection\Types\ArrayArray::class);
-        $typeResolver->addKeyword('float[]', \phpDocumentor\Reflection\Types\ArrayFloat::class);
-        $typeResolver->addKeyword('int[]', \phpDocumentor\Reflection\Types\ArrayInt::class);
-        $typeResolver->addKeyword('string[]', \phpDocumentor\Reflection\Types\ArrayString::class);
-        $typeResolver->addKeyword('false', \phpDocumentor\Reflection\Types\BooleanFalse::class);
-        $typeResolver->addKeyword('true', \phpDocumentor\Reflection\Types\BooleanTrue::class);
 
         /**
          * @noinspection   PhpParamsInspection
