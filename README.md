@@ -102,9 +102,6 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
 
-### "phar" build
-
-```php ~/Downloads/box.phar compile --debug```
 
 ### Support
 
