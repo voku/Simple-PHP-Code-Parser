@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.16.3 (2020-10-31)
+
+- fix php variable detection
+
 ### 0.16.2 (2020-10-30)
 
 - save the raw phpdoc for "@return" and "@param" v2
