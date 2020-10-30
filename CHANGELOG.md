@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.16.1 (2020-10-30)
+
+- save the raw phpdoc for "@return" and "@param"
+
 ### 0.16.0 (2020-10-30)
 
 - support for modern phpdocs for "@param" and "@return"
