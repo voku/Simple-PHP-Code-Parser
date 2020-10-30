@@ -29,15 +29,14 @@ final class Utils
     }
 
     /**
-     * @param \phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag
+     * @param \phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag
      *
      * @return array
      *
      * @paalm-return array{parsedParamTagStr: string, variableName: null|string}
      */
-    public static function splitTypeAndVariable(
-        \phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag
-    ): array {
+    public static function splitTypeAndVariable(\phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag): array
+    {
         $parsedParamTagStr = $parsedParamTag . '';
         $variableName = null;
 

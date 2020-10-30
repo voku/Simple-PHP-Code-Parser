@@ -19,6 +19,11 @@ class PHPParameter extends BasePHPElement
     /**
      * @var string|null
      */
+    public $phpDocRaw;
+
+    /**
+     * @var string|null
+     */
     public $type;
 
     /**
@@ -228,26 +233,6 @@ class PHPParameter extends BasePHPElement
         }
 
         try {
-            $regexIntValues = '/@.*?param\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
-            if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
-                $this->typeFromPhpDoc = 'int';
-                $this->typeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
-                $this->typeFromPhpDocSimple = 'int';
-                $this->typeFromPhpDocExtended = $matchesIntValues['intValues'];
-
-                return;
-            }
-
-            $regexAnd = '/@.*?param\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
-            if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
-                $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
-                $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeFromPhpDocExtended = $matchesAndValues['type'];
-
-                return;
-            }
-
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('param');
@@ -278,21 +263,16 @@ class PHPParameter extends BasePHPElement
                         if ($typeTmp !== '') {
                             $this->typeFromPhpDocSimple = $typeTmp;
                         }
+                    }
 
-                        if ($this->typeFromPhpDoc) {
-                            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($this->typeFromPhpDoc);
-                        }
-                    } elseif ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\InvalidTag) {
-                        $parsedParamTagParam = (string) $parsedParamTag;
-
-                        \preg_match('#\$\p{L}*#u', $parsedParamTagParam, $variableName);
-                        if (
-                            \count($variableName) > 0
-                            &&
-                            \strtoupper('$' . $parameterName) === \strtoupper($variableName[0])
-                        ) {
-                            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
-                        }
+                    $parsedParamTagParam = (string) $parsedParamTag;
+                    $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
+                    $parsedParamTagStr = $spitedData['parsedParamTagStr'];
+                    $variableName = $spitedData['variableName'];
+                    // check only the current "param"-tag
+                    if ($variableName && \strtoupper($parameterName) === \strtoupper($variableName)) {
+                        $this->phpDocRaw = (string) $parsedParamTag;
+                        $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
                     }
                 }
             }

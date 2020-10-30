@@ -18,6 +18,11 @@ class PHPProperty extends BasePHPElement
     /**
      * @var string|null
      */
+    public $phpDocRaw;
+
+    /**
+     * @var string|null
+     */
     public $type;
 
     /**
@@ -218,26 +223,6 @@ class PHPProperty extends BasePHPElement
         }
 
         try {
-            $regexIntValues = '/@.*?var\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
-            if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
-                $this->typeFromPhpDoc = 'int';
-                $this->typeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
-                $this->typeFromPhpDocSimple = 'int';
-                $this->typeFromPhpDocExtended = $matchesIntValues['intValues'];
-
-                return;
-            }
-
-            $regexAnd = '/@.*?var\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
-            if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
-                $this->typeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
-                $this->typeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->typeFromPhpDocExtended = $matchesAndValues['type'];
-
-                return;
-            }
-
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('var');
@@ -262,11 +247,10 @@ class PHPProperty extends BasePHPElement
                         if ($typeTmp !== '') {
                             $this->typeFromPhpDocSimple = $typeTmp;
                         }
-
-                        if ($this->typeFromPhpDoc) {
-                            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($this->typeFromPhpDoc);
-                        }
                     }
+
+                    $this->phpDocRaw = (string) $parsedParamTag;
+                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc((string) $parsedParamTag);
                 }
             }
 

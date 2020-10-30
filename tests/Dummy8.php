@@ -41,7 +41,7 @@ final class Dummy8 extends Dummy6
     /**
      * @param array{stdClass: \stdClass, numbers: int|float $lall
      *
-     * @return array{stdClass: \stdClass, numbers: int|float
+     * @return array{stdClass: \stdClass, numbers: int|float <foo/>
      */
     public function foo_broken($lall) {
         return $lall;

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
-use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
 use Roave\BetterReflection\Reflection\ReflectionFunction;
@@ -19,6 +18,11 @@ class PHPFunction extends BasePHPElement
      * @var PHPParameter[]
      */
     public $parameters = [];
+
+    /**
+     * @var string|null
+     */
+    public $returnPhpDocRaw;
 
     /**
      * @var string|null
@@ -230,52 +234,29 @@ class PHPFunction extends BasePHPElement
         }
 
         try {
-            $regexIntValues = '/@.*?return\s+(?<intValues>\d[\|\d]*)(?<comment>.*)/ui';
-            if (\preg_match($regexIntValues, $docComment, $matchesIntValues)) {
-                $this->returnTypeFromPhpDocMaybeWithComment = 'int' . (\trim($matchesIntValues['comment']) ? ' ' . \trim($matchesIntValues['comment']) : '');
-                $this->returnTypeFromPhpDoc = 'int';
-                $this->returnTypeFromPhpDocSimple = 'int';
-                $this->returnTypeFromPhpDocExtended = $matchesIntValues['intValues'];
-
-                return;
-            }
-
-            $regexAnd = '/@.*?return\s+(?<type>(?<type1>[\S]+)&(?<type2>[\S]+))(?<comment>.*)/ui';
-            if (\preg_match($regexAnd, $docComment, $matchesAndValues)) {
-                $this->returnTypeFromPhpDocMaybeWithComment = $matchesAndValues['type'] . (\trim($matchesAndValues['comment']) ? ' ' . \trim($matchesAndValues['comment']) : '');
-                $this->returnTypeFromPhpDoc = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->returnTypeFromPhpDocSimple = $matchesAndValues['type1'] . '|' . $matchesAndValues['type2'];
-                $this->returnTypeFromPhpDocExtended = $matchesAndValues['type'];
-
-                return;
-            }
-
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
             $parsedReturnTag = $phpDoc->getTagsByName('return');
 
-            if (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof Return_) {
+            if (!empty($parsedReturnTag)) {
                 /** @var Return_ $parsedReturnTagReturn */
                 $parsedReturnTagReturn = $parsedReturnTag[0];
 
-                $this->returnTypeFromPhpDocMaybeWithComment = \trim((string) $parsedReturnTagReturn);
+                if ($parsedReturnTagReturn instanceof Return_) {
+                    $this->returnTypeFromPhpDocMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
-                $type = $parsedReturnTagReturn->getType();
+                    $type = $parsedReturnTagReturn->getType();
 
-                $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim((string) $type, '\\'));
+                    $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim((string) $type, '\\'));
 
-                $typeTmp = Utils::parseDocTypeObject($type);
-                if ($typeTmp !== '') {
-                    $this->returnTypeFromPhpDocSimple = $typeTmp;
+                    $typeTmp = Utils::parseDocTypeObject($type);
+                    if ($typeTmp !== '') {
+                        $this->returnTypeFromPhpDocSimple = $typeTmp;
+                    }
                 }
 
-                if ($this->returnTypeFromPhpDoc) {
-                    $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($this->returnTypeFromPhpDoc);
-                }
-            } elseif (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof InvalidTag) {
-                $parsedReturnTagReturn = (string) $parsedReturnTag[0];
-
-                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($parsedReturnTagReturn);
+                $this->returnPhpDocRaw = (string) $parsedReturnTagReturn;
+                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc((string) $parsedReturnTagReturn);
             }
 
             /** @noinspection AdditionOperationOnArraysInspection */

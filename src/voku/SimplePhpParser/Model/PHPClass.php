@@ -263,10 +263,17 @@ class PHPClass extends BasePHPClass
             $returnTypes['typeFromPhpDocSimple'] = $method->returnTypeFromPhpDocSimple;
             $returnTypes['typeFromPhpDocExtended'] = $method->returnTypeFromPhpDocExtended;
 
+            $paramsPhpDocRaw = [];
+            foreach ($method->parameters as $tagParam) {
+                $paramsPhpDocRaw[$tagParam->name] = $tagParam->phpDocRaw;
+            }
+
             $infoTmp = [];
             $infoTmp['fullDescription'] = \trim($method->summary . "\n\n" . $method->description);
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
+            $infoTmp['paramsPhpDocRaw'] = $paramsPhpDocRaw;
+            $infoTmp['returnPhpDocRaw'] = $method->returnPhpDocRaw;
             $infoTmp['line'] = $method->line;
             $infoTmp['file'] = $method->file;
             $infoTmp['error'] = \implode("\n", $method->parseError);
