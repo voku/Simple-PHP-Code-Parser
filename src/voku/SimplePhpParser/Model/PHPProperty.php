@@ -51,9 +51,9 @@ class PHPProperty extends BasePHPElement
     public $typeFromPhpDocMaybeWithComment;
 
     /**
-     * "private", "protected" or "public"
-     *
      * @var string
+     *
+     * @phpstan-var ''|'private'|'protected'|'public'
      */
     public $access = '';
 

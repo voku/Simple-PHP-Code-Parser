@@ -9,9 +9,9 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPMethod extends PHPFunction
 {
     /**
-     * "private", "protected" or "public"
-     *
      * @var string
+     *
+     * @phpstan-var ''|'private'|'protected'|'public'
      */
     public $access = '';
 
