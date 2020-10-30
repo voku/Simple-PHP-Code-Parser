@@ -44,7 +44,7 @@ final class PhpCodeParser
      * @param string   $className
      * @param string[] $autoloaderProjectPaths
      *
-     * @psalm-param class-string $className
+     * @phpstan-param class-string $className
      *
      * @throws \Roave\BetterReflection\Reflector\Exception\IdentifierNotFound
      *
@@ -344,7 +344,7 @@ final class PhpCodeParser
             if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
                 $response = $cache->getItem($cacheKey);
                 /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
-                /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */
+                /** @phpstan-var array{content: string, fileName: string, cacheKey: string} $response */
                 $response = $response;
 
                 $phpCodes[$response['cacheKey']]['content'] = $response['content'];
@@ -373,7 +373,7 @@ final class PhpCodeParser
 
         foreach ($phpFilePromiseResponses as $response) {
             /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
-            /** @psalm-var array{content: string, fileName: string, cacheKey: string} $response */
+            /** @phpstan-var array{content: string, fileName: string, cacheKey: string} $response */
             $response = $response;
 
             $cache->setItem($response['cacheKey'], $response);

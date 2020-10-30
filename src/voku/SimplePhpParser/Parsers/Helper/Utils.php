@@ -67,7 +67,7 @@ final class Utils
      * @param string|null                                                     $classStr
      * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer|null       $parserContainer
      *
-     * @psalm-param class-string|null                                         $classStr
+     * @phpstan-param class-string|null                                         $classStr
      *
      * @return mixed
      *               Will return "Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER" if we can't get the default value
@@ -339,7 +339,7 @@ final class Utils
      *
      * @return \Roave\BetterReflection\Reflection\ReflectionClass
      *
-     * @psalm-param class-string $className
+     * @phpstan-param class-string $className
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
     {
@@ -358,7 +358,7 @@ final class Utils
      *
      * @param string[] $additionalTags
      *
-     * @psalm-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
+     * @phpstan-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
      *
      * @return \phpDocumentor\Reflection\DocBlockFactory
      */

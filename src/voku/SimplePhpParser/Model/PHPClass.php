@@ -13,21 +13,21 @@ class PHPClass extends BasePHPClass
     /**
      * @var string|null
      *
-     * @psalm-var null|class-string
+     * @phpstan-var null|class-string
      */
     public $name;
 
     /**
      * @var string|null
      *
-     * @psalm-var class-string|null
+     * @phpstan-var class-string|null
      */
     public $parentClass;
 
     /**
      * @var string[]
      *
-     * @psalm-var class-string[]
+     * @phpstan-var class-string[]
      */
     public $interfaces = [];
 
@@ -223,7 +223,36 @@ class PHPClass extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_static: null|bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{
+     *     fullDescription: string,
+     *     line: null|int,
+     *     file: null|string,
+     *     error: string,
+     *     is_deprecated: bool,
+     *     is_static: null|bool,
+     *     is_meta: bool,
+     *     is_internal: bool,
+     *     is_removed: bool,
+     *     paramsTypes: array<string,
+     *         array{
+     *              type: null|string,
+     *              typeFromPhpDoc: null|string,
+     *              typeFromPhpDocExtended: null|string,
+     *              typeFromPhpDocSimple: null|string,
+     *              typeFromPhpDocMaybeWithComment: null|string,
+     *              typeFromDefaultValue: null|string
+     *         }
+     *     >,
+     *     returnTypes: array{
+     *         type: null|string,
+     *         typeFromPhpDoc: null|string,
+     *         typeFromPhpDocExtended: null|string,
+     *         typeFromPhpDocSimple: null|string,
+     *         typeFromPhpDocMaybeWithComment: null|string
+     *     },
+     *     paramsPhpDocRaw: array<string, null|string>,
+     *     returnPhpDocRaw: null|string
+     * }>
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],

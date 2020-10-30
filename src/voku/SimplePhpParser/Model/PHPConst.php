@@ -23,7 +23,7 @@ class PHPConst extends BasePHPElement
     /**
      * @var array|bool|float|int|string|null
      *
-     * @psalm-var scalar|array<scalar>|null
+     * @phpstan-var scalar|array<scalar>|null
      */
     public $value;
 

@@ -15,35 +15,35 @@ class ParserContainer
     /**
      * @var \voku\SimplePhpParser\Model\PHPConst[]
      *
-     * @psalm-var array<string, PHPConst>
+     * @phpstan-var array<string, PHPConst>
      */
     private $constants = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPFunction[]
      *
-     * @psalm-var array<string, PHPFunction>
+     * @phpstan-var array<string, PHPFunction>
      */
     private $functions = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPClass[]
      *
-     * @psalm-var array<string, PHPClass>
+     * @phpstan-var array<string, PHPClass>
      */
     private $classes = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPTrait[]
      *
-     * @psalm-var array<string, PHPTrait>
+     * @phpstan-var array<string, PHPTrait>
      */
     private $traits = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPInterface[]
      *
-     * @psalm-var array<string, PHPInterface>
+     * @phpstan-var array<string, PHPInterface>
      */
     private $interfaces = [];
 
@@ -92,7 +92,33 @@ class ParserContainer
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{
+     *     fullDescription: string,
+     *     line: null|int,
+     *     file: null|string,
+     *     error: string,
+     *     is_deprecated: bool,
+     *     is_meta: bool,
+     *     is_internal: bool,
+     *     is_removed: bool,
+     *     paramsTypes: array<string, array{
+     *         type: null|string,
+     *         typeFromPhpDoc: null|string,
+     *         typeFromPhpDocExtended: null|string,
+     *         typeFromPhpDocSimple: null|string,
+     *         typeFromPhpDocMaybeWithComment: null|string,
+     *         typeFromDefaultValue: null|string
+     *     }>,
+     *     returnTypes: array{
+     *         type: null|string,
+     *         typeFromPhpDoc: null|string,
+     *         typeFromPhpDocExtended: null|string,
+     *         typeFromPhpDocSimple: null|string,
+     *         typeFromPhpDocMaybeWithComment: null|string
+     *     },
+     *     paramsPhpDocRaw: array<string, null|string>,
+     *     returnPhpDocRaw: null|string
+     *  }>
      */
     public function getFunctionsInfo(
         bool $skipDeprecatedFunctions = false,
@@ -127,10 +153,17 @@ class ParserContainer
             $returnTypes['typeFromPhpDocSimple'] = $function->returnTypeFromPhpDocSimple;
             $returnTypes['typeFromPhpDocExtended'] = $function->returnTypeFromPhpDocExtended;
 
+            $paramsPhpDocRaw = [];
+            foreach ($function->parameters as $tagParam) {
+                $paramsPhpDocRaw[$tagParam->name] = $tagParam->phpDocRaw;
+            }
+
             $infoTmp = [];
             $infoTmp['fullDescription'] = \trim($function->summary . "\n\n" . $function->description);
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
+            $infoTmp['paramsPhpDocRaw'] = $paramsPhpDocRaw;
+            $infoTmp['returnPhpDocRaw'] = $function->returnPhpDocRaw;
             $infoTmp['line'] = $function->line;
             $infoTmp['file'] = $function->file;
             $infoTmp['error'] = \implode("\n", $function->parseError);

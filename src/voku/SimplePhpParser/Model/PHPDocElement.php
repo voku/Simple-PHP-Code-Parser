@@ -47,7 +47,7 @@ trait PHPDocElement
     /**
      * @var string[]
      *
-     * @psalm-var array<string, string>
+     * @phpstan-var array<string, string>
      */
     public $tagNames = [];
 

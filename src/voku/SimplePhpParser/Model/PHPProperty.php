@@ -71,7 +71,7 @@ class PHPProperty extends BasePHPElement
      * @param Property    $node
      * @param string|null $classStr
      *
-     * @psalm-param class-string|null $classStr
+     * @phpstan-param class-string|null $classStr
      *
      * @return $this
      */

@@ -13,7 +13,7 @@ final class PHPTrait extends BasePHPClass
     /**
      * @var string|null
      *
-     * @psalm-var null|class-string
+     * @phpstan-var null|class-string
      */
     public $name;
 
@@ -165,7 +165,36 @@ final class PHPTrait extends BasePHPClass
      *
      * @return array<mixed>
      *
-     * @psalm-return array<string, array{fullDescription: string, line: null|int, file: null|string, error: string, is_deprecated: bool, is_static: null|bool, is_meta: bool, is_internal: bool, is_removed: bool, paramsTypes: array<string, array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromDefaultValue: null|string}>, returnTypes: array{type: null|string, typeFromPhpDoc: null|string, typeFromPhpDocExtended: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocMaybeWithComment: null|string}}>
+     * @psalm-return array<string, array{
+     *     fullDescription: string,
+     *     line: null|int,
+     *     file: null|string,
+     *     error: string,
+     *     is_deprecated: bool,
+     *     is_static: null|bool,
+     *     is_meta: bool,
+     *     is_internal: bool,
+     *     is_removed: bool,
+     *     paramsTypes: array<string,
+     *         array{
+     *              type: null|string,
+     *              typeFromPhpDoc: null|string,
+     *              typeFromPhpDocExtended: null|string,
+     *              typeFromPhpDocSimple: null|string,
+     *              typeFromPhpDocMaybeWithComment: null|string,
+     *              typeFromDefaultValue: null|string
+     *         }
+     *     >,
+     *     returnTypes: array{
+     *         type: null|string,
+     *         typeFromPhpDoc: null|string,
+     *         typeFromPhpDocExtended: null|string,
+     *         typeFromPhpDocSimple: null|string,
+     *         typeFromPhpDocMaybeWithComment: null|string
+     *     },
+     *     paramsPhpDocRaw: array<string, null|string>,
+     *     returnPhpDocRaw: null|string
+     *  }>
      */
     public function getMethodsInfo(
         array $access = ['public', 'protected', 'private'],
@@ -205,10 +234,17 @@ final class PHPTrait extends BasePHPClass
             $returnTypes['typeFromPhpDocSimple'] = $method->returnTypeFromPhpDocSimple;
             $returnTypes['typeFromPhpDocExtended'] = $method->returnTypeFromPhpDocExtended;
 
+            $paramsPhpDocRaw = [];
+            foreach ($method->parameters as $tagParam) {
+                $paramsPhpDocRaw[$tagParam->name] = $tagParam->phpDocRaw;
+            }
+
             $infoTmp = [];
             $infoTmp['fullDescription'] = \trim($method->summary . "\n\n" . $method->description);
             $infoTmp['paramsTypes'] = $paramsTypes;
             $infoTmp['returnTypes'] = $returnTypes;
+            $infoTmp['paramsPhpDocRaw'] = $paramsPhpDocRaw;
+            $infoTmp['returnPhpDocRaw'] = $method->returnPhpDocRaw;
             $infoTmp['line'] = $method->line;
             $infoTmp['file'] = $method->file;
             $infoTmp['error'] = \implode("\n", $method->parseError);

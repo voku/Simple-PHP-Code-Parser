@@ -33,7 +33,7 @@ class PHPMethod extends PHPFunction
     /**
      * @var string|null
      *
-     * @psalm-var null|class-string
+     * @phpstan-var null|class-string
      */
     public $parentName;
 
@@ -41,7 +41,7 @@ class PHPMethod extends PHPFunction
      * @param \PhpParser\Node\Stmt\ClassMethod $node
      * @param string|null                      $classStr
      *
-     * @psalm-param null|class-string $classStr
+     * @phpstan-param null|class-string $classStr
      *
      * @return $this
      */

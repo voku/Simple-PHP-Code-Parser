@@ -13,14 +13,14 @@ class PHPInterface extends BasePHPClass
     /**
      * @var string|null
      *
-     * @psalm-var null|class-string
+     * @phpstan-var null|class-string
      */
     public $name;
 
     /**
      * @var string[]
      *
-     * @psalm-var class-string[]
+     * @phpstan-var class-string[]
      */
     public $parentInterfaces = [];
 
