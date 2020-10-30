@@ -17,7 +17,6 @@
     ],
     "require": {
         "php": ">=7.2",
-        "ext-mbstring": "*",
         "amphp/parallel": "~1.4",
         "phpdocumentor/type-resolver": "~1.4",
         "phpdocumentor/reflection-docblock": "~5.2",

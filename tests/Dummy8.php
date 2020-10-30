@@ -41,7 +41,7 @@ final class Dummy8 extends Dummy6
     }
 
     /**
-     * @param array{stdClass: \stdClass, numbers: int|float $lall
+     * @param array{stdClass: \stdClass, numbers: int|float $lall <foo/>
      *
      * @return array{stdClass: \stdClass, numbers: int|float <foo/>
      */

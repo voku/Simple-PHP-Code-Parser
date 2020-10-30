@@ -41,9 +41,12 @@ final class Utils
         $variableName = null;
 
         if (\strpos($parsedParamTagStr, '$') !== false) {
-            $variableName = \mb_substr($parsedParamTagStr, (int) \mb_strpos($parsedParamTagStr, '$'));
+            \preg_match('#\$(?<variableName>[^ ]*)#u', $parsedParamTagStr, $variableNameHelper);
+            if (isset($variableNameHelper['variableName'])) {
+                $variableName = $variableNameHelper['variableName'];
+            }
             $parsedParamTagStr = \str_replace(
-                $variableName,
+                (string)$variableName,
                 '',
                 $parsedParamTagStr
             );
