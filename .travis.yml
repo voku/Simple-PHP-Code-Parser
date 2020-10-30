@@ -68,7 +68,7 @@ before_install:
   - travis_retry phive install --force-accept-unsigned --trust-gpg-keys E82B2FB314E9906E
 
 install:
-  - composer validate --strict
+  - composer validate
   - travis_retry composer update --no-interaction --prefer-dist --optimize-autoloader
   - mkdir -p build/logs
 
