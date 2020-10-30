@@ -282,6 +282,17 @@ class PHPParameter extends BasePHPElement
                         if ($this->typeFromPhpDoc) {
                             $this->typeFromPhpDocExtended = Utils::modernPhpdoc($this->typeFromPhpDoc);
                         }
+                    } elseif ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\InvalidTag) {
+                        $parsedParamTagParam = (string) $parsedParamTag;
+
+                        \preg_match('#\$\p{L}*#u', $parsedParamTagParam, $variableName);
+                        if (
+                            \count($variableName) > 0
+                            &&
+                            \strtoupper('$' . $parameterName) === \strtoupper($variableName[0])
+                        ) {
+                            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
+                        }
                     }
                 }
             }

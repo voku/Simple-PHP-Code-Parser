@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
+use phpDocumentor\Reflection\DocBlock\Tags\InvalidTag;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
 use Roave\BetterReflection\Reflection\ReflectionFunction;
@@ -271,6 +272,10 @@ class PHPFunction extends BasePHPElement
                 if ($this->returnTypeFromPhpDoc) {
                     $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($this->returnTypeFromPhpDoc);
                 }
+            } elseif (!empty($parsedReturnTag) && $parsedReturnTag[0] instanceof InvalidTag) {
+                $parsedReturnTagReturn = (string) $parsedReturnTag[0];
+
+                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
 
             /** @noinspection AdditionOperationOnArraysInspection */

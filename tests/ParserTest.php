@@ -79,6 +79,20 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $method = $phpClasses[Dummy8::class]->methods['getLallTrait'];
 
         static::assertSame('getLallTrait', $method->name);
+
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: (int|float)}',
+            $phpClasses[Dummy8::class]->methods['foo_mixed']->returnTypeFromPhpDocExtended
+        );
+
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: (int|float)}',
+            $phpClasses[Dummy8::class]->methods['foo_mixed']->parameters['lall']->typeFromPhpDocExtended
+        );
+
+        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->returnTypeFromPhpDocExtended);
+
+        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
     }
 
     public function testSimpleOneTrait(): void
