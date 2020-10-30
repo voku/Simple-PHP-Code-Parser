@@ -25,7 +25,8 @@ final class Dummy8 extends Dummy6
     /**
      * @return list<int>
      */
-    public function foo_list() {
+    public function foo_list()
+    {
         return [4, 1, 2, 3, 4];
     }
 
@@ -34,7 +35,8 @@ final class Dummy8 extends Dummy6
      *
      * @return array{stdClass: \stdClass, numbers: int|float}
      */
-    public function foo_mixed($lall) {
+    public function foo_mixed($lall)
+    {
         return $lall;
     }
 
@@ -43,7 +45,8 @@ final class Dummy8 extends Dummy6
      *
      * @return array{stdClass: \stdClass, numbers: int|float
      */
-    public function foo_broken($lall) {
+    public function foo_broken($lall)
+    {
         return $lall;
     }
 }
