@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.16.0 (2020-10-30)
+
+- support for modern phpdocs for "@param" and "@return"
+
 ### 0.15.3 (2020-10-06)
 
 - update vendor libs
