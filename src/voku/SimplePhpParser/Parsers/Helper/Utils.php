@@ -46,7 +46,7 @@ final class Utils
                 $variableName = $variableNameHelper['variableName'];
             }
             $parsedParamTagStr = \str_replace(
-                (string)$variableName,
+                (string) $variableName,
                 '',
                 $parsedParamTagStr
             );
