@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.16.4 (2020-11-18)
+
+- "PhpCodeParser" -> allow different file extensions
+
 ### 0.16.3 (2020-10-31)
 
 - fix php variable detection
