@@ -66,6 +66,7 @@ final class PhpCodeParser
      * @param string   $pathOrCode
      * @param string[] $autoloaderProjectPaths
      * @param string[] $pathExcludeRegex
+     * @param string[] $fileExtensions
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      *
@@ -75,7 +76,8 @@ final class PhpCodeParser
     public static function getPhpFiles(
         string $pathOrCode,
         array $autoloaderProjectPaths = [],
-        array $pathExcludeRegex = []
+        array $pathExcludeRegex = [],
+        array $fileExtensions = []
     ): ParserContainer {
         foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath . '/vendor/autoload.php')) {
@@ -93,7 +95,8 @@ final class PhpCodeParser
 
         $phpCodes = self::getCode(
             $pathOrCode,
-            $pathExcludeRegex
+            $pathExcludeRegex,
+            $fileExtensions
         );
 
         $parserContainer = new ParserContainer();
@@ -292,6 +295,7 @@ final class PhpCodeParser
     /**
      * @param string   $pathOrCode
      * @param string[] $pathExcludeRegex
+     * @param string[] $fileExtensions
      *
      * @return array
      *
@@ -299,7 +303,8 @@ final class PhpCodeParser
      */
     private static function getCode(
         string $pathOrCode,
-        array $pathExcludeRegex = []
+        array $pathExcludeRegex = [],
+        array $fileExtensions = []
     ): array {
         // init
         $phpCodes = [];
@@ -307,6 +312,11 @@ final class PhpCodeParser
         $phpFileIterators = [];
         /** @var Promise[] $phpFilePromises */
         $phpFilePromises = [];
+
+        // fallback
+        if (\count($fileExtensions) === 0) {
+            $fileExtensions = ['.php'];
+        }
 
         if (\is_file($pathOrCode)) {
             $phpFileIterators = [new SplFileInfo($pathOrCode)];
@@ -330,7 +340,15 @@ final class PhpCodeParser
                 continue;
             }
 
-            if (\substr($path, -\strlen('.php')) !== '.php') {
+            $fileExtensionFound = false;
+            foreach ($fileExtensions as $fileExtension) {
+                if (\substr($path, -\strlen($fileExtension)) === $fileExtension) {
+                    $fileExtensionFound = true;
+
+                    break;
+                }
+            }
+            if ($fileExtensionFound === false) {
                 continue;
             }
 
