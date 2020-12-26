@@ -1,5 +1,7 @@
 # Changelog
 
+### 0.16.5 (2020-12-26)
+
 - "PhpCodeParser" -> ignore exceptions from auto loaded external classes
 
 ### 0.16.4 (2020-11-18)
