@@ -1,6 +1,10 @@
 # Changelog
 
-### 0.16.5 (2020-12-26)
+### 0.16.6  (2020-12-26)
+
+- "PhpCodeParser" -> optimize exception handling of "amphp/parallel" for async code analyse per file
+
+### 0.16.5  (2020-12-26)
 
 - "PhpCodeParser" -> ignore exceptions from auto loaded external classes
 
