@@ -1,5 +1,7 @@
 # Changelog
 
+- "PhpCodeParser" -> ignore exceptions from auto loaded external classes
+
 ### 0.16.4 (2020-11-18)
 
 - "PhpCodeParser" -> allow different file extensions
