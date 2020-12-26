@@ -45,9 +45,13 @@ class PHPClass extends BasePHPClass
 
         /** @noinspection NotOptimalIfConditionsInspection */
         /** @noinspection ArgumentEqualsDefaultValueInspection */
-        if (\class_exists($this->name, true)) {
-            $reflectionClass = Utils::createClassReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionClass);
+        try {
+            if (\class_exists($this->name, true)) {
+                $reflectionClass = Utils::createClassReflectionInstance($this->name);
+                $this->readObjectFromBetterReflection($reflectionClass);
+            }
+        } catch (\Exception $e) {
+            // nothing
         }
 
         $this->collectTags($node);
@@ -131,15 +135,19 @@ class PHPClass extends BasePHPClass
         if ($parent) {
             $this->parentClass = $parent->getName();
 
-            /** @noinspection ArgumentEqualsDefaultValueInspection */
-            if (
-                !$this->parserContainer->getClass($this->parentClass)
-                &&
-                \class_exists($this->parentClass, true)
-            ) {
-                $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
-                $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
-                $this->parserContainer->addClass($class);
+            try {
+                /** @noinspection ArgumentEqualsDefaultValueInspection */
+                if (
+                    !$this->parserContainer->getClass($this->parentClass)
+                    &&
+                    \class_exists($this->parentClass, true)
+                ) {
+                    $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
+                    $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
+                    $this->parserContainer->addClass($class);
+                }
+            } catch (\Exception $e) {
+                // nothing
             }
         }
 
@@ -235,12 +243,12 @@ class PHPClass extends BasePHPClass
      *     is_removed: bool,
      *     paramsTypes: array<string,
      *         array{
-     *              type: null|string,
-     *              typeFromPhpDoc: null|string,
-     *              typeFromPhpDocExtended: null|string,
-     *              typeFromPhpDocSimple: null|string,
-     *              typeFromPhpDocMaybeWithComment: null|string,
-     *              typeFromDefaultValue: null|string
+     *              ?type: null|string,
+     *              ?typeFromPhpDoc: null|string,
+     *              ?typeFromPhpDocExtended: null|string,
+     *              ?typeFromPhpDocSimple: null|string,
+     *              ?typeFromPhpDocMaybeWithComment: null|string,
+     *              ?typeFromDefaultValue: null|string
      *         }
      *     >,
      *     returnTypes: array{

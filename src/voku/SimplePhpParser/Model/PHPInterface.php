@@ -36,11 +36,15 @@ class PHPInterface extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
-        /** @noinspection NotOptimalIfConditionsInspection */
-        /** @noinspection ArgumentEqualsDefaultValueInspection */
-        if (\interface_exists($this->name, true)) {
-            $reflectionInterface = Utils::createClassReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionInterface);
+        try {
+            /** @noinspection NotOptimalIfConditionsInspection */
+            /** @noinspection ArgumentEqualsDefaultValueInspection */
+            if (\interface_exists($this->name, true)) {
+                $reflectionInterface = Utils::createClassReflectionInstance($this->name);
+                $this->readObjectFromBetterReflection($reflectionInterface);
+            }
+        } catch (\Exception $e) {
+            // nothing
         }
 
         $this->collectTags($node);
@@ -95,15 +99,19 @@ class PHPInterface extends BasePHPClass
         $this->parentInterfaces = $interfaceNames;
 
         foreach ($this->parentInterfaces as $parentInterface) {
-            /** @noinspection ArgumentEqualsDefaultValueInspection */
-            if (
-                !$this->parserContainer->getInterface($parentInterface)
-                &&
-                \interface_exists($parentInterface, true)
-            ) {
-                $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
-                $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
-                $this->parserContainer->addInterface($parentInterfaceNew);
+            try {
+                /** @noinspection ArgumentEqualsDefaultValueInspection */
+                if (
+                    !$this->parserContainer->getInterface($parentInterface)
+                    &&
+                    \interface_exists($parentInterface, true)
+                ) {
+                    $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
+                    $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
+                    $this->parserContainer->addInterface($parentInterfaceNew);
+                }
+            } catch (\Exception $e) {
+                // nothing
             }
         }
 
