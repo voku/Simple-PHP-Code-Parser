@@ -121,7 +121,7 @@ final class PhpCodeParser
             try {
                 $processPromiseResponses += Promise\wait(Promise\all($phpFilePromises));
             } catch (\Amp\Parallel\Worker\TaskFailureThrowable $exception) {
-                throw new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true));
+                $parserContainer->addException(new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true)));
             }
         }
         \assert(\is_array($processPromiseResponses));

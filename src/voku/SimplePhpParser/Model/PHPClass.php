@@ -45,13 +45,17 @@ class PHPClass extends BasePHPClass
 
         /** @noinspection NotOptimalIfConditionsInspection */
         /** @noinspection ArgumentEqualsDefaultValueInspection */
+        $classExists = false;
         try {
             if (\class_exists($this->name, true)) {
-                $reflectionClass = Utils::createClassReflectionInstance($this->name);
-                $this->readObjectFromBetterReflection($reflectionClass);
+                $classExists = true;
             }
         } catch (\Exception $e) {
             // nothing
+        }
+        if ($classExists) {
+            $reflectionClass = Utils::createClassReflectionInstance($this->name);
+            $this->readObjectFromBetterReflection($reflectionClass);
         }
 
         $this->collectTags($node);
@@ -135,6 +139,7 @@ class PHPClass extends BasePHPClass
         if ($parent) {
             $this->parentClass = $parent->getName();
 
+            $classExists = false;
             try {
                 /** @noinspection ArgumentEqualsDefaultValueInspection */
                 if (
@@ -142,12 +147,15 @@ class PHPClass extends BasePHPClass
                     &&
                     \class_exists($this->parentClass, true)
                 ) {
-                    $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
-                    $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
-                    $this->parserContainer->addClass($class);
+                    $classExists = true;
                 }
             } catch (\Exception $e) {
                 // nothing
+            }
+            if ($classExists) {
+                $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
+                $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
+                $this->parserContainer->addClass($class);
             }
         }
 

@@ -279,6 +279,11 @@ class ParserContainer
         }
     }
 
+    public function addException(\Exception $exception): void
+    {
+        $this->parse_errors[] = $exception->getFile() . ':' . $exception->getLine() . ' | ' . $exception->getMessage();
+    }
+
     public function setParseError(ParserErrorHandler $error): void
     {
         foreach ($error->getErrors() as $errorInner) {

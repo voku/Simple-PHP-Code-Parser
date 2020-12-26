@@ -36,15 +36,19 @@ class PHPInterface extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        $interfaceExists = false;
         try {
             /** @noinspection NotOptimalIfConditionsInspection */
             /** @noinspection ArgumentEqualsDefaultValueInspection */
             if (\interface_exists($this->name, true)) {
-                $reflectionInterface = Utils::createClassReflectionInstance($this->name);
-                $this->readObjectFromBetterReflection($reflectionInterface);
+                $interfaceExists = true;
             }
         } catch (\Exception $e) {
             // nothing
+        }
+        if ($interfaceExists) {
+            $reflectionInterface = Utils::createClassReflectionInstance($this->name);
+            $this->readObjectFromBetterReflection($reflectionInterface);
         }
 
         $this->collectTags($node);
@@ -99,6 +103,7 @@ class PHPInterface extends BasePHPClass
         $this->parentInterfaces = $interfaceNames;
 
         foreach ($this->parentInterfaces as $parentInterface) {
+            $interfaceExists = false;
             try {
                 /** @noinspection ArgumentEqualsDefaultValueInspection */
                 if (
@@ -106,12 +111,15 @@ class PHPInterface extends BasePHPClass
                     &&
                     \interface_exists($parentInterface, true)
                 ) {
-                    $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
-                    $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
-                    $this->parserContainer->addInterface($parentInterfaceNew);
+                    $interfaceExists = true;
                 }
             } catch (\Exception $e) {
                 // nothing
+            }
+            if ($interfaceExists) {
+                $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
+                $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
+                $this->parserContainer->addInterface($parentInterfaceNew);
             }
         }
 
