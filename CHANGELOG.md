@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.17.0  (2021-07-27)
+
+- update dependencies
+
 ### 0.16.6  (2020-12-26)
 
 - "PhpCodeParser" -> optimize exception handling of "amphp/parallel" for async code analyse per file
