@@ -7,11 +7,11 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 use PhpParser\Node\Expr\UnaryMinus;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
-use Roave\BetterReflection\BetterReflection;
-use Roave\BetterReflection\Reflection\ReflectionClass;
-use Roave\BetterReflection\Reflection\ReflectionFunction;
-use Roave\BetterReflection\Reflector\ClassReflector;
-use Roave\BetterReflection\Reflector\FunctionReflector;
+use PHPStan\BetterReflection\BetterReflection;
+use PHPStan\BetterReflection\Reflection\ReflectionClass;
+use PHPStan\BetterReflection\Reflection\ReflectionFunction;
+use PHPStan\BetterReflection\Reflector\ClassReflector;
+use PHPStan\BetterReflection\Reflector\FunctionReflector;
 
 final class Utils
 {
@@ -323,7 +323,7 @@ final class Utils
     /**
      * @param string $functionName
      *
-     * @return \Roave\BetterReflection\Reflection\ReflectionFunction
+     * @return \PHPStan\BetterReflection\Reflection\ReflectionFunction
      */
     public static function createFunctionReflectionInstance(string $functionName): ReflectionFunction
     {
@@ -340,7 +340,7 @@ final class Utils
     /**
      * @param string $className
      *
-     * @return \Roave\BetterReflection\Reflection\ReflectionClass
+     * @return \PHPStan\BetterReflection\Reflection\ReflectionClass
      *
      * @phpstan-param class-string $className
      */

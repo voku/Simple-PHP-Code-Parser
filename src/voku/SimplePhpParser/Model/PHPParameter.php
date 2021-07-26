@@ -6,7 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
-use Roave\BetterReflection\Reflection\ReflectionParameter;
+use PHPStan\BetterReflection\Reflection\ReflectionParameter;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPParameter extends BasePHPElement
@@ -141,7 +141,7 @@ class PHPParameter extends BasePHPElement
         if ($parameter->isDefaultValueAvailable()) {
             try {
                 $this->defaultValue = $parameter->getDefaultValue();
-            } catch (\Roave\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+            } catch (\PHPStan\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
                 // nothing
             }
             if ($this->defaultValue !== null) {
@@ -162,7 +162,7 @@ class PHPParameter extends BasePHPElement
 
         try {
             $type = $parameter->getType();
-        } catch (\Roave\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+        } catch (\PHPStan\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
             $type = null;
         }
         if ($type !== null) {
@@ -269,6 +269,7 @@ class PHPParameter extends BasePHPElement
                     $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
                     $parsedParamTagStr = $spitedData['parsedParamTagStr'];
                     $variableName = $spitedData['variableName'];
+
                     // check only the current "param"-tag
                     if ($variableName && \strtoupper($parameterName) === \strtoupper($variableName)) {
                         $this->phpDocRaw = (string) $parsedParamTag;

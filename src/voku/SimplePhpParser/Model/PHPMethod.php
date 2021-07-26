@@ -139,7 +139,7 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param \Roave\BetterReflection\Reflection\ReflectionMethod $method
+     * @param \PHPStan\BetterReflection\Reflection\ReflectionMethod $method
      *
      * @return $this
      */

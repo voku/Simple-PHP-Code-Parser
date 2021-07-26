@@ -16,6 +16,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
         $phpClasses = $phpCode->getClasses();
 
+        static::assertTrue(\count($phpClasses) > 0);
+
         static::assertSame(Dummy::class, $phpClasses[Dummy::class]->name);
 
         static::assertSame('withoutPhpDocParam', $phpClasses[Dummy::class]->methods['withoutPhpDocParam']->name);

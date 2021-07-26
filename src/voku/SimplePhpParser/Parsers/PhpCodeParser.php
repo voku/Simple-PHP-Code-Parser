@@ -46,7 +46,7 @@ final class PhpCodeParser
      *
      * @phpstan-param class-string $className
      *
-     * @throws \Roave\BetterReflection\Reflector\Exception\IdentifierNotFound
+     * @throws \PHPStan\BetterReflection\Reflector\Exception\IdentifierNotFound
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */

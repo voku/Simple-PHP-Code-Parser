@@ -8,7 +8,7 @@ use PhpParser\Node\Const_;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
-use Roave\BetterReflection\Reflection\ReflectionClassConstant;
+use PHPStan\BetterReflection\Reflection\ReflectionClassConstant;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPConst extends BasePHPElement
