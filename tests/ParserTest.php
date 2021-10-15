@@ -71,6 +71,34 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('voku\tests\Dummy6', $phpClasses[Dummy9::class]->parentClass);
     }
 
+    public function testUnionTypes(): void
+    {
+        if (PHP_VERSION_ID >= 80000) {
+            $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy10.php');
+            $phpClasses = $phpCode->getClasses();
+
+            $getFieldArray = $phpClasses[Dummy10::class]->methods['getFieldArray'];
+            static::assertSame('getFieldArray', $getFieldArray->name);
+            static::assertSame('int|string', $getFieldArray->parameters['RowOffset']->type);
+        } else {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+    }
+
+    public function testConstructorPropertyPromotion(): void
+    {
+        if (PHP_VERSION_ID >= 80100) {
+            $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy11.php');
+            $phpClasses = $phpCode->getClasses();
+
+            $getFieldArray = $phpClasses[Dummy11::class]->methods['__construct'];
+            static::assertSame('__construct', $getFieldArray->name);
+            static::assertSame('\DateTimeImmutable', $getFieldArray->parameters['date']->type);
+        } else {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+    }
+
     public function testSimpleOneClassWithTrait(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');

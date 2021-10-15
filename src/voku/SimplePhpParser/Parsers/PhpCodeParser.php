@@ -107,7 +107,7 @@ final class PhpCodeParser
         $phpCodesChunks = \array_chunk($phpCodes, Utils::getCpuCores(), true);
 
         foreach ($phpCodesChunks as $phpCodesChunk) {
-            foreach ($phpCodesChunk as $cacheKey => $codeAndFileName) {
+            foreach ($phpCodesChunk as $codeAndFileName) {
                 $phpFilePromises[] = Worker\enqueueCallable(
                     [self::class, 'process'],
                     $codeAndFileName['content'],
