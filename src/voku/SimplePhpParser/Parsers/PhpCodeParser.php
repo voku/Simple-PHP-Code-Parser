@@ -430,7 +430,6 @@ final class PhpCodeParser
             }
 
             foreach ($class->interfaces as $interfaceStr) {
-
                 if (
                     !isset($interfaces[$interfaceStr])
                     &&
