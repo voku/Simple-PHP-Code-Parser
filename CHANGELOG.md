@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.18.1  (2021-10-22)
+
+- update dependencies
+
 ### 0.18.0  (2021-10-03)
 
 - update dependencies
