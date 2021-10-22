@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers\Helper;
 
 use PhpParser\Node\Expr\UnaryMinus;
-use RecursiveArrayIterator;
-use RecursiveIteratorIterator;
 use PHPStan\BetterReflection\BetterReflection;
 use PHPStan\BetterReflection\Reflection\ReflectionClass;
 use PHPStan\BetterReflection\Reflection\ReflectionFunction;
 use PHPStan\BetterReflection\Reflector\ClassReflector;
 use PHPStan\BetterReflection\Reflector\FunctionReflector;
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 
 final class Utils
 {
@@ -442,7 +442,7 @@ final class Utils
                 return 1;
             }
 
-            return (int)round( $matches[1] / 2);
+            return (int)round($matches[1] / 2);
         }
 
         /** @noinspection PhpUsageOfSilenceOperatorInspection */
@@ -451,7 +451,7 @@ final class Utils
             $ret = \trim($ret);
             /** @noinspection PhpAssignmentInConditionInspection */
             if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                return (int)round( $tmp / 2);
+                return (int)round($tmp / 2);
             }
         }
 
@@ -459,7 +459,7 @@ final class Utils
             $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
             $count = \substr_count($cpuinfo, 'processor');
             if ($count > 0) {
-                return (int)round( $count / 2);
+                return (int)round($count / 2);
             }
         }
 
