@@ -428,7 +428,7 @@ final class Utils
     }
 
     /**
-     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb
+     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb + modified (do not use all cores, we still want to work)
      *
      * returns number of cpu cores
      * Copyleft 2018, license: WTFPL
@@ -442,15 +442,16 @@ final class Utils
                 return 1;
             }
 
-            return (int) $matches[1];
+            return (int)round( $matches[1] / 2);
         }
 
         /** @noinspection PhpUsageOfSilenceOperatorInspection */
         $ret = @\shell_exec('nproc');
         if (\is_string($ret)) {
             $ret = \trim($ret);
+            /** @noinspection PhpAssignmentInConditionInspection */
             if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                return (int) $tmp;
+                return (int)round( $tmp / 2);
             }
         }
 
@@ -458,7 +459,7 @@ final class Utils
             $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
             $count = \substr_count($cpuinfo, 'processor');
             if ($count > 0) {
-                return $count;
+                return (int)round( $count / 2);
             }
         }
 

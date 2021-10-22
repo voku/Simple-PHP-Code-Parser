@@ -21,7 +21,8 @@ class PHPDefineConstant extends PHPConst
     {
         $this->prepareNode($node);
 
-        /** @noinspection MissingIssetImplementationInspection */
+        /* @noinspection MissingIssetImplementationInspection */
+        /* @phpstan-ignore-next-line */
         $constName = (isset($node->args[0]->value->value) && $node->args[0]->value instanceof String_)
             ? $this->getConstantFQN($node, (string) $node->args[0]->value->value)
             : '';
@@ -30,6 +31,7 @@ class PHPDefineConstant extends PHPConst
         }
         $this->name = $constName;
 
+        /* @phpstan-ignore-next-line */
         $this->value = Utils::getPhpParserValueFromNode($node->args[1]);
 
         $this->type = Utils::normalizePhpType(\gettype($this->value));

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers;
 
-use Amp\Parallel\Worker;
-use Amp\Promise;
 use FilesystemIterator;
 use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
@@ -69,9 +67,6 @@ final class PhpCodeParser
      * @param string[] $fileExtensions
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
-     *
-     * @noinspection PhpUnusedParameterInspection
-     * @noinspection PhpRedundantCatchClauseInspection
      */
     public static function getPhpFiles(
         string $pathOrCode,
@@ -102,31 +97,21 @@ final class PhpCodeParser
         $parserContainer = new ParserContainer();
         $visitor = new ASTVisitor($parserContainer);
 
-        $phpFilePromises = [];
-        $processPromiseResponses = [];
+        $processResults = [];
         $phpCodesChunks = \array_chunk($phpCodes, Utils::getCpuCores(), true);
 
         foreach ($phpCodesChunks as $phpCodesChunk) {
             foreach ($phpCodesChunk as $codeAndFileName) {
-                $phpFilePromises[] = Worker\enqueueCallable(
-                    [self::class, 'process'],
+                $processResults[] = self::process(
                     $codeAndFileName['content'],
                     $codeAndFileName['fileName'],
                     $parserContainer,
-                    $visitor,
-                    $autoloaderProjectPaths
+                    $visitor
                 );
             }
-
-            try {
-                $processPromiseResponses += Promise\wait(Promise\all($phpFilePromises));
-            } catch (\Amp\Parallel\Worker\TaskFailureThrowable $exception) {
-                $parserContainer->addException(new \Exception($exception . ' | ' . \print_r($exception->getOriginalTrace(), true)));
-            }
         }
-        \assert(\is_array($processPromiseResponses));
 
-        foreach ($processPromiseResponses as $response) {
+        foreach ($processResults as $response) {
             if ($response instanceof ParserContainer) {
                 $parserContainer->setTraits($response->getTraits());
                 $parserContainer->setClasses($response->getClasses());
@@ -139,10 +124,10 @@ final class PhpCodeParser
         }
 
         $interfaces = $parserContainer->getInterfaces();
-        /** @noinspection AlterInForeachInspection */
         foreach ($interfaces as &$interface) {
             $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
         }
+        unset($interface);
 
         $pathTmp = null;
         if (\is_file($pathOrCode)) {
@@ -152,7 +137,6 @@ final class PhpCodeParser
         }
 
         $classesTmp = &$parserContainer->getClassesByReference();
-        /** @noinspection AlterInForeachInspection */
         foreach ($classesTmp as &$classTmp) {
             $classTmp->interfaces = Utils::flattenArray(
                 $visitor->combineImplementedInterfaces($classTmp),
@@ -166,6 +150,7 @@ final class PhpCodeParser
                 $parserContainer
             );
         }
+        unset($classTmp);
 
         // remove properties / methods / classes from outside of the current file-path-scope
         if ($pathTmp) {
@@ -203,7 +188,6 @@ final class PhpCodeParser
      * @param string|null                                          $fileName
      * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer $parserContainer
      * @param \voku\SimplePhpParser\Parsers\Visitors\ASTVisitor    $visitor
-     * @param string[]                                             $autoloaderProjectPaths
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer|\voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler
      */
@@ -211,23 +195,8 @@ final class PhpCodeParser
         string $phpCode,
         ?string $fileName,
         ParserContainer $parserContainer,
-        ASTVisitor $visitor,
-        array $autoloaderProjectPaths
+        ASTVisitor $visitor
     ) {
-        foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath . '/vendor/autoload.php')) {
-                /** @noinspection PhpIncludeInspection */
-                require_once $projectPath . '/vendor/autoload.php';
-            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                /** @noinspection PhpIncludeInspection */
-                require_once $projectPath . '/../vendor/autoload.php';
-            } elseif (\file_exists($projectPath) && \is_file($projectPath)) {
-                /** @noinspection PhpIncludeInspection */
-                require_once $projectPath;
-            }
-        }
-        \restore_error_handler();
-
         $parser = (new ParserFactory())->create(
             ParserFactory::PREFER_PHP7,
             new Emulative(
@@ -265,31 +234,9 @@ final class PhpCodeParser
         $traverser->addVisitor(new ParentConnector());
         $traverser->addVisitor($nameResolver);
         $traverser->addVisitor($visitor);
-        /** @noinspection UnusedFunctionResultInspection */
         $traverser->traverse($parsedCode);
 
         return $parserContainer;
-    }
-
-    /**
-     * @param string $fileName
-     * @param string $cacheKey
-     *
-     * @return array
-     *
-     * @psalm-return array{content: string, fileName: string, cacheKey: string}
-     *
-     * @internal
-     */
-    public static function file_get_contents_with_cache(string $fileName, string $cacheKey): array
-    {
-        $content = (string) \file_get_contents($fileName);
-
-        return [
-            'content'  => $content,
-            'fileName' => $fileName,
-            'cacheKey' => $cacheKey,
-        ];
     }
 
     /**
@@ -310,7 +257,7 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
-        /** @var Promise[] $phpFilePromises */
+        /** @var \React\Promise\PromiseInterface[] $phpFilePromises */
         $phpFilePromises = [];
 
         // fallback
@@ -325,7 +272,7 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = 'simple-php-code-parser-' . \md5($pathOrCode);
+            $cacheKey = 'simple-php-code-parser-1-' . \md5($pathOrCode);
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
@@ -358,7 +305,7 @@ final class PhpCodeParser
                 }
             }
 
-            $cacheKey = 'simple-php-code-parser-' . \md5($path) . '--' . \filemtime($path);
+            $cacheKey = 'simple-php-code-parser-1-' . \md5($path) . '--' . \filemtime($path);
             if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
                 $response = $cache->getItem($cacheKey);
                 /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
@@ -374,19 +321,30 @@ final class PhpCodeParser
             $phpFileArray[$cacheKey] = $path;
         }
 
-        $phpFilePromiseResponses = [];
+        $phpFilePromiseResponses = [[]];
         $phpFileArrayChunks = \array_chunk($phpFileArray, Utils::getCpuCores(), true);
         foreach ($phpFileArrayChunks as $phpFileArrayChunk) {
+            $loop = \React\EventLoop\Loop::get();
+            $filesystem = \React\Filesystem\Filesystem::create($loop);
+
             foreach ($phpFileArrayChunk as $cacheKey => $path) {
-                $phpFilePromises[] = Worker\enqueueCallable(
-                    [self::class, 'file_get_contents_with_cache'],
-                    $path,
-                    $cacheKey
+                $phpFilePromises[] = $filesystem->file($path)->getContents()->then(
+                    function ($contents) use ($path, $cacheKey) {
+                        return [
+                            'content'  => $contents,
+                            'fileName' => $path,
+                            'cacheKey' => $cacheKey,
+                        ];
+                    },
+                    function ($e) {
+                        throw $e;
+                    }
                 );
             }
 
-            $phpFilePromiseResponses += Promise\wait(Promise\all($phpFilePromises));
+            $phpFilePromiseResponses[] = \Clue\React\Block\awaitAll($phpFilePromises);
         }
+        $phpFilePromiseResponses = array_merge(...$phpFilePromiseResponses);
         \assert(\is_array($phpFilePromiseResponses));
 
         foreach ($phpFilePromiseResponses as $response) {
@@ -417,7 +375,6 @@ final class PhpCodeParser
         array $interfaces,
         ParserContainer $parserContainer
     ): void {
-        /** @noinspection AlterInForeachInspection */
         foreach ($class->properties as &$property) {
             if (!$class->parentClass) {
                 break;
@@ -465,6 +422,7 @@ final class PhpCodeParser
                 }
             }
         }
+        unset($property);
 
         foreach ($class->methods as &$method) {
             if (!$method->is_inheritdoc) {
@@ -473,8 +431,6 @@ final class PhpCodeParser
 
             foreach ($class->interfaces as $interfaceStr) {
 
-                /** @noinspection NotOptimalIfConditionsInspection */
-                /** @noinspection ArgumentEqualsDefaultValueInspection */
                 if (
                     !isset($interfaces[$interfaceStr])
                     &&
@@ -497,7 +453,6 @@ final class PhpCodeParser
 
                 $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
 
-                /** @noinspection AlterInForeachInspection */
                 /** @psalm-suppress RawObjectIteration */
                 foreach ($method as $key => &$value) {
                     if (
@@ -511,9 +466,8 @@ final class PhpCodeParser
                     }
 
                     if ($key === 'parameters') {
-                        /** @noinspection AlterInForeachInspection */
                         $parameterCounter = 0;
-                        foreach ($value as $parameterName => &$parameter) {
+                        foreach ($value as &$parameter) {
                             ++$parameterCounter;
 
                             \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
@@ -532,7 +486,6 @@ final class PhpCodeParser
                                 continue;
                             }
 
-                            /** @noinspection AlterInForeachInspection */
                             /** @psalm-suppress RawObjectIteration */
                             foreach ($parameter as $keyInner => &$valueInner) {
                                 if (
@@ -545,9 +498,12 @@ final class PhpCodeParser
                                     $valueInner = $interfaceMethodParameter->{$keyInner};
                                 }
                             }
+                            unset($valueInner);
                         }
+                        unset($parameter);
                     }
                 }
+                unset($value);
             }
 
             if (!isset($classes[$class->parentClass])) {
@@ -574,7 +530,7 @@ final class PhpCodeParser
 
                 if ($key === 'parameters') {
                     $parameterCounter = 0;
-                    foreach ($value as $parameterName => &$parameter) {
+                    foreach ($value as &$parameter) {
                         ++$parameterCounter;
 
                         \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);

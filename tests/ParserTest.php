@@ -193,7 +193,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/',
             [],
-            ['/Dummy5/']
+            ['/Dummy5|Dummy1[01]/']
         );
 
         $phpClasses = $phpCode->getClasses();
@@ -228,7 +228,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getFromClassName(Dummy::class);
         $phpClasses = $phpCode->getClasses();
 
-        static::assertSame('array<int, int>', $phpClasses['voku\tests\Dummy']->methods['withReturnType']->returnTypeFromPhpDocExtended);
+        static::assertSame('array<int, int>', $phpClasses[Dummy::class]->methods['withReturnType']->returnTypeFromPhpDocExtended);
     }
 
     public function testSimpleStringInputConstants(): void
