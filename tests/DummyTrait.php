@@ -10,7 +10,7 @@ namespace voku\tests;
 trait DummyTrait
 {
     /**
-     * @var null|float|int
+     * @var null|float|int<0,10>
      */
     public $lall_trait;
 

@@ -230,6 +230,9 @@ class PHPProperty extends BasePHPElement
             return;
         }
 
+        // hack, until this is merged: https://github.com/phpDocumentor/TypeResolver/pull/139
+        $docComment = preg_replace('#int<.*>#i', 'int', $docComment);
+
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
@@ -263,7 +266,7 @@ class PHPProperty extends BasePHPElement
             }
 
             /** @noinspection AdditionOperationOnArraysInspection */
-            $parsedParamTags = $phpDoc->getTagsByName('Psalm-var')
+            $parsedParamTags = $phpDoc->getTagsByName('psalm-var')
                                + $phpDoc->getTagsByName('phpstan-var');
 
             if (!empty($parsedParamTags)) {
