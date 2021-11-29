@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.18.2  (2021-11-29)
+
+- temporary fix for phpdoc like `int<0,1>`
+- update dependencies
+
 ### 0.18.1  (2021-10-22)
 
 - update dependencies
