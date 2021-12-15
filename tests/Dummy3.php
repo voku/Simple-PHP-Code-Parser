@@ -42,6 +42,11 @@ namespace voku\tests {
         public $foo_int;
 
         /**
+         * @var int<-2147483648,2147483647>
+         */
+        public $lall4;
+
+        /**
          * @param $foo
          *
          * @return mixed
@@ -229,6 +234,18 @@ namespace voku\tests {
                 'parsedParamTagStr' => 'foo',
                 'variableName'      => [null],
             ];
+        }
+
+        /**
+         * @param int<-2147483648,2147483647> $intRange
+         *
+         * @return array
+         *
+         * @psalm-return array{intRange: int}
+         */
+        public static function withIntRange($intRange)
+        {
+            return ['int' => $intRange];
         }
 
         /**

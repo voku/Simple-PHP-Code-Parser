@@ -32,6 +32,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(Dummy3::class, $phpClasses[Dummy3::class]->name);
 
+        $lall4 = $phpClasses[Dummy3::class]->properties['lall4'];
+        static::assertSame('lall4', $lall4->name);
+        static::assertSame('int', $lall4->typeFromPhpDoc);
+
         $withComplexReturnArray = $phpClasses[Dummy3::class]->methods['withComplexReturnArray'];
 
         static::assertSame('withComplexReturnArray', $withComplexReturnArray->name);
