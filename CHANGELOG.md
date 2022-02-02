@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.19.0  (2022-02-02)
+
+- use native php reflection, instead of (slower) better reflection
+- remove "react/filesystem" (not working with phar files)
+
 ### 0.18.2  (2021-11-29)
 
 - temporary fix for phpdoc like `int<0,1>`
