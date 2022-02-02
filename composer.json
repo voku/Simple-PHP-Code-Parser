@@ -36,10 +36,5 @@
         "psr-4": {
             "voku\\tests\\": "tests/"
         }
-    },
-    "config": {
-        "allow-plugins": {
-            "wyrihaximus/composer-update-bin-autoload-path": false
-        }
     }
 }
