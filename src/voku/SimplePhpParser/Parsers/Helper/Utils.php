@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers\Helper;
 
 use PhpParser\Node\Expr\UnaryMinus;
-use PHPStan\BetterReflection\BetterReflection;
-use PHPStan\BetterReflection\Reflection\ReflectionClass;
-use PHPStan\BetterReflection\Reflection\ReflectionFunction;
-use PHPStan\BetterReflection\Reflector\ClassReflector;
-use PHPStan\BetterReflection\Reflector\FunctionReflector;
+use ReflectionClass;
+use ReflectionFunction;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 
@@ -174,7 +171,7 @@ final class Utils
         return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;
     }
 
-    public static function normalizePhpType(string $type_string): ?string
+    public static function normalizePhpType(string $type_string, bool $sort = false): ?string
     {
         $type_string_lower = \strtolower($type_string);
 
@@ -211,6 +208,12 @@ final class Utils
 
         if ($type_string === '') {
             return null;
+        }
+
+        if ($sort && \strpos($type_string, '|') !== false) {
+            $type_string_exploded = \explode('|', $type_string);
+            sort($type_string_exploded);
+            $type_string = \implode('|', $type_string_exploded);
         }
 
         return $type_string;
@@ -323,37 +326,45 @@ final class Utils
     /**
      * @param string $functionName
      *
-     * @return \PHPStan\BetterReflection\Reflection\ReflectionFunction
+     * @return \ReflectionFunction
      */
     public static function createFunctionReflectionInstance(string $functionName): ReflectionFunction
     {
-        static $FUNCTION_REFLECTION_INSTANCE = null;
+        static $FUNCTION_REFLECTION_INSTANCE = [];
 
-        if ($FUNCTION_REFLECTION_INSTANCE === null) {
-            $FUNCTION_REFLECTION_INSTANCE = (new BetterReflection())->functionReflector();
+        if (isset($FUNCTION_REFLECTION_INSTANCE[$functionName])) {
+            return $FUNCTION_REFLECTION_INSTANCE[$functionName];
         }
-        \assert($FUNCTION_REFLECTION_INSTANCE instanceof FunctionReflector);
 
-        return $FUNCTION_REFLECTION_INSTANCE->reflect($functionName);
+        $reflection = new \ReflectionFunction($functionName);
+        \assert($reflection instanceof \ReflectionFunction);
+
+        $FUNCTION_REFLECTION_INSTANCE[$functionName] = $reflection;
+
+        return $reflection;
     }
 
     /**
      * @param string $className
      *
-     * @return \PHPStan\BetterReflection\Reflection\ReflectionClass
+     * @return \ReflectionClass
      *
      * @phpstan-param class-string $className
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
     {
-        static $CLASS_REFLECTION_INSTANCE = null;
+        static $CLASS_REFLECTION_INSTANCE = [];
 
-        if ($CLASS_REFLECTION_INSTANCE === null) {
-            $CLASS_REFLECTION_INSTANCE = (new BetterReflection())->classReflector();
+        if (isset($CLASS_REFLECTION_INSTANCE[$className])) {
+            return $CLASS_REFLECTION_INSTANCE[$className];
         }
-        \assert($CLASS_REFLECTION_INSTANCE instanceof ClassReflector);
 
-        return $CLASS_REFLECTION_INSTANCE->reflect($className);
+        $reflection = new ReflectionClass($className);
+        \assert($reflection instanceof ReflectionClass);
+
+        $CLASS_REFLECTION_INSTANCE[$className] = $reflection;
+
+        return $reflection;
     }
 
     /**

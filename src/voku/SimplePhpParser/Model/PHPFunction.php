@@ -7,7 +7,8 @@ namespace voku\SimplePhpParser\Model;
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
 use PhpParser\Node\Stmt\Function_;
-use PHPStan\BetterReflection\Reflection\ReflectionFunction;
+use ReflectionFunction;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPFunction extends BasePHPElement
@@ -74,7 +75,7 @@ class PHPFunction extends BasePHPElement
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\function_exists($this->name)) {
             $reflectionFunction = Utils::createFunctionReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionFunction);
+            $this->readObjectFromReflection($reflectionFunction);
         }
 
         if (!$this->returnType && $node->returnType) {
@@ -148,7 +149,7 @@ class PHPFunction extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($function): self
+    public function readObjectFromReflection($function): self
     {
         $this->name = $function->getName();
 
@@ -185,9 +186,10 @@ class PHPFunction extends BasePHPElement
 
         if (!$this->returnTypeFromPhpDoc) {
             try {
-                $returnTypeTmp = $function->getDocBlockReturnTypes();
-                if ($returnTypeTmp) {
-                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp);
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($function->getDocComment());
+                $returnTypeTmp = $phpDoc->getTagsByName('return');
+                if (\count($returnTypeTmp) === 1 && $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_) {
+                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp[0]->getType());
                 }
             } catch (\Exception $e) {
                 // ignore
@@ -195,7 +197,7 @@ class PHPFunction extends BasePHPElement
         }
 
         foreach ($function->getParameters() as $parameter) {
-            $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromReflection($parameter);
             $this->parameters[$param->name] = $param;
         }
 
@@ -262,7 +264,6 @@ class PHPFunction extends BasePHPElement
                 $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc((string) $parsedReturnTagReturn);
             }
 
-            /** @noinspection AdditionOperationOnArraysInspection */
             $parsedReturnTag = $phpDoc->getTagsByName('psalm-return')
                                + $phpDoc->getTagsByName('phpstan-return');
 

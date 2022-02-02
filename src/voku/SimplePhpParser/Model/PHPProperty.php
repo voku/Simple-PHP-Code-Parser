@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Property;
-use PHPStan\BetterReflection\Reflection\ReflectionProperty;
+use ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPProperty extends BasePHPElement
@@ -131,7 +131,7 @@ class PHPProperty extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($property): self
+    public function readObjectFromReflection($property): self
     {
         $this->name = $property->getName();
 
@@ -170,9 +170,9 @@ class PHPProperty extends BasePHPElement
             $type = $property->getType();
             if ($type !== null) {
                 if (\method_exists($type, 'getName')) {
-                    $this->type = Utils::normalizePhpType($type->getName());
+                    $this->type = Utils::normalizePhpType($type->getName(), true);
                 } else {
-                    $this->type = Utils::normalizePhpType($type . '');
+                    $this->type = Utils::normalizePhpType($type . '', true);
                 }
                 try {
                     if ($this->type && \class_exists($this->type, true)) {
@@ -265,7 +265,6 @@ class PHPProperty extends BasePHPElement
                 }
             }
 
-            /** @noinspection AdditionOperationOnArraysInspection */
             $parsedParamTags = $phpDoc->getTagsByName('psalm-var')
                                + $phpDoc->getTagsByName('phpstan-var');
 

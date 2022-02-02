@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Class_;
-use PHPStan\BetterReflection\Reflection\ReflectionClass;
+use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPClass extends BasePHPClass
@@ -43,8 +43,6 @@ class PHPClass extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
-        /** @noinspection NotOptimalIfConditionsInspection */
-        /** @noinspection ArgumentEqualsDefaultValueInspection */
         $classExists = false;
         try {
             if (\class_exists($this->name, true)) {
@@ -55,7 +53,7 @@ class PHPClass extends BasePHPClass
         }
         if ($classExists) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionClass);
+            $this->readObjectFromReflection($reflectionClass);
         }
 
         $this->collectTags($node);
@@ -122,7 +120,7 @@ class PHPClass extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($clazz): self
+    public function readObjectFromReflection($clazz): self
     {
         $this->name = $clazz->getName();
 
@@ -141,7 +139,6 @@ class PHPClass extends BasePHPClass
 
             $classExists = false;
             try {
-                /** @noinspection ArgumentEqualsDefaultValueInspection */
                 if (
                     !$this->parserContainer->getClass($this->parentClass)
                     &&
@@ -154,13 +151,13 @@ class PHPClass extends BasePHPClass
             }
             if ($classExists) {
                 $reflectionClass = Utils::createClassReflectionInstance($this->parentClass);
-                $class = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionClass);
+                $class = (new self($this->parserContainer))->readObjectFromReflection($reflectionClass);
                 $this->parserContainer->addClass($class);
             }
         }
 
         foreach ($clazz->getProperties() as $property) {
-            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromBetterReflection($property);
+            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
         }
 
@@ -174,7 +171,7 @@ class PHPClass extends BasePHPClass
         foreach ($clazz->getMethods() as $method) {
             $methodNameTmp = $method->getName();
 
-            $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
+            $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
 
             if (!$this->methods[$methodNameTmp]->file) {
                 $this->methods[$methodNameTmp]->file = $this->file;
@@ -184,7 +181,7 @@ class PHPClass extends BasePHPClass
         foreach ($clazz->getReflectionConstants() as $constant) {
             $constantNameTmp = $constant->getName();
 
-            $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
+            $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromReflection($constant);
 
             if (!$this->constants[$constantNameTmp]->file) {
                 $this->constants[$constantNameTmp]->file = $this->file;
@@ -356,7 +353,6 @@ class PHPClass extends BasePHPClass
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
-            /** @noinspection AdditionOperationOnArraysInspection */
             $parsedPropertyTags = $phpDoc->getTagsByName('property')
                                + $phpDoc->getTagsByName('property-read')
                                + $phpDoc->getTagsByName('property-write');

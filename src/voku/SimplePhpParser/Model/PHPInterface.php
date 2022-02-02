@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Interface_;
-use PHPStan\BetterReflection\Reflection\ReflectionClass;
+use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPInterface extends BasePHPClass
@@ -48,7 +48,7 @@ class PHPInterface extends BasePHPClass
         }
         if ($interfaceExists) {
             $reflectionInterface = Utils::createClassReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionInterface);
+            $this->readObjectFromReflection($reflectionInterface);
         }
 
         $this->collectTags($node);
@@ -81,7 +81,7 @@ class PHPInterface extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($interface): self
+    public function readObjectFromReflection($interface): self
     {
         $this->name = $interface->getName();
 
@@ -95,7 +95,7 @@ class PHPInterface extends BasePHPClass
         }
 
         foreach ($interface->getMethods() as $method) {
-            $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
+            $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
         }
 
         /** @var class-string[] $interfaceNames */
@@ -118,13 +118,13 @@ class PHPInterface extends BasePHPClass
             }
             if ($interfaceExists) {
                 $reflectionInterface = Utils::createClassReflectionInstance($parentInterface);
-                $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromBetterReflection($reflectionInterface);
+                $parentInterfaceNew = (new self($this->parserContainer))->readObjectFromReflection($reflectionInterface);
                 $this->parserContainer->addInterface($parentInterfaceNew);
             }
         }
 
         foreach ($interface->getReflectionConstants() as $constant) {
-            $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
+            $this->constants[$constant->getName()] = (new PHPConst($this->parserContainer))->readObjectFromReflection($constant);
         }
 
         return $this;

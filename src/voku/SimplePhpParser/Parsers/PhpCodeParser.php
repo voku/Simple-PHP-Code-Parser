@@ -44,8 +44,6 @@ final class PhpCodeParser
      *
      * @phpstan-param class-string $className
      *
-     * @throws \PHPStan\BetterReflection\Reflector\Exception\IdentifierNotFound
-     *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
     public static function getFromClassName(
@@ -384,15 +382,13 @@ final class PhpCodeParser
                 continue;
             }
 
-            /** @noinspection NotOptimalIfConditionsInspection */
-            /** @noinspection ArgumentEqualsDefaultValueInspection */
             if (
                 !isset($classes[$class->parentClass])
                 &&
                 \class_exists($class->parentClass, true)
             ) {
                 $reflectionClassTmp = Utils::createClassReflectionInstance($class->parentClass);
-                $classTmp = (new \voku\SimplePhpParser\Model\PHPClass($parserContainer))->readObjectFromBetterReflection($reflectionClassTmp);
+                $classTmp = (new \voku\SimplePhpParser\Model\PHPClass($parserContainer))->readObjectFromReflection($reflectionClassTmp);
                 if ($classTmp->name) {
                     $classes[$classTmp->name] = $classTmp;
                 }
@@ -408,8 +404,6 @@ final class PhpCodeParser
 
             $parentMethod = $classes[$class->parentClass]->properties[$property->name];
 
-            /** @noinspection AlterInForeachInspection */
-            /** @psalm-suppress RawObjectIteration */
             foreach ($property as $key => &$value) {
                 if (
                     $value === null
@@ -436,7 +430,7 @@ final class PhpCodeParser
                     \interface_exists($interfaceStr, true)
                 ) {
                     $reflectionInterfaceTmp = Utils::createClassReflectionInstance($interfaceStr);
-                    $interfaceTmp = (new PHPInterface($parserContainer))->readObjectFromBetterReflection($reflectionInterfaceTmp);
+                    $interfaceTmp = (new PHPInterface($parserContainer))->readObjectFromReflection($reflectionInterfaceTmp);
                     if ($interfaceTmp->name) {
                         $interfaces[$interfaceTmp->name] = $interfaceTmp;
                     }

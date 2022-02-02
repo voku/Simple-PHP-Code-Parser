@@ -6,7 +6,6 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
-use PHPStan\BetterReflection\Reflection\ReflectionConstant;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPDefineConstant extends PHPConst
@@ -21,9 +20,7 @@ class PHPDefineConstant extends PHPConst
     {
         $this->prepareNode($node);
 
-        /* @noinspection MissingIssetImplementationInspection */
-        /* @phpstan-ignore-next-line */
-        $constName = (isset($node->args[0]->value->value) && $node->args[0]->value instanceof String_)
+        $constName = (isset($node->args[0]) && $node->args[0]->value->value && $node->args[0]->value instanceof String_)
             ? $this->getConstantFQN($node, (string) $node->args[0]->value->value)
             : '';
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
@@ -42,11 +39,11 @@ class PHPDefineConstant extends PHPConst
     }
 
     /**
-     * @param ReflectionConstant $constant
+     * @param \ReflectionClassConstant $constant
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($constant): PHPConst
+    public function readObjectFromReflection($constant): PHPConst
     {
         $this->name = $constant->getName();
         $this->value = $constant->getValue();

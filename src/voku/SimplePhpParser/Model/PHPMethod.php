@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPMethod extends PHPFunction
@@ -139,11 +140,11 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param \PHPStan\BetterReflection\Reflection\ReflectionMethod $method
+     * @param \ReflectionMethod $method
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($method): PHPFunction
+    public function readObjectFromReflection($method): PHPFunction
     {
         $this->name = $method->getName();
 
@@ -188,9 +189,10 @@ class PHPMethod extends PHPFunction
 
         if (!$this->returnTypeFromPhpDoc) {
             try {
-                $returnTypeTmp = $method->getDocBlockReturnTypes();
-                if ($returnTypeTmp) {
-                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp);
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($method->getDocComment());
+                $returnTypeTmp = $phpDoc->getTagsByName('return');
+                if (\count($returnTypeTmp) === 1 && $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_) {
+                    $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp[0]->getType());
                 }
             } catch (\Exception $e) {
                 // ignore
@@ -207,7 +209,7 @@ class PHPMethod extends PHPFunction
         $this->access = $access;
 
         foreach ($method->getParameters() as $parameter) {
-            $param = (new PHPParameter($this->parserContainer))->readObjectFromBetterReflection($parameter);
+            $param = (new PHPParameter($this->parserContainer))->readObjectFromReflection($parameter);
             $this->parameters[$param->name] = $param;
         }
 

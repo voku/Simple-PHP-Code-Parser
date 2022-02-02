@@ -6,7 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
-use PHPStan\BetterReflection\Reflection\ReflectionParameter;
+use ReflectionParameter;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPParameter extends BasePHPElement
@@ -134,14 +134,14 @@ class PHPParameter extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($parameter): self
+    public function readObjectFromReflection($parameter): self
     {
         $this->name = $parameter->getName();
 
         if ($parameter->isDefaultValueAvailable()) {
             try {
                 $this->defaultValue = $parameter->getDefaultValue();
-            } catch (\PHPStan\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+            } catch (\ReflectionException $e) {
                 // nothing
             }
             if ($this->defaultValue !== null) {
@@ -162,23 +162,22 @@ class PHPParameter extends BasePHPElement
 
         try {
             $type = $parameter->getType();
-        } catch (\PHPStan\BetterReflection\NodeCompiler\Exception\UnableToCompileNode $e) {
+        } catch (\ReflectionException $e) {
             $type = null;
         }
         if ($type !== null) {
             if (\method_exists($type, 'getName')) {
-                $this->type = Utils::normalizePhpType($type->getName());
+                $this->type = Utils::normalizePhpType($type->getName(), true);
             } else {
-                $this->type = Utils::normalizePhpType($type . '');
+                $this->type = Utils::normalizePhpType($type . '', true);
             }
             if ($this->type && \class_exists($this->type, false)) {
                 $this->type = '\\' . \ltrim($this->type, '\\');
             }
 
-            // fix for this issue: https://github.com/Roave/BetterReflection/pull/678
             try {
                 $constNameTmp = $parameter->getDefaultValueConstantName();
-                if (\defined($constNameTmp)) {
+                if ($constNameTmp && \defined($constNameTmp)) {
                     $defaultTmp = \constant($constNameTmp);
                     if ($defaultTmp === null) {
                         if ($this->type && $this->type !== 'null') {
@@ -188,7 +187,7 @@ class PHPParameter extends BasePHPElement
                         }
                     }
                 }
-            } catch (\LogicException $e) {
+            } catch (\ReflectionException $e) {
                 if ($type->allowsNull()) {
                     if ($this->type && $this->type !== 'null') {
                         $this->type = 'null|' . $this->type;
@@ -281,7 +280,6 @@ class PHPParameter extends BasePHPElement
                 }
             }
 
-            /** @noinspection AdditionOperationOnArraysInspection */
             $parsedParamTags = $phpDoc->getTagsByName('psalm-param')
                                + $phpDoc->getTagsByName('phpstan-param');
 

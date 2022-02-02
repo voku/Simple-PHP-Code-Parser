@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Stmt\Trait_;
-use PHPStan\BetterReflection\Reflection\ReflectionClass;
+use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 final class PHPTrait extends BasePHPClass
@@ -33,7 +33,7 @@ final class PHPTrait extends BasePHPClass
         /** @noinspection ArgumentEqualsDefaultValueInspection */
         if (\trait_exists($this->name, true)) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
-            $this->readObjectFromBetterReflection($reflectionClass);
+            $this->readObjectFromReflection($reflectionClass);
         }
 
         $this->collectTags($node);
@@ -75,7 +75,7 @@ final class PHPTrait extends BasePHPClass
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($clazz): self
+    public function readObjectFromReflection($clazz): self
     {
         if (!$clazz->isTrait()) {
             return $this;
@@ -93,14 +93,14 @@ final class PHPTrait extends BasePHPClass
         }
 
         foreach ($clazz->getProperties() as $property) {
-            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromBetterReflection($property);
+            $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
         }
 
         foreach ($clazz->getMethods() as $method) {
             $methodNameTmp = $method->getName();
 
-            $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromBetterReflection($method);
+            $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
 
             if (!$this->methods[$methodNameTmp]->file) {
                 $this->methods[$methodNameTmp]->file = $this->file;
@@ -110,7 +110,7 @@ final class PHPTrait extends BasePHPClass
         foreach ($clazz->getReflectionConstants() as $constant) {
             $constantNameTmp = $constant->getName();
 
-            $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromBetterReflection($constant);
+            $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromReflection($constant);
 
             if (!$this->constants[$constantNameTmp]->file) {
                 $this->constants[$constantNameTmp]->file = $this->file;
@@ -282,7 +282,6 @@ final class PHPTrait extends BasePHPClass
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
-            /** @noinspection AdditionOperationOnArraysInspection */
             $parsedPropertyTags = $phpDoc->getTagsByName('property')
                                + $phpDoc->getTagsByName('property-read')
                                + $phpDoc->getTagsByName('property-write');

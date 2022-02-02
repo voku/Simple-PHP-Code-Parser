@@ -8,7 +8,7 @@ use PhpParser\Node\Const_;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
-use PHPStan\BetterReflection\Reflection\ReflectionClassConstant;
+use ReflectionClassConstant;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPConst extends BasePHPElement
@@ -62,13 +62,9 @@ class PHPConst extends BasePHPElement
      *
      * @return $this
      */
-    public function readObjectFromBetterReflection($constant): self
+    public function readObjectFromReflection($constant): self
     {
         $this->name = $constant->getName();
-
-        if (!$this->line) {
-            $this->line = $constant->getStartLine();
-        }
 
         $file = $constant->getDeclaringClass()->getFileName();
         if ($file) {

@@ -23,7 +23,7 @@ because they are in a test namespace and the autoloader is "autoload-dev", so he
 
 We will use:
 - [nikic/PHP-Parser](https://github.com/nikic/PHP-Parser)
-- [ondrejmirtes/BetterReflection](https://github.com/ondrejmirtes/BetterReflection)
+- [Reflection](https://www.php.net/manual/en/book.reflection.php)
 - [phpDocumentor](https://github.com/phpDocumentor/)
 - [PHPStan/phpdoc-parser](https://github.com/phpstan/phpdoc-parser)
 
@@ -33,12 +33,6 @@ We will use:
 ```shell
 composer require voku/simple-php-code-parser
 ```
-
-
-### Warning :zap:
-
-Same as Better Reflection this is NOT suited to runtime usage, since performance is much worse than PHP built-in reflection.
-
 
 ### Quick Start
 

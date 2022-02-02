@@ -54,7 +54,7 @@ abstract class BasePHPElement
      *
      * @return $this
      */
-    abstract public function readObjectFromBetterReflection($object);
+    abstract public function readObjectFromReflection($object);
 
     /**
      * @param \PhpParser\NodeAbstract      $mixed_1
@@ -95,7 +95,7 @@ abstract class BasePHPElement
         ) {
             /** @psalm-suppress NoInterfaceProperties ? */
             $fqn = $node->namespacedName === null
-                ? $node->name->parts[0]
+                ? $node->name->parts[0] ?? ''
                 : \implode('\\', $node->namespacedName->parts);
         }
 
