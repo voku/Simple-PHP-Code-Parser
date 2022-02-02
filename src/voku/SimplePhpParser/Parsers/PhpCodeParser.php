@@ -22,6 +22,9 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
 final class PhpCodeParser
 {
+    /**
+     * @internal
+     */
     const CACHE_KEY_HELPER = 'simple-php-code-parser-v3-';
 
     /**
@@ -395,7 +398,7 @@ final class PhpCodeParser
                 }
             }
         }
-        unset($property);
+        unset($property, $value);
 
         foreach ($class->methods as &$method) {
             if (!$method->is_inheritdoc) {
