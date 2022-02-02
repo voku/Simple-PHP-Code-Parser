@@ -22,6 +22,8 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 
 final class PhpCodeParser
 {
+    const CACHE_KEY_HELPER = 'simple-php-code-parser-v3-';
+
     /**
      * @param string   $code
      * @param string[] $autoloaderProjectPaths
@@ -255,8 +257,6 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
-        /** @var \React\Promise\PromiseInterface[] $phpFilePromises */
-        $phpFilePromises = [];
 
         // fallback
         if (\count($fileExtensions) === 0) {
@@ -270,7 +270,7 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = 'simple-php-code-parser-1-' . \md5($pathOrCode);
+            $cacheKey = self::CACHE_KEY_HELPER . \md5($pathOrCode);
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
@@ -303,7 +303,7 @@ final class PhpCodeParser
                 }
             }
 
-            $cacheKey = 'simple-php-code-parser-1-' . \md5($path) . '--' . \filemtime($path);
+            $cacheKey = self::CACHE_KEY_HELPER . \md5($path) . '--' . \filemtime($path);
             if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
                 $response = $cache->getItem($cacheKey);
                 /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
@@ -319,37 +319,16 @@ final class PhpCodeParser
             $phpFileArray[$cacheKey] = $path;
         }
 
-        $phpFilePromiseResponses = [[]];
-        $phpFileArrayChunks = \array_chunk($phpFileArray, Utils::getCpuCores(), true);
-        foreach ($phpFileArrayChunks as $phpFileArrayChunk) {
-            $loop = \React\EventLoop\Loop::get();
-            $filesystem = \React\Filesystem\Filesystem::create($loop);
-
-            foreach ($phpFileArrayChunk as $cacheKey => $path) {
-                $phpFilePromises[] = $filesystem->file($path)->getContents()->then(
-                    function ($contents) use ($path, $cacheKey) {
-                        return [
-                            'content'  => $contents,
-                            'fileName' => $path,
-                            'cacheKey' => $cacheKey,
-                        ];
-                    },
-                    function ($e) {
-                        throw $e;
-                    }
-                );
-            }
-
-            $phpFilePromiseResponses[] = \Clue\React\Block\awaitAll($phpFilePromises);
+        $phpFileContentArray = [];
+        foreach ($phpFileArray as $cacheKey => $path) {
+            $phpFileContentArray[] = [
+                'content'  => file_get_contents($path),
+                'fileName' => $path,
+                'cacheKey' => $cacheKey,
+            ];
         }
-        $phpFilePromiseResponses = array_merge(...$phpFilePromiseResponses);
-        \assert(\is_array($phpFilePromiseResponses));
 
-        foreach ($phpFilePromiseResponses as $response) {
-            /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
-            /** @phpstan-var array{content: string, fileName: string, cacheKey: string} $response */
-            $response = $response;
-
+        foreach ($phpFileContentArray as $response) {
             $cache->setItem($response['cacheKey'], $response);
 
             $phpCodes[$response['cacheKey']]['content'] = $response['content'];
@@ -446,7 +425,6 @@ final class PhpCodeParser
 
                 $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
 
-                /** @psalm-suppress RawObjectIteration */
                 foreach ($method as $key => &$value) {
                     if (
                         $value === null
@@ -479,7 +457,6 @@ final class PhpCodeParser
                                 continue;
                             }
 
-                            /** @psalm-suppress RawObjectIteration */
                             foreach ($parameter as $keyInner => &$valueInner) {
                                 if (
                                     $valueInner === null
@@ -509,7 +486,6 @@ final class PhpCodeParser
 
             $parentMethod = $classes[$class->parentClass]->methods[$method->name];
 
-            /** @psalm-suppress RawObjectIteration */
             foreach ($method as $key => &$value) {
                 if (
                     $value === null
@@ -542,7 +518,6 @@ final class PhpCodeParser
                             continue;
                         }
 
-                        /** @psalm-suppress RawObjectIteration */
                         foreach ($parameter as $keyInner => &$valueInner) {
                             if (
                                 $valueInner === null
