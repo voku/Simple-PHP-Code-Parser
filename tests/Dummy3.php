@@ -271,6 +271,29 @@ namespace voku\tests {
         {
             // ...
         }
+
+        /**
+         * @return array<int, class-string<Dummy|Dummy4>>
+         */
+        public static function withClassStringArray(): array
+        {
+            // ...
+
+            return [
+                0 => Dummy::class,
+            ];
+        }
+
+
+        /**
+         * @return array<int, class-string<\voku\tests\Dummy|\voku\tests\Dummy4>>
+         */
+        public static function withClassStringArrayWithCorrectNamespace(): array
+        {
+            // ...
+
+            return [];
+        }
     }
 
 }

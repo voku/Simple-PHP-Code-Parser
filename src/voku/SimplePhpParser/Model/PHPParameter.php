@@ -101,15 +101,21 @@ class PHPParameter extends BasePHPElement
             }
         }
 
-        if (!$this->type && $parameter->type !== null) {
-            /** @noinspection MissingIssetImplementationInspection */
+        if ($parameter->type !== null) {
             if (empty($parameter->type->name)) {
-                /** @noinspection MissingIssetImplementationInspection */
                 if (!empty($parameter->type->parts)) {
                     $this->type = '\\' . \implode('\\', $parameter->type->parts);
                 }
             } else {
                 $this->type = $parameter->type->name;
+            }
+
+            if ($parameter->type instanceof \PhpParser\Node\NullableType) {
+                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
+                    $this->type = 'null|' . $this->type;
+                } elseif (!$this->type) {
+                    $this->type = 'null|mixed';
+                }
             }
         }
 
@@ -180,18 +186,18 @@ class PHPParameter extends BasePHPElement
                 if ($constNameTmp && \defined($constNameTmp)) {
                     $defaultTmp = \constant($constNameTmp);
                     if ($defaultTmp === null) {
-                        if ($this->type && $this->type !== 'null') {
+                        if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
                             $this->type = 'null|' . $this->type;
-                        } else {
+                        } elseif (!$this->type) {
                             $this->type = 'null|mixed';
                         }
                     }
                 }
             } catch (\ReflectionException $e) {
                 if ($type->allowsNull()) {
-                    if ($this->type && $this->type !== 'null') {
+                    if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
                         $this->type = 'null|' . $this->type;
-                    } else {
+                    } elseif (!$this->type) {
                         $this->type = 'null|mixed';
                     }
                 }

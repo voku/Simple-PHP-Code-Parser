@@ -77,35 +77,26 @@ final class Utils
         ?string $classStr = null,
         ?ParserContainer $parserContainer = null
     ) {
+
         if (\property_exists($node, 'value')) {
             /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
             if (\is_object($node->value)) {
                 \assert($node->value instanceof \PhpParser\Node);
 
-                /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
-                if (\property_exists($node->value, 'value')) {
-                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
+                if (\in_array('value', $node->value->getSubNodeNames(), true)) {
                     return $node->value->value;
                 }
 
-                if (\property_exists($node->value, 'expr')) {
+                if (\in_array('expr', $node->value->getSubNodeNames(), true)) {
                     if ($node->value instanceof UnaryMinus) {
-                        /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
                         return -$node->value->expr->value;
                     }
-
-                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
                     return $node->value->expr->value;
                 }
 
-                /** @psalm-suppress NoInterfaceProperties - false-positive ? */
-                if (
-                    \property_exists($node->value, 'name')
-                    &&
-                    \property_exists($node->value->name, 'parts')
-                ) {
-                    /** @psalm-suppress NoInterfaceProperties - false-positive ? */
-                    return $node->value->name->parts[0];
+                if (\in_array('name', $node->value->getSubNodeNames(), true)) {
+                    $value = $node->value->name->parts[0] ?? $node->value->name->name;
+                    return $value === 'null' ? null : $value;
                 }
             }
 

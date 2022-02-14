@@ -92,6 +92,18 @@ final class PHPTrait extends BasePHPClass
             $this->file = $file;
         }
 
+        $this->is_final = $clazz->isFinal();
+
+        $this->is_abstract = $clazz->isAbstract();
+
+        $this->is_anonymous = $clazz->isAnonymous();
+
+        $this->is_cloneable = $clazz->isCloneable();
+
+        $this->is_instantiable = $clazz->isInstantiable();
+
+        $this->is_iterable = $clazz->isIterable();
+
         foreach ($clazz->getProperties() as $property) {
             $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
@@ -245,8 +257,8 @@ final class PHPTrait extends BasePHPClass
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['paramsPhpDocRaw'] = $paramsPhpDocRaw;
             $infoTmp['returnPhpDocRaw'] = $method->returnPhpDocRaw;
-            $infoTmp['line'] = $method->line;
-            $infoTmp['file'] = $method->file;
+            $infoTmp['line'] = $method->line ?? $this->line;
+            $infoTmp['file'] = $method->file ?? $this->file;
             $infoTmp['error'] = \implode("\n", $method->parseError);
             foreach ($method->parameters as $parameter) {
                 $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);

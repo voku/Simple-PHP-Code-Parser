@@ -43,6 +43,12 @@ class PHPClass extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        $this->is_final = $node->isFinal();
+
+        $this->is_abstract = $node->isAbstract();
+
+        $this->is_anonymous = $node->isAnonymous();
+
         $classExists = false;
         try {
             if (\class_exists($this->name, true)) {
@@ -132,6 +138,18 @@ class PHPClass extends BasePHPClass
         if ($file) {
             $this->file = $file;
         }
+
+        $this->is_final = $clazz->isFinal();
+
+        $this->is_abstract = $clazz->isAbstract();
+
+        $this->is_anonymous = $clazz->isAnonymous();
+
+        $this->is_cloneable = $clazz->isCloneable();
+
+        $this->is_instantiable = $clazz->isInstantiable();
+
+        $this->is_iterable = $clazz->isIterable();
 
         $parent = $clazz->getParentClass();
         if ($parent) {
@@ -316,8 +334,8 @@ class PHPClass extends BasePHPClass
             $infoTmp['returnTypes'] = $returnTypes;
             $infoTmp['paramsPhpDocRaw'] = $paramsPhpDocRaw;
             $infoTmp['returnPhpDocRaw'] = $method->returnPhpDocRaw;
-            $infoTmp['line'] = $method->line;
-            $infoTmp['file'] = $method->file;
+            $infoTmp['line'] = $method->line ?? $this->line;
+            $infoTmp['file'] = $method->file ?? $this->file;
             $infoTmp['error'] = \implode("\n", $method->parseError);
             foreach ($method->parameters as $parameter) {
                 $infoTmp['error'] .= ($infoTmp['error'] ? "\n" : '') . \implode("\n", $parameter->parseError);

@@ -78,7 +78,7 @@ class PHPFunction extends BasePHPElement
             $this->readObjectFromReflection($reflectionFunction);
         }
 
-        if (!$this->returnType && $node->returnType) {
+        if ($node->returnType) {
             if (\method_exists($node->returnType, 'toString')) {
                 $this->returnType = $node->returnType->toString();
             } elseif (\property_exists($node->returnType, 'name')) {
@@ -87,9 +87,9 @@ class PHPFunction extends BasePHPElement
             }
 
             if ($node->returnType instanceof \PhpParser\Node\NullableType) {
-                if ($this->returnType && $this->returnType !== 'null') {
+                if ($this->returnType && $this->returnType !== 'null' && \strpos($this->returnType, 'null|') !== 0) {
                     $this->returnType = 'null|' . $this->returnType;
-                } else {
+                } elseif (!$this->returnType) {
                     $this->returnType = 'null|mixed';
                 }
             }
@@ -171,9 +171,9 @@ class PHPFunction extends BasePHPElement
             }
 
             if ($returnType->allowsNull()) {
-                if ($this->returnType && $this->returnType !== 'null') {
+                if ($this->returnType && $this->returnType !== 'null' && \strpos($this->returnType, 'null|') !== 0) {
                     $this->returnType = 'null|' . $this->returnType;
-                } else {
+                } elseif (!$this->returnType) {
                     $this->returnType = 'null|mixed';
                 }
             }

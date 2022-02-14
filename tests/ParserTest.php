@@ -69,6 +69,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy9.php');
         $phpClasses = $phpCode->getClasses();
 
+        self::assertFalse($phpClasses[Dummy9::class]->is_abstract);
+        self::assertTrue($phpClasses[Dummy9::class]->is_final);
+        self::assertTrue($phpClasses[Dummy9::class]->is_cloneable);
+        self::assertTrue($phpClasses[Dummy9::class]->is_instantiable);
+        self::assertFalse($phpClasses[Dummy9::class]->is_iterable);
+
         $getFieldArray = $phpClasses[Dummy9::class]->methods['getFieldArray'];
         static::assertSame('getFieldArray', $getFieldArray->name);
 
@@ -80,6 +86,24 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         if (PHP_VERSION_ID >= 80000) {
             $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy10.php');
             $phpClasses = $phpCode->getClasses();
+
+            self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO3']->type);
+            self::assertSame('private', $phpClasses[Dummy10::class]->constants['FOO3']->visibility);
+            self::assertSame(3, $phpClasses[Dummy10::class]->constants['FOO3']->value);
+
+            self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO4']->type);
+            self::assertSame('public', $phpClasses[Dummy10::class]->constants['FOO4']->visibility);
+            self::assertSame(-1, $phpClasses[Dummy10::class]->constants['FOO4']->value);
+
+            self::assertFalse($phpClasses[Dummy10::class]->is_abstract);
+            self::assertTrue($phpClasses[Dummy10::class]->is_final);
+            self::assertTrue($phpClasses[Dummy10::class]->is_cloneable);
+            self::assertTrue($phpClasses[Dummy10::class]->is_instantiable);
+            self::assertFalse($phpClasses[Dummy10::class]->is_iterable);
+
+            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall1']->getType());
+            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall2']->getType());
+            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall3']->getType());
 
             $getFieldArray = $phpClasses[Dummy10::class]->methods['getFieldArray'];
             static::assertSame('getFieldArray', $getFieldArray->name);
@@ -146,6 +170,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertSame(DummyTrait::class, $phpTraits[DummyTrait::class]->name);
 
+        self::assertFalse($phpTraits[DummyTrait::class]->is_abstract);
+        self::assertFalse($phpTraits[DummyTrait::class]->is_final);
+        self::assertFalse($phpTraits[DummyTrait::class]->is_cloneable);
+        self::assertFalse($phpTraits[DummyTrait::class]->is_instantiable);
+        self::assertFalse($phpTraits[DummyTrait::class]->is_iterable);
+
         $method = $phpTraits[DummyTrait::class]->methods['getLallTrait'];
 
         static::assertSame('getLallTrait', $method->name);
@@ -208,6 +238,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame(DummyInterface::class, $phpClasses[Dummy2::class]->interfaces[0]);
 
         $phpInterfaces = $phpCode->getInterfaces();
+
+        self::assertTrue($phpInterfaces[DummyInterface::class]->is_abstract);
+        self::assertFalse($phpInterfaces[DummyInterface::class]->is_final);
+        self::assertFalse($phpInterfaces[DummyInterface::class]->is_cloneable);
+        self::assertFalse($phpInterfaces[DummyInterface::class]->is_instantiable);
+        self::assertFalse($phpInterfaces[DummyInterface::class]->is_iterable);
 
         static::assertSame('array{parsedParamTagStr: string, variableName: (null[]|string)}', $phpInterfaces[DummyInterface::class]->methods['withComplexReturnArray']->returnTypeFromPhpDocExtended);
     }

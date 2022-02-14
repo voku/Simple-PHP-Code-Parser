@@ -94,6 +94,18 @@ class PHPInterface extends BasePHPClass
             $this->file = $file;
         }
 
+        $this->is_final = $interface->isFinal();
+
+        $this->is_abstract = $interface->isAbstract();
+
+        $this->is_anonymous = $interface->isAnonymous();
+
+        $this->is_cloneable = $interface->isCloneable();
+
+        $this->is_instantiable = $interface->isInstantiable();
+
+        $this->is_iterable = $interface->isIterable();
+
         foreach ($interface->getMethods() as $method) {
             $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
         }

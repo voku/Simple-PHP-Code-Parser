@@ -30,6 +30,11 @@ class PHPConst extends BasePHPElement
     /**
      * @var string|null
      */
+    public $visibility;
+
+    /**
+     * @var string|null
+     */
     public $type;
 
     /**
@@ -47,6 +52,20 @@ class PHPConst extends BasePHPElement
         $this->value = Utils::getPhpParserValueFromNode($node);
 
         $this->type = Utils::normalizePhpType(\gettype($this->value));
+
+        $parentNode = $node->getAttribute('parent');
+
+        if ($parentNode instanceof ClassConst) {
+            if ($parentNode->isPrivate()) {
+                $this->visibility = 'private';
+            } elseif ($parentNode->isProtected()) {
+                $this->visibility = 'protected';
+            } else {
+                $this->visibility = 'public';
+            }
+
+            $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
+        }
 
         $this->collectTags($node);
 
@@ -75,6 +94,14 @@ class PHPConst extends BasePHPElement
         $this->value = $constant->getValue();
 
         $this->type = \gettype($this->value);
+
+        if ($constant->isPrivate()) {
+            $this->visibility = 'private';
+        } elseif ($constant->isProtected()) {
+            $this->visibility = 'protected';
+        } else {
+            $this->visibility = 'public';
+        }
 
         return $this;
     }

@@ -94,15 +94,21 @@ class PHPProperty extends BasePHPElement
             $this->readPhpDoc($docCommentText);
         }
 
-        if (!$this->type && $node->type !== null) {
-            /** @noinspection MissingIssetImplementationInspection */
+        if ($node->type !== null) {
             if (empty($node->type->name)) {
-                /** @noinspection MissingIssetImplementationInspection */
                 if (!empty($node->type->parts)) {
                     $this->type = '\\' . \implode('\\', $node->type->parts);
                 }
             } else {
                 $this->type = $node->type->name;
+            }
+
+            if ($node->type instanceof \PhpParser\Node\NullableType) {
+                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
+                    $this->type = 'null|' . $this->type;
+                } elseif (!$this->type) {
+                    $this->type = 'null|mixed';
+                }
             }
         }
 
@@ -183,9 +189,9 @@ class PHPProperty extends BasePHPElement
                 }
 
                 if ($type->allowsNull()) {
-                    if ($this->type && $this->type !== 'null') {
+                    if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
                         $this->type = 'null|' . $this->type;
-                    } else {
+                    } elseif (!$this->type) {
                         $this->type = 'null|mixed';
                     }
                 }
