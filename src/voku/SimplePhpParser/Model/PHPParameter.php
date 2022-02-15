@@ -102,12 +102,14 @@ class PHPParameter extends BasePHPElement
         }
 
         if ($parameter->type !== null) {
-            if (empty($parameter->type->name)) {
-                if (!empty($parameter->type->parts)) {
-                    $this->type = '\\' . \implode('\\', $parameter->type->parts);
+            if (!$this->type) {
+                if (empty($parameter->type->name)) {
+                    if (!empty($parameter->type->parts)) {
+                        $this->type = '\\' . \implode('\\', $parameter->type->parts);
+                    }
+                } else {
+                    $this->type = $parameter->type->name;
                 }
-            } else {
-                $this->type = $parameter->type->name;
             }
 
             if ($parameter->type instanceof \PhpParser\Node\NullableType) {

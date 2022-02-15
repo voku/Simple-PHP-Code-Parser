@@ -36,13 +36,16 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('lall4', $lall4->name);
         static::assertSame('int', $lall4->typeFromPhpDoc);
 
-        $withComplexReturnArray = $phpClasses[Dummy3::class]->methods['withComplexReturnArray'];
+        $lall11 = $phpClasses[Dummy3::class]->methods['lall11'];
+        static::assertSame('lall11', $lall11->name);
+        static::assertSame('voku\tests\DummyInterface', $lall11->returnType);
+        static::assertSame('\voku\tests\Dummy3', $lall11->returnTypeFromPhpDocMaybeWithComment);
 
+        $withComplexReturnArray = $phpClasses[Dummy3::class]->methods['withComplexReturnArray'];
         static::assertSame('withComplexReturnArray', $withComplexReturnArray->name);
         static::assertSame('This is a test-text [...] öäü !"§?.', $withComplexReturnArray->summary . $withComplexReturnArray->description);
 
         $parsedParamTag = $withComplexReturnArray->parameters['parsedParamTag'];
-
         static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $parsedParamTag->type);
         static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag <p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeFromPhpDocMaybeWithComment);
     }

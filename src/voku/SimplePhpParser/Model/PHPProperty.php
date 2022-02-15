@@ -95,12 +95,14 @@ class PHPProperty extends BasePHPElement
         }
 
         if ($node->type !== null) {
-            if (empty($node->type->name)) {
-                if (!empty($node->type->parts)) {
-                    $this->type = '\\' . \implode('\\', $node->type->parts);
+            if (!$this->type) {
+                if (empty($node->type->name)) {
+                    if (!empty($node->type->parts)) {
+                        $this->type = '\\' . \implode('\\', $node->type->parts);
+                    }
+                } else {
+                    $this->type = $node->type->name;
                 }
-            } else {
-                $this->type = $node->type->name;
             }
 
             if ($node->type instanceof \PhpParser\Node\NullableType) {

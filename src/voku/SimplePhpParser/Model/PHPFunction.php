@@ -79,11 +79,13 @@ class PHPFunction extends BasePHPElement
         }
 
         if ($node->returnType) {
-            if (\method_exists($node->returnType, 'toString')) {
-                $this->returnType = $node->returnType->toString();
-            } elseif (\property_exists($node->returnType, 'name')) {
-                /** @psalm-suppress UndefinedPropertyFetch - FP? */
-                $this->returnType = $node->returnType->name;
+            if (!$this->returnType) {
+                if (\method_exists($node->returnType, 'toString')) {
+                    $this->returnType = $node->returnType->toString();
+                } elseif (\property_exists($node->returnType, 'name')) {
+                    /** @psalm-suppress UndefinedPropertyFetch - FP? */
+                    $this->returnType = $node->returnType->name;
+                }
             }
 
             if ($node->returnType instanceof \PhpParser\Node\NullableType) {
