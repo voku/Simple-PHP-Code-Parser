@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.19.2  (2022-02-15)
+
+- quick-fix for missing namespaces in types
+
+
 ### 0.19.1  (2022-02-15)
 
 - optimize NULL detecting from reflection for types
