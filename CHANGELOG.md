@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.19.1  (2022-02-15)
+
+- optimize NULL detecting from reflection for types
+- "BasePHPClass" -> add more information from reflection
+- "PHPConst" -> add "visibility"
+
+
 ### 0.19.0  (2022-02-02)
 
 - use native php reflection, instead of (slower) better reflection
