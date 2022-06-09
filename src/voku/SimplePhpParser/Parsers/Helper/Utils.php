@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers\Helper;
 
 use PhpParser\Node\Expr\UnaryMinus;
-use ReflectionClass;
-use ReflectionFunction;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
+use ReflectionClass;
+use ReflectionFunction;
 
 final class Utils
 {
@@ -77,7 +77,6 @@ final class Utils
         ?string $classStr = null,
         ?ParserContainer $parserContainer = null
     ) {
-
         if (\property_exists($node, 'value')) {
             /** @psalm-suppress UndefinedPropertyFetch - false-positive ? */
             if (\is_object($node->value)) {
