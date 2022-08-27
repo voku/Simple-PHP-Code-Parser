@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.19.3 (2022-08-27)
+
+- update "phpdocumentor/type-resolver" (with support for int-ranges)
+- clean-up some errors reported by phpstan
+
+
 ### 0.19.2  (2022-02-15)
 
 - quick-fix for missing namespaces in types
