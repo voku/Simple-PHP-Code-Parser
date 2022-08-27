@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Expr\FuncCall;
-use PhpParser\Node\Scalar\String_;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPDefineConstant extends PHPConst
