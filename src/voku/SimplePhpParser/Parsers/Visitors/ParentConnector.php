@@ -25,11 +25,13 @@ final class ParentConnector extends NodeVisitorAbstract
     /**
      * @param \PhpParser\Node[] $nodes
      *
-     * @return void
+     * @return null
      */
-    public function beforeTraverse(array $nodes): void
+    public function beforeTraverse(array $nodes)
     {
         $this->stack = [];
+
+        return null;
     }
 
     /**
@@ -52,10 +54,12 @@ final class ParentConnector extends NodeVisitorAbstract
     /**
      * @param \PhpParser\Node $node
      *
-     * @return void
+     * @return null
      */
-    public function leaveNode(Node $node): void
+    public function leaveNode(Node $node)
     {
         \array_pop($this->stack);
+
+        return null;
     }
 }

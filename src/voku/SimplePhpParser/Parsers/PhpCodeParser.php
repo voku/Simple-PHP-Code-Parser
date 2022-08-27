@@ -249,7 +249,7 @@ final class PhpCodeParser
      *
      * @return array
      *
-     * @psalm-return array<string, array{content: string, fileName: null|string}>
+     * @psalm-return array<string, array{content: false|string, fileName: null|string}>
      */
     private static function getCode(
         string $pathOrCode,
@@ -398,7 +398,7 @@ final class PhpCodeParser
                 }
             }
         }
-        unset($property, $value);
+        unset($property, $value); /* @phpstan-ignore-line ? */
 
         foreach ($class->methods as &$method) {
             if (!$method->is_inheritdoc) {
@@ -471,12 +471,12 @@ final class PhpCodeParser
                                     $valueInner = $interfaceMethodParameter->{$keyInner};
                                 }
                             }
-                            unset($valueInner);
+                            unset($valueInner); /* @phpstan-ignore-line ? */
                         }
                         unset($parameter);
                     }
                 }
-                unset($value);
+                unset($value); /* @phpstan-ignore-line ? */
             }
 
             if (!isset($classes[$class->parentClass])) {

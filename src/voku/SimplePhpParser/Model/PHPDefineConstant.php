@@ -20,12 +20,22 @@ class PHPDefineConstant extends PHPConst
     {
         $this->prepareNode($node);
 
-        $constName = (isset($node->args[0]) && $node->args[0]->value->value && $node->args[0]->value instanceof String_)
-            ? $this->getConstantFQN($node, (string) $node->args[0]->value->value)
-            : '';
+        if (
+            isset($node->args[0])
+            &&
+            \property_exists($node->args[0], 'value')
+            &&
+            \property_exists($node->args[0]->value, 'value')
+        ) {
+            $constName = $this->getConstantFQN($node, (string)$node->args[0]->value->value);
+        } else {
+            $constName = '';
+        }
+
         if (\in_array($constName, ['null', 'true', 'false'], true)) {
             $constName = \strtoupper($constName);
         }
+
         $this->name = $constName;
 
         /* @phpstan-ignore-next-line */

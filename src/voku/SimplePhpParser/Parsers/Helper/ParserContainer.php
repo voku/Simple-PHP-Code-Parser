@@ -102,12 +102,12 @@ class ParserContainer
      *     is_internal: bool,
      *     is_removed: bool,
      *     paramsTypes: array<string, array{
-     *         ?type: null|string,
-     *         ?typeFromPhpDoc: null|string,
-     *         ?typeFromPhpDocExtended: null|string,
-     *         ?typeFromPhpDocSimple: null|string,
-     *         ?typeFromPhpDocMaybeWithComment: null|string,
-     *         ?typeFromDefaultValue: null|string
+     *         type?: null|string,
+     *         typeFromPhpDoc?: null|string,
+     *         typeFromPhpDocExtended?: null|string,
+     *         typeFromPhpDocSimple?: null|string,
+     *         typeFromPhpDocMaybeWithComment?: null|string,
+     *         typeFromDefaultValue?: null|string
      *     }>,
      *     returnTypes: array{
      *         type: null|string,
@@ -354,6 +354,6 @@ class ParserContainer
      */
     public function addInterface(PHPInterface $interface): void
     {
-        $this->interfaces[$interface->name ?? \md5(\serialize($interface))] = $interface;
+        $this->interfaces[$interface->name ?: \md5(\serialize($interface))] = $interface;
     }
 }

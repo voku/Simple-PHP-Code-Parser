@@ -151,7 +151,10 @@ class PHPMethod extends PHPFunction
         $this->name = $method->getName();
 
         if (!$this->line) {
-            $this->line = $method->getStartLine();
+            $lineTmp = $method->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
         }
 
         $file = $method->getFileName();
@@ -191,9 +194,13 @@ class PHPMethod extends PHPFunction
 
         if (!$this->returnTypeFromPhpDoc) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($method->getDocComment());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create((string)$method->getDocComment());
                 $returnTypeTmp = $phpDoc->getTagsByName('return');
-                if (\count($returnTypeTmp) === 1 && $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_) {
+                if (
+                    \count($returnTypeTmp) === 1
+                    &&
+                    $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_
+                ) {
                     $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp[0]->getType());
                 }
             } catch (\Exception $e) {

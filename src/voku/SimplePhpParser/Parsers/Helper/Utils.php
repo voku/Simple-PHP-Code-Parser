@@ -82,18 +82,34 @@ final class Utils
             if (\is_object($node->value)) {
                 \assert($node->value instanceof \PhpParser\Node);
 
-                if (\in_array('value', $node->value->getSubNodeNames(), true)) {
+                if (
+                    \in_array('value', $node->value->getSubNodeNames(), true)
+                    &&
+                    \property_exists($node->value, 'value')
+                ) {
                     return $node->value->value;
                 }
 
-                if (\in_array('expr', $node->value->getSubNodeNames(), true)) {
-                    if ($node->value instanceof UnaryMinus) {
-                        return -$node->value->expr->value;
+                if (
+                    \in_array('expr', $node->value->getSubNodeNames(), true)
+                    &&
+                    \property_exists($node->value, 'expr')
+                ) {
+                    $exprTmp = $node->value->expr;
+                    if (\property_exists($exprTmp, 'value')) {
+                        if ($node->value instanceof UnaryMinus) {
+                            return -$exprTmp->value;
+                        }
+
+                        return $exprTmp->value;
                     }
-                    return $node->value->expr->value;
                 }
 
-                if (\in_array('name', $node->value->getSubNodeNames(), true)) {
+                if (
+                    \in_array('name', $node->value->getSubNodeNames(), true)
+                    &&
+                    \property_exists($node->value, 'name')
+                ) {
                     $value = $node->value->name->parts[0] ?? $node->value->name->name;
                     return $value === 'null' ? null : $value;
                 }
@@ -433,6 +449,8 @@ final class Utils
      *
      * returns number of cpu cores
      * Copyleft 2018, license: WTFPL
+     *
+     * @return int<1, max>
      */
     public static function getCpuCores(): int
     {
@@ -443,7 +461,12 @@ final class Utils
                 return 1;
             }
 
-            return (int)round($matches[1] / 2);
+            $return = (int)round($matches[1] / 2);
+            if ($return > 1) {
+                return $return;
+            }
+
+            return 1;
         }
 
         /** @noinspection PhpUsageOfSilenceOperatorInspection */
@@ -452,7 +475,12 @@ final class Utils
             $ret = \trim($ret);
             /** @noinspection PhpAssignmentInConditionInspection */
             if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                return (int)round($tmp / 2);
+                $return = (int)round($tmp / 2);
+                if ($return > 1) {
+                    return $return;
+                }
+
+                return 1;
             }
         }
 
@@ -460,7 +488,12 @@ final class Utils
             $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
             $count = \substr_count($cpuinfo, 'processor');
             if ($count > 0) {
-                return (int)round($count / 2);
+                $return = (int)round($count / 2);
+                if ($return > 1) {
+                    return $return;
+                }
+
+                return 1;
             }
         }
 

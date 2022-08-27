@@ -96,7 +96,7 @@ trait PHPDocElement
         $docComment = $node->getDocComment();
         if ($docComment) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create((string)$docComment->getText());
 
                 $tags = $phpDoc->getTags();
                 foreach ($tags as $tag) {

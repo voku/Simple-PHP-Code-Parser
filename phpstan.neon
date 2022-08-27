@@ -2,11 +2,11 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     checkMissingIterableValueType: false
     checkGenericClassInNonGenericObjectType: false
-    level: max
+    level: 8
     paths:
         - %currentWorkingDirectory%/src/
     ignoreErrors:
-        - '#should be compatible with#'
+        - '#readObjectFromPhpNode\(\) should be compatible with#'
+        - '#readObjectFromReflection\(\) should be compatible with#'
         - '#Argument of an invalid type voku\\SimplePhpParser\\Model\\PHP.* supplied for foreach, only iterables are supported\.#'
-        - '#undefined property PhpParser\\Node::\$name#'
-        - '#undefined property PhpParser\\Node\\Expr#'
+

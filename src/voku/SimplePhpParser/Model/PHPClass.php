@@ -11,9 +11,9 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPClass extends BasePHPClass
 {
     /**
-     * @var string|null
+     * @var string
      *
-     * @phpstan-var null|class-string
+     * @phpstan-var class-string
      */
     public $name;
 
@@ -131,7 +131,10 @@ class PHPClass extends BasePHPClass
         $this->name = $clazz->getName();
 
         if (!$this->line) {
-            $this->line = $clazz->getStartLine();
+            $lineTmp = $clazz->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
         }
 
         $file = $clazz->getFileName();
@@ -266,12 +269,12 @@ class PHPClass extends BasePHPClass
      *     is_removed: bool,
      *     paramsTypes: array<string,
      *         array{
-     *              ?type: null|string,
-     *              ?typeFromPhpDoc: null|string,
-     *              ?typeFromPhpDocExtended: null|string,
-     *              ?typeFromPhpDocSimple: null|string,
-     *              ?typeFromPhpDocMaybeWithComment: null|string,
-     *              ?typeFromDefaultValue: null|string
+     *              type?: null|string,
+     *              typeFromPhpDoc?: null|string,
+     *              typeFromPhpDocExtended?: null|string,
+     *              typeFromPhpDocSimple?: null|string,
+     *              typeFromPhpDocMaybeWithComment?: null|string,
+     *              typeFromDefaultValue?: null|string
      *         }
      *     >,
      *     returnTypes: array{
@@ -365,9 +368,6 @@ class PHPClass extends BasePHPClass
             return;
         }
 
-        // hack, until this is merged: https://github.com/phpDocumentor/TypeResolver/pull/139
-        $docComment = preg_replace('#int<.*>#i', 'int', $docComment);
-
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 
@@ -422,7 +422,7 @@ class PHPClass extends BasePHPClass
                 }
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = ($this->name ?? '?') . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $tmpErrorMessage = ($this->name ?: '?') . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }

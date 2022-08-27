@@ -34,7 +34,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         $lall4 = $phpClasses[Dummy3::class]->properties['lall4'];
         static::assertSame('lall4', $lall4->name);
-        static::assertSame('int', $lall4->typeFromPhpDoc);
+        static::assertSame('int<-2147483648, 2147483647>', $lall4->typeFromPhpDoc);
 
         $lall11 = $phpClasses[Dummy3::class]->methods['lall11'];
         static::assertSame('lall11', $lall11->name);
@@ -214,10 +214,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             [
                 'lall_trait' => [
                     'type'                           => null,
-                    'typeFromPhpDocMaybeWithComment' => 'null|float|int',
-                    'typeFromPhpDoc'                 => 'null|float|int',
+                    'typeFromPhpDocMaybeWithComment' => 'null|float|int<0, 10>',
+                    'typeFromPhpDoc'                 => 'null|float|int<0, 10>',
                     'typeFromPhpDocSimple'           => 'null|float|int',
-                    'typeFromPhpDocExtended'         => 'null|float|int',
+                    'typeFromPhpDocExtended'         => 'null|float|int<0, 10>',
                     'typeFromDefaultValue'           => null,
                 ],
             ],

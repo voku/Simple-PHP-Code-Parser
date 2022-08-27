@@ -173,7 +173,6 @@ class PHPProperty extends BasePHPElement
             $this->readPhpDoc($docComment);
         }
 
-        /** @noinspection ClassMemberExistenceCheckInspection */
         if (\method_exists($property, 'getType')) {
             $type = $property->getType();
             if ($type !== null) {
@@ -237,9 +236,6 @@ class PHPProperty extends BasePHPElement
         if ($docComment === '') {
             return;
         }
-
-        // hack, until this is merged: https://github.com/phpDocumentor/TypeResolver/pull/139
-        $docComment = preg_replace('#int<.*>#i', 'int', $docComment);
 
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);

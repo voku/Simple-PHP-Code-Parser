@@ -239,9 +239,6 @@ class PHPParameter extends BasePHPElement
             return;
         }
 
-        // hack, until this is merged: https://github.com/phpDocumentor/TypeResolver/pull/139
-        $docComment = preg_replace('#int<.*>#i', 'int', $docComment);
-
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);
 

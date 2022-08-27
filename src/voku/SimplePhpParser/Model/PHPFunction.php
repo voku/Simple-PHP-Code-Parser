@@ -62,7 +62,7 @@ class PHPFunction extends BasePHPElement
 
     /**
      * @param Function_ $node
-     * @param null      $dummy
+     * @param string|null      $dummy
      *
      * @return $this
      */
@@ -156,7 +156,10 @@ class PHPFunction extends BasePHPElement
         $this->name = $function->getName();
 
         if (!$this->line) {
-            $this->line = $function->getStartLine();
+            $lineTmp = $function->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
         }
 
         $file = $function->getFileName();
@@ -188,9 +191,13 @@ class PHPFunction extends BasePHPElement
 
         if (!$this->returnTypeFromPhpDoc) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($function->getDocComment());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create((string)$function->getDocComment());
                 $returnTypeTmp = $phpDoc->getTagsByName('return');
-                if (\count($returnTypeTmp) === 1 && $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_) {
+                if (
+                    \count($returnTypeTmp) === 1
+                    &&
+                    $returnTypeTmp[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Return_
+                ) {
                     $this->returnTypeFromPhpDoc = Utils::parseDocTypeObject($returnTypeTmp[0]->getType());
                 }
             } catch (\Exception $e) {
@@ -236,9 +243,6 @@ class PHPFunction extends BasePHPElement
         if ($docComment === '') {
             return;
         }
-
-        // hack, until this is merged: https://github.com/phpDocumentor/TypeResolver/pull/139
-        $docComment = preg_replace('#int<.*>#i', 'int', $docComment);
 
         try {
             $phpDoc = Utils::createDocBlockInstance()->create($docComment);

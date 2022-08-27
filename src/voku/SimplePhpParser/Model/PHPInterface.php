@@ -11,9 +11,9 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPInterface extends BasePHPClass
 {
     /**
-     * @var string|null
+     * @var string
      *
-     * @phpstan-var null|class-string
+     * @phpstan-var class-string
      */
     public $name;
 
@@ -38,8 +38,6 @@ class PHPInterface extends BasePHPClass
 
         $interfaceExists = false;
         try {
-            /** @noinspection NotOptimalIfConditionsInspection */
-            /** @noinspection ArgumentEqualsDefaultValueInspection */
             if (\interface_exists($this->name, true)) {
                 $interfaceExists = true;
             }
@@ -86,7 +84,10 @@ class PHPInterface extends BasePHPClass
         $this->name = $interface->getName();
 
         if (!$this->line) {
-            $this->line = $interface->getStartLine();
+            $lineTmp = $interface->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
         }
 
         $file = $interface->getFileName();
@@ -117,7 +118,6 @@ class PHPInterface extends BasePHPClass
         foreach ($this->parentInterfaces as $parentInterface) {
             $interfaceExists = false;
             try {
-                /** @noinspection ArgumentEqualsDefaultValueInspection */
                 if (
                     !$this->parserContainer->getInterface($parentInterface)
                     &&
