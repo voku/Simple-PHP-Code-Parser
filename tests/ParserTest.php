@@ -1077,6 +1077,11 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
         self::assertTrue(isset($phpFunctions['fsockopen']->parameters['errno']));
         self::assertTrue($phpFunctions['fsockopen']->parameters['errno']->is_passed_by_ref);
         self::assertSame('int', $phpFunctions['fsockopen']->parameters['errno']->typeFromPhpDoc);
+
+        // -----------------------------
+
+        $phpFunctionsInfo = $phpCode->getFunctionsInfo();
+        self::assertSame('int', $phpFunctionsInfo['fsockopen']['paramsTypes']['errno']['typeFromPhpDoc']);
     }
 
     /**
