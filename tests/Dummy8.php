@@ -31,6 +31,15 @@ final class Dummy8 extends Dummy6
     }
 
     /**
+     * @param int|float $param1
+     *
+     * @return bool|int
+     */
+    public function test_multi_param_type(int|float $param1): bool|int
+    {
+    }
+
+    /**
      * @param array{stdClass: \stdClass, numbers: int|float} $lall
      *
      * @return array{stdClass: \stdClass, numbers: int|float}
