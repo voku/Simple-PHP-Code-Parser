@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.19.5 (2022-08-30)
+
+- support "::class" from PHP 8
+
+
 ### 0.19.4 (2022-08-30)
 
 - fix fatal error for non existing classes
