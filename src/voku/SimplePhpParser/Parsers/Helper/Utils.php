@@ -150,8 +150,9 @@ final class Utils
 
             $className = '\\' . \ltrim($className, '\\');
 
-            /** @noinspection PhpUsageOfSilenceOperatorInspection */
-            return @\constant($className . '::' . $node->name->name);
+            if (\class_exists($className, true)) {
+                return \constant($className . '::' . $node->name->name);
+            }
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {

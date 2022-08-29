@@ -9,6 +9,12 @@ namespace voku\tests;
  */
 final class Dummy8 extends Dummy6
 {
+
+    /**
+     * @var class-string<Foooooooo>
+     */
+    public $foooooooo = Foooooooo::class;
+
     use DummyTrait;
 
     /**
