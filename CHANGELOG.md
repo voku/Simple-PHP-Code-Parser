@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.19.4 (2022-08-30)
+
+- fix fatal error for non existing classes
+
+
 ### 0.19.3 (2022-08-27)
 
 - update "phpdocumentor/type-resolver" (with support for int-ranges)
