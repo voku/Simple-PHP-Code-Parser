@@ -135,6 +135,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
         $phpClasses = $phpCode->getClasses();
 
+        static::assertSame('\Foooooooo', $phpClasses[Dummy8::class]->properties['foooooooo']->defaultValue);
+
         static::assertSame(Dummy8::class, $phpClasses[Dummy8::class]->name);
 
         $method = $phpClasses[Dummy8::class]->methods['getLallTrait'];

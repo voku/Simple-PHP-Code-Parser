@@ -150,6 +150,10 @@ final class Utils
 
             $className = '\\' . \ltrim($className, '\\');
 
+            if ($node->name->name === 'class') {
+                return $className;
+            }
+
             if (\class_exists($className, true)) {
                 return \constant($className . '::' . $node->name->name);
             }
