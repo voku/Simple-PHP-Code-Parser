@@ -1054,7 +1054,8 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
         );
     }
 
-    public function testFunctionWithAmpersendInParameters(): void {
+    public function testFunctionWithAmpersendInParameters(): void
+    {
         $code = '<?php
         /**
          * Open Internet or Unix domain socket connection
