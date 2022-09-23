@@ -78,15 +78,15 @@ final class PhpCodeParser
         array $fileExtensions = []
     ): ParserContainer {
         foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath . '/vendor/autoload.php')) {
+            if (\file_exists($projectPath) && \is_file($projectPath)) {
+                /** @noinspection PhpIncludeInspection */
+                require_once $projectPath;
+            } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
                 /** @noinspection PhpIncludeInspection */
                 require_once $projectPath . '/vendor/autoload.php';
             } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
                 /** @noinspection PhpIncludeInspection */
                 require_once $projectPath . '/../vendor/autoload.php';
-            } elseif (\file_exists($projectPath) && \is_file($projectPath)) {
-                /** @noinspection PhpIncludeInspection */
-                require_once $projectPath;
             }
         }
         \restore_error_handler();
