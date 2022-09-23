@@ -130,6 +130,19 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testInheritDocFromInterface(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy12.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $getFieldArray = $phpClasses[Dummy12::class]->methods['withComplexReturnArray'];
+        static::assertSame('withComplexReturnArray', $getFieldArray->name);
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $getFieldArray->parameters['parsedParamTag']->type);
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $getFieldArray->parameters['parsedParamTag']->typeFromPhpDocSimple);
+        static::assertSame('array', $getFieldArray->returnTypeFromPhpDocSimple);
+        static::assertSame('array{parsedParamTagStr: string, variableName: (null[]|string)}', $getFieldArray->returnTypeFromPhpDocExtended);
+    }
+
     public function testSimpleOneClassWithTrait(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
@@ -176,6 +189,11 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->returnTypeFromPhpDocExtended);
 
         static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
+
+        static::assertSame(
+            'callable(string ): string',
+            $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
+        );
     }
 
     public function testSimpleOneTrait(): void

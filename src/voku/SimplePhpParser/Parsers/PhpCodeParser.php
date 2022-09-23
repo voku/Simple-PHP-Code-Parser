@@ -392,7 +392,7 @@ final class PhpCodeParser
                     &&
                     $parentMethod->{$key} !== null
                     &&
-                    \stripos($key, 'typeFromPhpDoc') !== false
+                    \stripos($key, 'type') !== false
                 ) {
                     $value = $parentMethod->{$key};
                 }
@@ -434,7 +434,7 @@ final class PhpCodeParser
                         &&
                         $interfaceMethod->{$key} !== null
                         &&
-                        \stripos($key, 'typeFromPhpDoc') !== false
+                        \stripos($key, 'type') !== false
                     ) {
                         $value = $interfaceMethod->{$key};
                     }
@@ -466,7 +466,7 @@ final class PhpCodeParser
                                     &&
                                     $interfaceMethodParameter->{$keyInner} !== null
                                     &&
-                                    \stripos($keyInner, 'typeFromPhpDoc') !== false
+                                    \stripos($keyInner, 'type') !== false
                                 ) {
                                     $valueInner = $interfaceMethodParameter->{$keyInner};
                                 }
@@ -495,7 +495,7 @@ final class PhpCodeParser
                     &&
                     $parentMethod->{$key} !== null
                     &&
-                    \stripos($key, 'typeFromPhpDoc') !== false
+                    \stripos($key, 'type') !== false
                 ) {
                     $value = $parentMethod->{$key};
                 }
@@ -527,7 +527,7 @@ final class PhpCodeParser
                                 &&
                                 $parentMethodParameter->{$keyInner} !== null
                                 &&
-                                \stripos($keyInner, 'typeFromPhpDoc') !== false
+                                \stripos($keyInner, 'type') !== false
                             ) {
                                 $valueInner = $parentMethodParameter->{$keyInner};
                             }
