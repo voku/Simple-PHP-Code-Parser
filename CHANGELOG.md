@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.19.6 (2022-09-23)
+
+- try to fix autoload #11
+- inheritDoc: use all types (not only from phpdoc) from parent classes & interfaces
+- add more tests
+
+
 ### 0.19.5 (2022-08-30)
 
 - support "::class" from PHP 8
