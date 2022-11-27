@@ -16,7 +16,9 @@
         }
     ],
     "require": {
-        "php": ">=7.2",
+        "php": ">=7.4",
+        "clue/block-react": "~1.5",
+        "react/filesystem": "^0.2@dev",
         "phpdocumentor/type-resolver": "~1.6.1",
         "phpdocumentor/reflection-docblock": "~5.2",
         "phpdocumentor/reflection-common": "~2.2",

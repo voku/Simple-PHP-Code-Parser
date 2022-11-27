@@ -466,7 +466,7 @@ final class Utils
                 return 1;
             }
 
-            $return = (int)round($matches[1] / 2);
+            $return = (int)round((int)$matches[1] / 2);
             if ($return > 1) {
                 return $return;
             }

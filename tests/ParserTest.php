@@ -194,6 +194,19 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             'callable(string ): string',
             $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
         );
+
+        // TODO
+        /*
+        static::assertSame(
+            'callable(string ): string',
+            $phpClasses[Dummy8::class]->methods['withCallbackMulti']->parameters['callback2']->typeFromPhpDocExtended
+        );
+
+        static::assertSame(
+            'string',
+            $phpClasses[Dummy8::class]->methods['withCallbackMulti']->returnTypeFromPhpDoc
+        );
+        */
     }
 
     public function testSimpleOneTrait(): void

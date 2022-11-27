@@ -9,6 +9,7 @@ use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
+use React\Filesystem\Node\FileInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -25,7 +26,7 @@ final class PhpCodeParser
     /**
      * @internal
      */
-    const CACHE_KEY_HELPER = 'simple-php-code-parser-v3-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v4-';
 
     /**
      * @param string   $code
@@ -249,7 +250,7 @@ final class PhpCodeParser
      *
      * @return array
      *
-     * @psalm-return array<string, array{content: false|string, fileName: null|string}>
+     * @psalm-return array<string, array{content: string, fileName: null|string}>
      */
     private static function getCode(
         string $pathOrCode,
@@ -260,6 +261,8 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
+        /** @var \React\Promise\PromiseInterface[] $phpFilePromises */
+        $phpFilePromises = [];
 
         // fallback
         if (\count($fileExtensions) === 0) {
@@ -322,20 +325,38 @@ final class PhpCodeParser
             $phpFileArray[$cacheKey] = $path;
         }
 
-        $phpFileContentArray = [];
-        foreach ($phpFileArray as $cacheKey => $path) {
-            $phpFileContentArray[] = [
-                'content'  => file_get_contents($path),
-                'fileName' => $path,
-                'cacheKey' => $cacheKey,
-            ];
-        }
+        $phpFileArrayChunks = \array_chunk($phpFileArray, Utils::getCpuCores(), true);
+        foreach ($phpFileArrayChunks as $phpFileArrayChunk) {
+            $filesystem = \React\Filesystem\Factory::create();
 
-        foreach ($phpFileContentArray as $response) {
-            $cache->setItem($response['cacheKey'], $response);
+            foreach ($phpFileArrayChunk as $cacheKey => $path) {
+                $phpFilePromises[] = $filesystem->detect($path)->then(
+                    function (FileInterface $file) use ($path, $cacheKey) {
+                        return [
+                            'content'  => $file->getContents()->then(static function (string $contents) { return $contents; }),
+                            'fileName' => $path,
+                            'cacheKey' => $cacheKey,
+                        ];
+                    },
+                    function ($e) {
+                        throw $e;
+                    }
+                );
+            }
 
-            $phpCodes[$response['cacheKey']]['content'] = $response['content'];
-            $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
+            $phpFilePromiseResponses = \Clue\React\Block\awaitAll($phpFilePromises);
+            foreach ($phpFilePromiseResponses as $response) {
+                $response['content'] = \Clue\React\Block\await($response['content']);
+
+                assert(is_string($response['content']));
+                assert(is_string($response['cacheKey']));
+                assert($response['fileName'] === null || is_string($response['fileName']));
+
+                $cache->setItem($response['cacheKey'], $response);
+
+                $phpCodes[$response['cacheKey']]['content'] = $response['content'];
+                $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
+            }
         }
 
         return $phpCodes;

@@ -74,4 +74,15 @@ final class Dummy8 extends Dummy6
     {
         return $callback('foo');
     }
+
+    /**
+     * @param callable(string): string $callback
+     * @param callable(): numeric $callback2
+     *
+     * @return string
+     */
+    public function withCallbackMulti($callback, $callback2)
+    {
+        return $callback('foo');
+    }
 }
