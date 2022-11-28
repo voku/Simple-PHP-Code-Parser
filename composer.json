@@ -19,9 +19,9 @@
         "php": ">=7.4",
         "clue/block-react": "~1.5",
         "react/filesystem": "^0.2@dev",
-        "phpdocumentor/type-resolver": "~1.6.1",
-        "phpdocumentor/reflection-docblock": "~5.2",
-        "phpdocumentor/reflection-common": "~2.2",
+        "phpdocumentor/type-resolver": "^1.x-dev",
+        "phpdocumentor/reflection-docblock": "dev-master",
+        "phpdocumentor/reflection-common": "2.x-dev",
         "phpstan/phpdoc-parser": "~1.2",
         "voku/simple-cache": "~4.0",
         "nikic/php-parser": "~4.13"
