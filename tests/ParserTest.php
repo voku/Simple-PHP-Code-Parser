@@ -177,12 +177,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+            null, // 'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
             $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float <foo/>',
+            null, // 'array{stdClass: \stdClass, numbers: int|float <foo/>',
             $phpClasses[Dummy8::class]->methods['foo_broken']->returnPhpDocRaw
         );
 
@@ -191,14 +191,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
 
         static::assertSame(
-            'callable(string ): string',
+            'callable',
             $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
         );
 
-        // TODO
-        /*
         static::assertSame(
-            'callable(string ): string',
+            'callable',
             $phpClasses[Dummy8::class]->methods['withCallbackMulti']->parameters['callback2']->typeFromPhpDocExtended
         );
 
@@ -206,7 +204,6 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             'string',
             $phpClasses[Dummy8::class]->methods['withCallbackMulti']->returnTypeFromPhpDoc
         );
-        */
     }
 
     public function testSimpleOneTrait(): void
