@@ -86,34 +86,34 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testUnionTypes(): void
     {
-        if (PHP_VERSION_ID >= 80000) {
-            $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy10.php');
-            $phpClasses = $phpCode->getClasses();
-
-            self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO3']->type);
-            self::assertSame('private', $phpClasses[Dummy10::class]->constants['FOO3']->visibility);
-            self::assertSame(3, $phpClasses[Dummy10::class]->constants['FOO3']->value);
-
-            self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO4']->type);
-            self::assertSame('public', $phpClasses[Dummy10::class]->constants['FOO4']->visibility);
-            self::assertSame(-1, $phpClasses[Dummy10::class]->constants['FOO4']->value);
-
-            self::assertFalse($phpClasses[Dummy10::class]->is_abstract);
-            self::assertTrue($phpClasses[Dummy10::class]->is_final);
-            self::assertTrue($phpClasses[Dummy10::class]->is_cloneable);
-            self::assertTrue($phpClasses[Dummy10::class]->is_instantiable);
-            self::assertFalse($phpClasses[Dummy10::class]->is_iterable);
-
-            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall1']->getType());
-            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall2']->getType());
-            static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall3']->getType());
-
-            $getFieldArray = $phpClasses[Dummy10::class]->methods['getFieldArray'];
-            static::assertSame('getFieldArray', $getFieldArray->name);
-            static::assertSame('int|string', $getFieldArray->parameters['RowOffset']->type);
-        } else {
+        if (PHP_VERSION_ID < 80000) {
             static::markTestSkipped('only for PHP >= 8.0');
         }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy10.php');
+        $phpClasses = $phpCode->getClasses();
+
+        self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO3']->type);
+        self::assertSame('private', $phpClasses[Dummy10::class]->constants['FOO3']->visibility);
+        self::assertSame(3, $phpClasses[Dummy10::class]->constants['FOO3']->value);
+
+        self::assertSame('int', $phpClasses[Dummy10::class]->constants['FOO4']->type);
+        self::assertSame('public', $phpClasses[Dummy10::class]->constants['FOO4']->visibility);
+        self::assertSame(-1, $phpClasses[Dummy10::class]->constants['FOO4']->value);
+
+        self::assertFalse($phpClasses[Dummy10::class]->is_abstract);
+        self::assertTrue($phpClasses[Dummy10::class]->is_final);
+        self::assertTrue($phpClasses[Dummy10::class]->is_cloneable);
+        self::assertTrue($phpClasses[Dummy10::class]->is_instantiable);
+        self::assertFalse($phpClasses[Dummy10::class]->is_iterable);
+
+        static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall1']->getType());
+        static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall2']->getType());
+        static::assertSame('null|int', $phpClasses[Dummy10::class]->properties['lall3']->getType());
+
+        $getFieldArray = $phpClasses[Dummy10::class]->methods['getFieldArray'];
+        static::assertSame('getFieldArray', $getFieldArray->name);
+        static::assertSame('int|string', $getFieldArray->parameters['RowOffset']->type);
     }
 
     public function testConstructorPropertyPromotion(): void
@@ -145,6 +145,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleOneClassWithTrait(): void
     {
+        if (PHP_VERSION_ID < 80000) {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
         $phpClasses = $phpCode->getClasses();
 
@@ -273,7 +277,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/',
             [],
-            ['/Dummy5|Dummy1[01]/']
+            ['/Dummy5|Dummy1[01]|Dummy8/']
         );
 
         $phpClasses = $phpCode->getClasses();
