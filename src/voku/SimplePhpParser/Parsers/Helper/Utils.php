@@ -4,14 +4,6 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
 
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\AbstractPHPStanFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\MethodFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\ParamFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyReadFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\PropertyWriteFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\ReturnFactory;
-use phpDocumentor\Reflection\DocBlock\Tags\Factory\VarFactory;
 use PhpParser\Node\Expr\UnaryMinus;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
@@ -408,16 +400,6 @@ final class Utils
         $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
         $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
 
-        $phpstanTagFactory = new AbstractPHPStanFactory(
-            new ParamFactory($typeResolver, $descriptionFactory),
-            new VarFactory($typeResolver, $descriptionFactory),
-            new ReturnFactory($typeResolver, $descriptionFactory),
-            new PropertyFactory($typeResolver, $descriptionFactory),
-            new PropertyReadFactory($typeResolver, $descriptionFactory),
-            new PropertyWriteFactory($typeResolver, $descriptionFactory),
-            new MethodFactory($typeResolver, $descriptionFactory)
-        );
-
         /**
          * @noinspection   PhpParamsInspection
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
@@ -429,14 +411,6 @@ final class Utils
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
          */
         $tagFactory->addService($typeResolver);
-
-        $tagFactory->registerTagHandler('param', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('var', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('return', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property-read', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('property-write', $phpstanTagFactory);
-        $tagFactory->registerTagHandler('method', $phpstanTagFactory);
 
         $docBlockFactory = new \phpDocumentor\Reflection\DocBlockFactory($descriptionFactory, $tagFactory);
         foreach ($additionalTags as $tagName => $tagHandler) {
