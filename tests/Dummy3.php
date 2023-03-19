@@ -8,7 +8,6 @@ namespace {
 }
 
 namespace voku\tests {
-
     use const SORT_ASC as SORT_ASC_TEST;
 
     function foo3(int $foo = 0)
@@ -295,5 +294,4 @@ namespace voku\tests {
             return [];
         }
     }
-
 }

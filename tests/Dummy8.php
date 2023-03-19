@@ -9,7 +9,6 @@ namespace voku\tests;
  */
 final class Dummy8 extends Dummy6
 {
-
     /**
      * @var class-string<Foooooooo>
      */
