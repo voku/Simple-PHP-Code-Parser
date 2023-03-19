@@ -247,7 +247,6 @@ class PHPParameter extends BasePHPElement
             if (!empty($parsedParamTags)) {
                 foreach ($parsedParamTags as $parsedParamTag) {
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Param) {
-
                         // check only the current "param"-tag
                         if (\strtoupper($parameterName) !== \strtoupper((string) $parsedParamTag->getVariableName())) {
                             continue;
