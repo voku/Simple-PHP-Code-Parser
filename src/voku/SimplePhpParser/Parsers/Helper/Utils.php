@@ -334,11 +334,6 @@ final class Utils
         return $type . '';
     }
 
-    /**
-     * @param string $functionName
-     *
-     * @return \ReflectionFunction
-     */
     public static function createFunctionReflectionInstance(string $functionName): ReflectionFunction
     {
         static $FUNCTION_REFLECTION_INSTANCE = [];
@@ -356,10 +351,6 @@ final class Utils
     }
 
     /**
-     * @param string $className
-     *
-     * @return \ReflectionClass
-     *
      * @phpstan-param class-string $className
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
@@ -384,8 +375,6 @@ final class Utils
      * @param string[] $additionalTags
      *
      * @phpstan-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
-     *
-     * @return \phpDocumentor\Reflection\DocBlockFactory
      */
     public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactory
     {
@@ -401,13 +390,11 @@ final class Utils
         $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
 
         /**
-         * @noinspection   PhpParamsInspection
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
          */
         $tagFactory->addService($descriptionFactory);
 
         /**
-         * @noinspection   PhpParamsInspection
          * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
          */
         $tagFactory->addService($typeResolver);
@@ -433,6 +420,9 @@ final class Utils
         return new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
     }
 
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
     public static function modernPhpdoc(string $input): string
     {
         static $TYPE_PARSER = null;

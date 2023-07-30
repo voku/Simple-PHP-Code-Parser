@@ -290,6 +290,8 @@ class PHPParameter extends BasePHPElement
                         $this->phpDocRaw = (string) $parsedParamTag;
                         $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
                     }
+
+                    break;
                 }
             }
 
@@ -298,62 +300,68 @@ class PHPParameter extends BasePHPElement
 
             if (!empty($parsedParamTags)) {
                 foreach ($parsedParamTags as $parsedParamTag) {
-                    if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
-                        $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
-                        $parsedParamTagStr = $spitedData['parsedParamTagStr'];
-                        $variableName = $spitedData['variableName'];
-
-                        // check only the current "param"-tag
-                        if (!$variableName || \strtoupper($parameterName) !== \strtoupper($variableName)) {
-                            continue;
-                        }
-
-                        $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
-                    }
-                }
-            }
-
-            if (
-                $doc instanceof Doc
-                &&
-                !$this->phpDocRaw
-            ) {
-                $tokens = Utils::modernPhpdocTokens($doc->getText());
-
-                $paramTagFound = null;
-                $paramContent = '';
-                foreach ($tokens->getTokens() as $token) {
-                    $content = $token[0] ?? '';
-
-                    if ($content === '@param' || $content === '@psalm-param' || $content === '@phpstan-param') {
-                        $paramContent = '';
-                        $paramTagFound = true;
-
+                    if (!$parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
                         continue;
                     }
 
-                    if ($content === '$' . $parameterName) {
-                        break;
+                    $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
+                    $parsedParamTagStr = $spitedData['parsedParamTagStr'];
+                    $variableName = $spitedData['variableName'];
+
+                    // check only the current "param"-tag
+                    if (!$variableName || \strtoupper($parameterName) !== \strtoupper($variableName)) {
+                        continue;
                     }
 
-                    if (\strpos($content, '$') === 0) {
-                        $paramContent = '';
-                        $paramTagFound = false;
-                    }
+                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
 
-                    if ($paramTagFound) {
-                        $paramContent .= $content;
-                    }
-                }
-
-                $paramContent = \trim($paramContent);
-                if ($paramContent) {
-                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
+                    break;
                 }
             }
+
+            // fallback for e.g. `callable()`
+            if (!$this->phpDocRaw || !$this->typeFromPhpDocExtended) {
+                $this->readPhpDocByTokens($docComment, $parameterName);
+            }
+
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
+    }
+
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
+    private function readPhpDocByTokens(string $docComment, string $parameterName): void
+    {
+        $tokens = Utils::modernPhpdocTokens($docComment);
+
+        $paramContent = null;
+        foreach ($tokens->getTokens() as $token) {
+            $content = $token[0] ?? '';
+
+            if ($content === '@param' || $content === '@psalm-param' || $content === '@phpstan-param') {
+                // reset
+                $paramContent = '';
+
+                continue;
+            }
+
+            // We can stop if we found the param variable e.g. `@param array{foo:int} $param`.
+            if ($content === '$' . $parameterName) {
+                break;
+            }
+
+            if ($paramContent !== null) {
+                $paramContent .= $content;
+            }
+        }
+
+        $paramContent = $paramContent ? \trim($paramContent) : null;
+        if ($paramContent) {
+            $this->phpDocRaw = $paramContent . ' ' . '$' . $parameterName;
+            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
         }
     }
 }

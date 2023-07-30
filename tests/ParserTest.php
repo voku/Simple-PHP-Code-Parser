@@ -605,7 +605,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDocExtended'         => null,
                         ],
                         'paramsPhpDocRaw' => [
-                            'useRandInt' => null,
+                            'useRandInt' => '?list<int> $useRandInt',
                         ],
                         'returnPhpDocRaw' => null,
                         'line'            => 90,
@@ -937,7 +937,7 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
                             'typeFromPhpDocExtended'         => null,
                         ],
                         'paramsPhpDocRaw' => [
-                            'useRandInt' => null,
+                            'useRandInt' => '?list<int> $useRandInt',
                         ],
                         'returnPhpDocRaw' => null,
                         'line'            => 90,

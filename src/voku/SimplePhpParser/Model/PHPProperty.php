@@ -283,20 +283,18 @@ class PHPProperty extends BasePHPElement
 
             if (!empty($parsedParamTags)) {
                 foreach ($parsedParamTags as $parsedParamTag) {
-                    if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
-                        $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
-                        $parsedParamTagStr = $spitedData['parsedParamTagStr'];
-
-                        $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
+                    if (!$parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Generic) {
+                        continue;
                     }
+
+                    $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
+                    $parsedParamTagStr = $spitedData['parsedParamTagStr'];
+
+                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                 }
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
-
-            // DEBUG
-            //\var_dump($tmpErrorMessage, $e->getTraceAsString());
-
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
     }
