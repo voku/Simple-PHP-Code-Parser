@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Class_;
 use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -67,7 +68,7 @@ class PHPClass extends BasePHPClass
         if (!empty($node->extends)) {
             $classExtended = '';
             foreach ($node->extends->parts as $part) {
-                $classExtended .= "\\${part}";
+                $classExtended .= "\\" . $part;
             }
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
             /** @var class-string $classExtended */
@@ -108,7 +109,7 @@ class PHPClass extends BasePHPClass
             foreach ($node->implements as $interfaceObject) {
                 $interfaceFQN = '';
                 foreach ($interfaceObject->parts as $interface) {
-                    $interfaceFQN .= "\\${interface}";
+                    $interfaceFQN .= "\\" . $interface;
                 }
                 $interfaceFQN = \ltrim($interfaceFQN, '\\');
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
@@ -358,12 +359,17 @@ class PHPClass extends BasePHPClass
     }
 
     /**
-     * @param string $docComment
+     * @param Doc|string $doc
      *
      * @return void
      */
-    private function readPhpDocProperties(string $docComment): void
+    private function readPhpDocProperties($doc): void
     {
+        if ($doc instanceof Doc) {
+            $docComment = $doc->getText();
+        } else {
+            $docComment = $doc;
+        }
         if ($docComment === '') {
             return;
         }

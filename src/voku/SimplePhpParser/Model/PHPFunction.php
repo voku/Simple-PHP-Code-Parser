@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
+use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Function_;
 use ReflectionFunction;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
@@ -140,7 +141,7 @@ class PHPFunction extends BasePHPElement
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $this->readPhpDoc($docComment->getText());
+            $this->readPhpDoc($docComment);
         }
 
         return $this;
@@ -238,8 +239,16 @@ class PHPFunction extends BasePHPElement
         return null;
     }
 
-    protected function readPhpDoc(string $docComment): void
+    /**
+     * @param Doc|string $doc
+     */
+    protected function readPhpDoc($doc): void
     {
+        if ($doc instanceof Doc) {
+            $docComment = $doc->getText();
+        } else {
+            $docComment = $doc;
+        }
         if ($docComment === '') {
             return;
         }

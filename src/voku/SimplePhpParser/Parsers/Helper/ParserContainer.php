@@ -17,40 +17,40 @@ class ParserContainer
      *
      * @phpstan-var array<string, PHPConst>
      */
-    private $constants = [];
+    private array $constants = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPFunction[]
      *
      * @phpstan-var array<string, PHPFunction>
      */
-    private $functions = [];
+    private array $functions = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPClass[]
      *
      * @phpstan-var array<string, PHPClass>
      */
-    private $classes = [];
+    private array $classes = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPTrait[]
      *
      * @phpstan-var array<string, PHPTrait>
      */
-    private $traits = [];
+    private array $traits = [];
 
     /**
      * @var \voku\SimplePhpParser\Model\PHPInterface[]
      *
      * @phpstan-var array<string, PHPInterface>
      */
-    private $interfaces = [];
+    private array $interfaces = [];
 
     /**
      * @var string[]
      */
-    private $parse_errors = [];
+    private array $parse_errors = [];
 
     /**
      * @return \voku\SimplePhpParser\Model\PHPConst[]

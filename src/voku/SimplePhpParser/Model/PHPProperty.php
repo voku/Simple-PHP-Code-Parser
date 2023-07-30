@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Property;
 use ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -87,11 +88,11 @@ class PHPProperty extends BasePHPElement
         if ($docComment) {
             $docCommentText = $docComment->getText();
 
-            if (\stripos($docCommentText, 'inheritdoc') !== false) {
+            if (\stripos($docCommentText, '@inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docCommentText);
+            $this->readPhpDoc($docComment);
         }
 
         if ($node->type !== null) {
@@ -166,7 +167,7 @@ class PHPProperty extends BasePHPElement
 
         $docComment = $property->getDocComment();
         if ($docComment) {
-            if (\stripos($docComment, 'inheritdoc') !== false) {
+            if (\stripos($docComment, '@inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
@@ -231,8 +232,16 @@ class PHPProperty extends BasePHPElement
         return null;
     }
 
-    private function readPhpDoc(string $docComment): void
+    /**
+     * @param Doc|string $doc
+     */
+    private function readPhpDoc($doc): void
     {
+        if ($doc instanceof Doc) {
+            $docComment = $doc->getText();
+        } else {
+            $docComment = $doc;
+        }
         if ($docComment === '') {
             return;
         }

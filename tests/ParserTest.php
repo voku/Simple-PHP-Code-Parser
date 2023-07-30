@@ -181,12 +181,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+            null,
             $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float <foo/>',
+            null,
             $phpClasses[Dummy8::class]->methods['foo_broken']->returnPhpDocRaw
         );
 
@@ -195,14 +195,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
 
         static::assertSame(
-            'callable(string ): string',
+            'callable(string): string',
             $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
         );
 
-        // TODO
-        /*
         static::assertSame(
-            'callable(string ): string',
+            'callable(): numeric',
             $phpClasses[Dummy8::class]->methods['withCallbackMulti']->parameters['callback2']->typeFromPhpDocExtended
         );
 
@@ -210,7 +208,6 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             'string',
             $phpClasses[Dummy8::class]->methods['withCallbackMulti']->returnTypeFromPhpDoc
         );
-        */
     }
 
     public function testSimpleOneTrait(): void
@@ -549,7 +546,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error'           => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0',
+                        'error'           => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated'   => false,
                         'is_static'       => true,
                         'is_meta'         => false,
@@ -880,8 +877,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error'           => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0
-parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0',
+                        'error' => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1
+parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated' => false,
                         'is_static'     => true,
                         'is_meta'       => false,

@@ -422,20 +422,26 @@ final class Utils
         return $docBlockFactory;
     }
 
-    public static function modernPhpdoc(string $input): string
+    public static function modernPhpdocTokens(string $input): \PHPStan\PhpDocParser\Parser\TokenIterator
     {
         static $LAXER = null;
-        static $TYPE_PARSER = null;
 
         if ($LAXER === null) {
             $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer();
         }
 
+        return new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
+    }
+
+    public static function modernPhpdoc(string $input): string
+    {
+        static $TYPE_PARSER = null;
+
         if ($TYPE_PARSER === null) {
             $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser(new \PHPStan\PhpDocParser\Parser\ConstExprParser());
         }
 
-        $tokens = new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
+        $tokens = self::modernPhpdocTokens($input);
         $typeNode = $TYPE_PARSER->parse($tokens);
 
         return \str_replace(

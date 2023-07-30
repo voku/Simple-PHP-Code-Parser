@@ -76,7 +76,7 @@ final class Dummy8 extends Dummy6
     }
 
     /**
-     * @param callable(string): string $callback
+     * @param callable(string, int, string): string $callback
      * @param callable(): numeric $callback2
      *
      * @return string

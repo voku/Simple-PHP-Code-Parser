@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Comment\Doc;
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
 use ReflectionParameter;
@@ -93,11 +94,11 @@ class PHPParameter extends BasePHPElement
             if ($docComment) {
                 $docCommentText = $docComment->getText();
 
-                if (\stripos($docCommentText, 'inheritdoc') !== false) {
+                if (\stripos($docCommentText, '@inheritdoc') !== false) {
                     $this->is_inheritdoc = true;
                 }
 
-                $this->readPhpDoc($docCommentText, $this->name);
+                $this->readPhpDoc($docComment, $this->name);
             }
         }
 
@@ -161,7 +162,7 @@ class PHPParameter extends BasePHPElement
 
         $docComment = $method->getDocComment();
         if ($docComment) {
-            if (\stripos($docComment, 'inheritdoc') !== false) {
+            if (\stripos($docComment, '@inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
@@ -233,8 +234,16 @@ class PHPParameter extends BasePHPElement
         return null;
     }
 
-    private function readPhpDoc(string $docComment, string $parameterName): void
+    /**
+     * @param Doc|string $doc
+     */
+    private function readPhpDoc($doc, string $parameterName): void
     {
+        if ($doc instanceof Doc) {
+            $docComment = $doc->getText();
+        } else {
+            $docComment = $doc;
+        }
         if ($docComment === '') {
             return;
         }
@@ -302,6 +311,45 @@ class PHPParameter extends BasePHPElement
 
                         $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                     }
+                }
+            }
+
+            if (
+                $doc instanceof Doc
+                &&
+                !$this->phpDocRaw
+            ) {
+                $tokens = Utils::modernPhpdocTokens($doc->getText());
+
+                $paramTagFound = null;
+                $paramContent = '';
+                foreach ($tokens->getTokens() as $token) {
+                    $content = $token[0] ?? '';
+
+                    if ($content === '@param' || $content === '@psalm-param' || $content === '@phpstan-param') {
+                        $paramContent = '';
+                        $paramTagFound = true;
+
+                        continue;
+                    }
+
+                    if ($content === '$' . $parameterName) {
+                        break;
+                    }
+
+                    if (\strpos($content, '$') === 0) {
+                        $paramContent = '';
+                        $paramTagFound = false;
+                    }
+
+                    if ($paramTagFound) {
+                        $paramContent .= $content;
+                    }
+                }
+
+                $paramContent = \trim($paramContent);
+                if ($paramContent) {
+                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
                 }
             }
         } catch (\Exception $e) {

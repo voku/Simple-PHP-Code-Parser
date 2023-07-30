@@ -20,6 +20,8 @@ use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
+use function React\Async\await;
+use function React\Promise\all;
 
 final class PhpCodeParser
 {
@@ -344,9 +346,9 @@ final class PhpCodeParser
                 );
             }
 
-            $phpFilePromiseResponses = \Clue\React\Block\awaitAll($phpFilePromises);
+            $phpFilePromiseResponses = await(all($phpFilePromises));
             foreach ($phpFilePromiseResponses as $response) {
-                $response['content'] = \Clue\React\Block\await($response['content']);
+                $response['content'] = await($response['content']);
 
                 assert(is_string($response['content']));
                 assert(is_string($response['cacheKey']));

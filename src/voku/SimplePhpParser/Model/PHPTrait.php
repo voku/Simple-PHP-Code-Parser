@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Model;
 
+use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Trait_;
 use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -38,7 +39,7 @@ final class PHPTrait extends BasePHPClass
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $this->readPhpDocProperties($docComment->getText());
+            $this->readPhpDocProperties($docComment);
         }
 
         foreach ($node->getProperties() as $property) {
@@ -279,12 +280,15 @@ final class PHPTrait extends BasePHPClass
     }
 
     /**
-     * @param string $docComment
-     *
-     * @return void
+     * @param Doc|string $docComment
      */
-    private function readPhpDocProperties(string $docComment): void
+    private function readPhpDocProperties($doc): void
     {
+        if ($doc instanceof Doc) {
+            $docComment = $doc->getText();
+        } else {
+            $docComment = $doc;
+        }
         if ($docComment === '') {
             return;
         }

@@ -95,9 +95,9 @@ class PHPMethod extends PHPFunction
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $docComment = $docComment->getText();
+            $docCommentText = $docComment->getText();
 
-            if (\stripos($docComment, 'inheritdoc') !== false) {
+            if (\stripos($docCommentText, '@inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
@@ -185,7 +185,7 @@ class PHPMethod extends PHPFunction
 
         $docComment = $method->getDocComment();
         if ($docComment) {
-            if (\stripos($docComment, 'inheritdoc') !== false) {
+            if (\stripos($docComment, '@inheritdoc') !== false) {
                 $this->is_inheritdoc = true;
             }
 
