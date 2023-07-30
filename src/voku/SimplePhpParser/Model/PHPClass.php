@@ -68,7 +68,7 @@ class PHPClass extends BasePHPClass
         if (!empty($node->extends)) {
             $classExtended = '';
             foreach ($node->extends->parts as $part) {
-                $classExtended .= "\\" . $part;
+                $classExtended .= '\\' . $part;
             }
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
             /** @var class-string $classExtended */
@@ -109,7 +109,7 @@ class PHPClass extends BasePHPClass
             foreach ($node->implements as $interfaceObject) {
                 $interfaceFQN = '';
                 foreach ($interfaceObject->parts as $interface) {
-                    $interfaceFQN .= "\\" . $interface;
+                    $interfaceFQN .= '\\' . $interface;
                 }
                 $interfaceFQN = \ltrim($interfaceFQN, '\\');
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
