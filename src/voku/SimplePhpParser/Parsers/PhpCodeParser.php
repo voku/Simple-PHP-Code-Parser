@@ -335,7 +335,9 @@ final class PhpCodeParser
                 $phpFilePromises[] = $filesystem->detect($path)->then(
                     function (FileInterface $file) use ($path, $cacheKey) {
                         return [
-                            'content'  => $file->getContents()->then(static function (string $contents) { return $contents; }),
+                            'content'  => $file->getContents()->then(static function (string $contents) {
+                                return $contents;
+                            }),
                             'fileName' => $path,
                             'cacheKey' => $cacheKey,
                         ];
