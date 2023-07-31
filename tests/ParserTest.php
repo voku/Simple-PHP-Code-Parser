@@ -293,7 +293,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/',
             [],
-            ['/Dummy5|Dummy1[01]|Dummy8/']
+            ['/Dummy5|Dummy1[0|1|3]|Dummy8/']
         );
 
         $phpClasses = $phpCode->getClasses();
