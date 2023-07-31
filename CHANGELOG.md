@@ -1,5 +1,14 @@
 # Changelog
 
+### 0.20.0 (2023-07-31)
+
+- add support for "readonly" properties
+- replace deprecated "parts" property from nikic/PHP-Parser
+- use "phpstan/phpdoc-parser" as fallback for parameters e.g. for `callable()` types
+- use php types
+- add more tests
+
+
 ### 0.19.6 (2022-09-23)
 
 - try to fix autoload #11
