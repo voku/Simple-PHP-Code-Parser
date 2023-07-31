@@ -5,46 +5,29 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node;
+use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 
 abstract class BasePHPElement
 {
-    /**
-     * @var string
-     */
-    public $name = '';
+    public string $name = '';
 
     /**
      * @var string[]
      */
-    public $parseError = [];
+    public array $parseError = [];
 
-    /**
-     * @var int|null
-     */
-    public $line;
+    public ?int $line = null;
 
-    /**
-     * @var string|null
-     */
-    public $file;
+    public ?string $file = null;
 
-    /**
-     * @var int|null
-     */
-    public $pos;
+    public ?int $pos = null;
 
-    /**
-     * @var ParserContainer
-     */
-    public $parserContainer;
+    public ParserContainer $parserContainer;
 
-    /**
-     * @param ParserContainer $parserContainer
-     */
-    public function __construct($parserContainer)
+    public function __construct(ParserContainer $parserContainer)
     {
         $this->parserContainer = $parserContainer;
     }
@@ -66,11 +49,15 @@ abstract class BasePHPElement
 
     protected function getConstantFQN(NodeAbstract $node, string $nodeName): string
     {
-        // init
-        $namespace = '';
-
-        if ($node->getAttribute('parent') instanceof Namespace_ && !empty($node->getAttribute('parent')->name)) {
-            $namespace = '\\' . \implode('\\', $node->getAttribute('parent')->name->parts) . '\\';
+        $parent = $node->getAttribute('parent');
+        if (
+            $parent instanceof Namespace_
+            &&
+            $parent->name instanceof Name
+        ) {
+            $namespace = '\\' . \implode('\\', $parent->name->getParts()) . '\\';
+        } else {
+            $namespace = '';
         }
 
         return $namespace . $nodeName;
@@ -93,20 +80,21 @@ abstract class BasePHPElement
             &&
             \property_exists($node, 'namespacedName')
         ) {
-            /** @psalm-suppress NoInterfaceProperties ? */
-            $fqn = $node->namespacedName === null
-                ? $node->name->parts[0] ?? ''
-                : \implode('\\', $node->namespacedName->parts);
+            if ($node->namespacedName) {
+                $fqn = \implode('\\', $node->namespacedName->getParts());
+            } elseif (\property_exists($node, 'name') && $node->name) {
+                var_dump($node->name);
+                $fqn =  $node->name->name;
+            }
         }
+
+        /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
+        /** @var class-string $fqn */
+        $fqn = $fqn;
 
         return $fqn;
     }
 
-    /**
-     * @param \PhpParser\Node $node
-     *
-     * @return void
-     */
     protected function prepareNode(Node $node): void
     {
         $this->line = $node->getLine();

@@ -16,57 +16,30 @@ class PHPProperty extends BasePHPElement
      */
     public $defaultValue;
 
-    /**
-     * @var string|null
-     */
-    public $phpDocRaw;
+    public ?string $phpDocRaw = null;
+
+    public ?string $type = null;
+
+    public ?string $typeFromDefaultValue = null;
+
+    public ?string $typeFromPhpDoc = null;
+
+    public ?string $typeFromPhpDocSimple = null;
+
+    public ?string $typeFromPhpDocExtended = null;
+
+    public ?string $typeFromPhpDocMaybeWithComment = null;
 
     /**
-     * @var string|null
-     */
-    public $type;
-
-    /**
-     * @var string|null
-     */
-    public $typeFromDefaultValue;
-
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDoc;
-
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocSimple;
-
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocExtended;
-
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocMaybeWithComment;
-
-    /**
-     * @var string
-     *
      * @phpstan-var ''|'private'|'protected'|'public'
      */
-    public $access = '';
+    public string $access = '';
 
-    /**
-     * @var bool|null
-     */
-    public $is_static;
+    public ?bool $is_static = null;
 
-    /**
-     * @var bool|null
-     */
-    public $is_inheritdoc;
+    public ?bool $is_readonly = null;
+
+    public ?bool $is_inheritdoc = null;
 
     /**
      * @param Property    $node
@@ -81,6 +54,10 @@ class PHPProperty extends BasePHPElement
         $this->name = $this->getConstantFQN($node, $node->props[0]->name->name);
 
         $this->is_static = $node->isStatic();
+
+        if (method_exists($node, 'isReadonly')) {
+            $this->is_readonly = $node->isReadonly();
+        }
 
         $this->prepareNode($node);
 
@@ -97,11 +74,12 @@ class PHPProperty extends BasePHPElement
 
         if ($node->type !== null) {
             if (!$this->type) {
-                if (empty($node->type->name)) {
-                    if (!empty($node->type->parts)) {
-                        $this->type = '\\' . \implode('\\', $node->type->parts);
+                if (\method_exists($node->type, 'getParts')) {
+                    $parts = $node->type->getParts();
+                    if (!empty($parts)) {
+                        $this->type = '\\' . \implode('\\', $parts);
                     }
-                } else {
+                } elseif (\property_exists($node->type, 'name') && $node->type->name) {
                     $this->type = $node->type->name;
                 }
             }
@@ -163,6 +141,10 @@ class PHPProperty extends BasePHPElement
             if ($this->defaultValue !== null) {
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
             }
+        }
+
+        if (method_exists($property, 'isReadOnly')) {
+            $this->is_readonly = $property->isReadOnly();
         }
 
         $docComment = $property->getDocComment();

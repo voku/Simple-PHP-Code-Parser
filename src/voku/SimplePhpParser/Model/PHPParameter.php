@@ -17,55 +17,25 @@ class PHPParameter extends BasePHPElement
      */
     public $defaultValue;
 
-    /**
-     * @var string|null
-     */
-    public $phpDocRaw;
+    public ?string $phpDocRaw = null;
 
-    /**
-     * @var string|null
-     */
-    public $type;
+    public ?string $type = null;
 
-    /**
-     * @var string|null
-     */
-    public $typeFromDefaultValue;
+    public ?string $typeFromDefaultValue = null;
 
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDoc;
+    public ?string $typeFromPhpDoc = null;
 
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocSimple;
+    public ?string $typeFromPhpDocSimple = null;
 
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocExtended;
+    public ?string $typeFromPhpDocExtended = null;
 
-    /**
-     * @var string|null
-     */
-    public $typeFromPhpDocMaybeWithComment;
+    public ?string $typeFromPhpDocMaybeWithComment = null;
 
-    /**
-     * @var bool|null
-     */
-    public $is_vararg;
+    public ?bool $is_vararg = null;
 
-    /**
-     * @var bool|null
-     */
-    public $is_passed_by_ref;
+    public ?bool $is_passed_by_ref = null;
 
-    /**
-     * @var bool|null
-     */
-    public $is_inheritdoc;
+    public ?bool $is_inheritdoc = null;
 
     /**
      * @param Param        $parameter
@@ -104,11 +74,12 @@ class PHPParameter extends BasePHPElement
 
         if ($parameter->type !== null) {
             if (!$this->type) {
-                if (empty($parameter->type->name)) {
-                    if (!empty($parameter->type->parts)) {
-                        $this->type = '\\' . \implode('\\', $parameter->type->parts);
+                if (\method_exists($parameter->type, 'getParts')) {
+                    $parts = $parameter->type->getParts();
+                    if (!empty($parts)) {
+                        $this->type = '\\' . \implode('\\', $parts);
                     }
-                } else {
+                } elseif (\property_exists($parameter->type, 'name')) {
                     $this->type = $parameter->type->name;
                 }
             }
@@ -180,7 +151,7 @@ class PHPParameter extends BasePHPElement
             } else {
                 $this->type = Utils::normalizePhpType($type . '', true);
             }
-            if ($this->type && \class_exists($this->type, false)) {
+            if ($this->type && \class_exists($this->type, true)) {
                 $this->type = '\\' . \ltrim($this->type, '\\');
             }
 
@@ -339,7 +310,7 @@ class PHPParameter extends BasePHPElement
 
         $paramContent = null;
         foreach ($tokens->getTokens() as $token) {
-            $content = $token[0] ?? '';
+            $content = $token[0];
 
             if ($content === '@param' || $content === '@psalm-param' || $content === '@phpstan-param') {
                 // reset

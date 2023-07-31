@@ -68,11 +68,6 @@ class ParserContainer
         return $this->parse_errors;
     }
 
-    /**
-     * @param \voku\SimplePhpParser\Model\PHPConst $constant
-     *
-     * @return void
-     */
     public function addConstant(PHPConst $constant): void
     {
         $this->constants[$constant->name] = $constant;
@@ -183,11 +178,6 @@ class ParserContainer
         return $allInfo;
     }
 
-    /**
-     * @param \voku\SimplePhpParser\Model\PHPFunction $function
-     *
-     * @return void
-     */
     public function addFunction(PHPFunction $function): void
     {
         $this->functions[$function->name] = $function;
@@ -221,8 +211,6 @@ class ParserContainer
 
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPInterface> $interfaces
-     *
-     * @return void
      */
     public function setInterfaces($interfaces): void
     {
@@ -233,8 +221,6 @@ class ParserContainer
 
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPConst> $constants
-     *
-     * @return void
      */
     public function setConstants($constants): void
     {
@@ -245,8 +231,6 @@ class ParserContainer
 
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPFunction> $functions
-     *
-     * @return void
      */
     public function setFunctions($functions): void
     {
@@ -257,8 +241,6 @@ class ParserContainer
 
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPClass> $classes
-     *
-     * @return void
      */
     public function setClasses($classes): void
     {
@@ -269,8 +251,6 @@ class ParserContainer
 
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPTrait> $traits
-     *
-     * @return void
      */
     public function setTraits($traits): void
     {
@@ -291,11 +271,6 @@ class ParserContainer
         }
     }
 
-    /**
-     * @param \voku\SimplePhpParser\Model\PHPClass $class
-     *
-     * @return void
-     */
     public function addClass(PHPClass $class): void
     {
         $this->classes[$class->name ?: \md5(\serialize($class))] = $class;
@@ -319,11 +294,6 @@ class ParserContainer
         return $this->traits;
     }
 
-    /**
-     * @param \voku\SimplePhpParser\Model\PHPTrait $trait
-     *
-     * @return void
-     */
     public function addTrait(PHPTrait $trait): void
     {
         $this->traits[$trait->name ?: \md5(\serialize($trait))] = $trait;
@@ -347,11 +317,6 @@ class ParserContainer
         return $this->interfaces;
     }
 
-    /**
-     * @param \voku\SimplePhpParser\Model\PHPInterface $interface
-     *
-     * @return void
-     */
     public function addInterface(PHPInterface $interface): void
     {
         $this->interfaces[$interface->name ?: \md5(\serialize($interface))] = $interface;

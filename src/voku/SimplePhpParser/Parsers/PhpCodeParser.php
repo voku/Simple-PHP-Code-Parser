@@ -371,8 +371,6 @@ final class PhpCodeParser
      * @param \voku\SimplePhpParser\Model\PHPClass[] $classes
      * @param PHPInterface[]                         $interfaces
      * @param ParserContainer                        $parserContainer
-     *
-     * @return void
      */
     private static function mergeInheritdocData(
         \voku\SimplePhpParser\Model\PHPClass $class,

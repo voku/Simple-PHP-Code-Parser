@@ -19,51 +19,27 @@ class PHPFunction extends BasePHPElement
     /**
      * @var PHPParameter[]
      */
-    public $parameters = [];
+    public array $parameters = [];
+
+    public ?string $returnPhpDocRaw = null;
+
+    public ?string $returnType = null;
+
+    public ?string $returnTypeFromPhpDoc = null;
+
+    public ?string $returnTypeFromPhpDocSimple = null;
+
+    public ?string $returnTypeFromPhpDocExtended = null;
+
+    public ?string $returnTypeFromPhpDocMaybeWithComment = null;
+
+    public string $summary = '';
+
+    public string $description = '';
 
     /**
-     * @var string|null
-     */
-    public $returnPhpDocRaw;
-
-    /**
-     * @var string|null
-     */
-    public $returnType;
-
-    /**
-     * @var string|null
-     */
-    public $returnTypeFromPhpDoc;
-
-    /**
-     * @var string|null
-     */
-    public $returnTypeFromPhpDocSimple;
-
-    /**
-     * @var string|null
-     */
-    public $returnTypeFromPhpDocExtended;
-
-    /**
-     * @var string|null
-     */
-    public $returnTypeFromPhpDocMaybeWithComment;
-
-    /**
-     * @var string
-     */
-    public $summary = '';
-
-    /**
-     * @var string
-     */
-    public $description = '';
-
-    /**
-     * @param Function_ $node
-     * @param string|null      $dummy
+     * @param Function_   $node
+     * @param string|null $dummy
      *
      * @return $this
      */
@@ -83,8 +59,7 @@ class PHPFunction extends BasePHPElement
             if (!$this->returnType) {
                 if (\method_exists($node->returnType, 'toString')) {
                     $this->returnType = $node->returnType->toString();
-                } elseif (\property_exists($node->returnType, 'name')) {
-                    /** @psalm-suppress UndefinedPropertyFetch - FP? */
+                } elseif (\property_exists($node->returnType, 'name') && $node->returnType->name) {
                     $this->returnType = $node->returnType->name;
                 }
             }

@@ -26,12 +26,12 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @var string|null
      */
-    public $fileName;
+    public ?string $fileName;
 
     /**
      * @var \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
-    private $parserContainer;
+    private ParserContainer $parserContainer;
 
     /**
      * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer $parserContainer
@@ -84,7 +84,7 @@ final class ASTVisitor extends NodeVisitorAbstract
                 if (
                     $node->name instanceof Node\Name
                     &&
-                    $node->name->parts[0] === 'define'
+                    $node->name->getParts()[0] === 'define'
                 ) {
                     $constant = new PHPDefineConstant($this->parserContainer);
                     $constant = $constant->readObjectFromPhpNode($node);

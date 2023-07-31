@@ -10,33 +10,20 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPMethod extends PHPFunction
 {
     /**
-     * @var string
-     *
      * @phpstan-var ''|'private'|'protected'|'public'
      */
-    public $access = '';
+    public string $access = '';
+
+    public ?bool $is_static = null;
+
+    public ?bool $is_final = null;
+
+    public ?bool $is_inheritdoc = null;
 
     /**
-     * @var bool|null
-     */
-    public $is_static;
-
-    /**
-     * @var bool|null
-     */
-    public $is_final;
-
-    /**
-     * @var bool|null
-     */
-    public $is_inheritdoc;
-
-    /**
-     * @var string|null
-     *
      * @phpstan-var null|class-string
      */
-    public $parentName;
+    public ?string $parentName = null;
 
     /**
      * @param \PhpParser\Node\Stmt\ClassMethod $node
@@ -76,8 +63,7 @@ class PHPMethod extends PHPFunction
             if (!$this->returnType) {
                 if (\method_exists($node->returnType, 'toString')) {
                     $this->returnType = $node->returnType->toString();
-                } elseif (\property_exists($node->returnType, 'name')) {
-                    /** @psalm-suppress UndefinedPropertyFetch - FP? */
+                } elseif (\property_exists($node->returnType, 'name') && $node->returnType->name) {
                     $this->returnType = $node->returnType->name;
                 }
             }

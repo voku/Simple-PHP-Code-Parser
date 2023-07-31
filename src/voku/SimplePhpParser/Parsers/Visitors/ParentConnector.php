@@ -15,7 +15,7 @@ final class ParentConnector extends NodeVisitorAbstract
     /**
      * @var Node[]
      */
-    private $stack;
+    private array $stack;
 
     public function __construct()
     {

@@ -125,8 +125,27 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             $getFieldArray = $phpClasses[Dummy11::class]->methods['__construct'];
             static::assertSame('__construct', $getFieldArray->name);
             static::assertSame('\DateTimeImmutable', $getFieldArray->parameters['date']->type);
+
+            $isReadonly = $phpClasses[Dummy11::class]->properties['title']->is_readonly;
+            static::assertSame(true, $isReadonly);
         } else {
             static::markTestSkipped('only for PHP >= 8.1');
+        }
+    }
+
+    public function testReadonlyClass(): void
+    {
+        if (PHP_VERSION_ID >= 80200) {
+            $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy13.php');
+            $phpClasses = $phpCode->getClasses();
+
+            $isReadonly = $phpClasses[Dummy13::class]->is_readonly;
+            static::assertSame(true, $isReadonly);
+
+            $isReadonly = $phpClasses[Dummy13::class]->properties['lall']->is_readonly;
+            static::assertSame(true, $isReadonly);
+        } else {
+            static::markTestSkipped('only for PHP >= 8.2');
         }
     }
 

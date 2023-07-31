@@ -12,11 +12,9 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 final class PHPTrait extends BasePHPClass
 {
     /**
-     * @var string
-     *
      * @phpstan-var class-string
      */
-    public $name;
+    public string $name;
 
     /**
      * @param Trait_ $node
@@ -280,7 +278,7 @@ final class PHPTrait extends BasePHPClass
     }
 
     /**
-     * @param Doc|string $docComment
+     * @param Doc|string $doc
      */
     private function readPhpDocProperties($doc): void
     {

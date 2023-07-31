@@ -11,18 +11,16 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPInterface extends BasePHPClass
 {
     /**
-     * @var string
-     *
      * @phpstan-var class-string
      */
-    public $name;
+    public string $name;
 
     /**
      * @var string[]
      *
      * @phpstan-var class-string[]
      */
-    public $parentInterfaces = [];
+    public array $parentInterfaces = [];
 
     /**
      * @param Interface_ $node
@@ -67,7 +65,7 @@ class PHPInterface extends BasePHPClass
 
         if (!empty($node->extends)) {
             /** @var class-string $interfaceExtended */
-            $interfaceExtended = \implode('\\', $node->extends[0]->parts);
+            $interfaceExtended = \implode('\\', $node->extends[0]->getParts());
             $this->parentInterfaces[] = $interfaceExtended;
         }
 

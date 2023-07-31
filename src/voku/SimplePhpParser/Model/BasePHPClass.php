@@ -11,45 +11,29 @@ abstract class BasePHPClass extends BasePHPElement
     /**
      * @var array<string, PHPMethod>
      */
-    public $methods = [];
+    public array $methods = [];
 
     /**
      * @var array<string, PHPProperty>
      */
-    public $properties = [];
+    public array $properties = [];
 
     /**
      * @var array<string, PHPConst>
      */
-    public $constants = [];
+    public array $constants = [];
 
-    /**
-     * @var null|bool
-     */
-    public $is_final;
+    public ?bool $is_final = null;
 
-    /**
-     * @var null|bool
-     */
-    public $is_abstract;
+    public ?bool $is_abstract = null;
 
-    /**
-     * @var null|bool
-     */
-    public $is_anonymous;
+    public ?bool $is_readonly = null;
 
-    /**
-     * @var null|bool
-     */
-    public $is_cloneable;
+    public ?bool $is_anonymous = null;
 
-    /**
-     * @var null|bool
-     */
-    public $is_instantiable;
+    public ?bool $is_cloneable = null;
 
-    /**
-     * @var null|bool
-     */
-    public $is_iterable;
+    public ?bool $is_instantiable = null;
+
+    public ?bool $is_iterable = null;
 }

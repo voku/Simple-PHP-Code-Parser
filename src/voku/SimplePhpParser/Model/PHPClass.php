@@ -12,25 +12,21 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPClass extends BasePHPClass
 {
     /**
-     * @var string
-     *
      * @phpstan-var class-string
      */
-    public $name;
+    public string $name;
 
     /**
-     * @var string|null
-     *
      * @phpstan-var class-string|null
      */
-    public $parentClass;
+    public ?string $parentClass = null;
 
     /**
      * @var string[]
      *
      * @phpstan-var class-string[]
      */
-    public $interfaces = [];
+    public array $interfaces = [];
 
     /**
      * @param Class_ $node
@@ -47,6 +43,10 @@ class PHPClass extends BasePHPClass
         $this->is_final = $node->isFinal();
 
         $this->is_abstract = $node->isAbstract();
+
+        if (method_exists($node, 'isReadOnly')) {
+            $this->is_readonly = $node->isReadOnly();
+        }
 
         $this->is_anonymous = $node->isAnonymous();
 
@@ -66,13 +66,10 @@ class PHPClass extends BasePHPClass
         $this->collectTags($node);
 
         if (!empty($node->extends)) {
-            $classExtended = '';
-            foreach ($node->extends->parts as $part) {
-                $classExtended .= '\\' . $part;
-            }
+            $classExtended = implode('\\', $node->extends->getParts());
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
             /** @var class-string $classExtended */
-            $classExtended = \ltrim($classExtended, '\\');
+            $classExtended = $classExtended;
             $this->parentClass = $classExtended;
         }
 
@@ -88,6 +85,10 @@ class PHPClass extends BasePHPClass
                 $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name);
             } else {
                 $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
+            }
+
+            if ($this->is_readonly) {
+                $this->properties[$propertyNameTmp]->is_readonly = true;
             }
         }
 
@@ -107,11 +108,7 @@ class PHPClass extends BasePHPClass
 
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
-                $interfaceFQN = '';
-                foreach ($interfaceObject->parts as $interface) {
-                    $interfaceFQN .= '\\' . $interface;
-                }
-                $interfaceFQN = \ltrim($interfaceFQN, '\\');
+                $interfaceFQN = implode('\\', $interfaceObject->getParts());
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
                 /** @var class-string $interfaceFQN */
                 $interfaceFQN = $interfaceFQN;
@@ -147,6 +144,10 @@ class PHPClass extends BasePHPClass
 
         $this->is_abstract = $clazz->isAbstract();
 
+        if (method_exists($clazz, 'isReadOnly')) {
+            $this->is_readonly = $clazz->isReadOnly();
+        }
+
         $this->is_anonymous = $clazz->isAnonymous();
 
         $this->is_cloneable = $clazz->isCloneable();
@@ -181,6 +182,10 @@ class PHPClass extends BasePHPClass
         foreach ($clazz->getProperties() as $property) {
             $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);
             $this->properties[$propertyPhp->name] = $propertyPhp;
+
+            if ($this->is_readonly) {
+                $this->properties[$propertyPhp->name]->is_readonly = true;
+            }
         }
 
         foreach ($clazz->getInterfaceNames() as $interfaceName) {
@@ -360,8 +365,6 @@ class PHPClass extends BasePHPClass
 
     /**
      * @param Doc|string $doc
-     *
-     * @return void
      */
     private function readPhpDocProperties($doc): void
     {

@@ -12,85 +12,62 @@ trait PHPDocElement
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $linkTags = [];
+    public array $linkTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $seeTags = [];
+    public array $seeTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $sinceTags = [];
+    public array $sinceTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $deprecatedTags = [];
+    public array $deprecatedTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $metaTags = [];
+    public array $metaTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $internalTags = [];
+    public array $internalTags = [];
 
     /**
      * @var \phpDocumentor\Reflection\DocBlock\Tag[]
      */
-    public $removedTags = [];
+    public array $removedTags = [];
 
     /**
      * @var string[]
      *
      * @phpstan-var array<string, string>
      */
-    public $tagNames = [];
+    public array $tagNames = [];
+
+    public bool $hasLinkTag = false;
+
+    public bool $hasSeeTag = false;
+
+    public bool $hasSinceTag = false;
+
+    public bool $hasDeprecatedTag = false;
+
+    public bool $hasMetaTag = false;
 
     /**
      * @var bool
      */
-    public $hasLinkTag = false;
+    public bool $hasInternalTag = false;
 
-    /**
-     * @var bool
-     */
-    public $hasSeeTag = false;
+    public bool $hasRemovedTag = false;
 
-    /**
-     * @var bool
-     */
-    public $hasSinceTag = false;
-
-    /**
-     * @var bool
-     */
-    public $hasDeprecatedTag = false;
-
-    /**
-     * @var bool
-     */
-    public $hasMetaTag = false;
-
-    /**
-     * @var bool
-     */
-    public $hasInternalTag = false;
-
-    /**
-     * @var bool
-     */
-    public $hasRemovedTag = false;
-
-    /**
-     * @param \PhpParser\Node $node
-     *
-     * @return void
-     */
     protected function collectTags(Node $node): void
     {
         $docComment = $node->getDocComment();

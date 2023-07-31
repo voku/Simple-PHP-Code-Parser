@@ -109,8 +109,10 @@ final class Utils
                     \in_array('name', $node->value->getSubNodeNames(), true)
                     &&
                     \property_exists($node->value, 'name')
+                    &&
+                    $node->value->name
                 ) {
-                    $value = $node->value->name->parts[0] ?? $node->value->name->name;
+                    $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
                     return $value === 'null' ? null : $value;
                 }
             }
@@ -160,22 +162,22 @@ final class Utils
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
-            $returnTmp = \strtolower($node->name->parts[0]);
+            $parts = $node->name->getParts();
 
+            $returnTmp = \strtolower($parts[0]);
             if ($returnTmp === 'true') {
                 return true;
             }
-
             if ($returnTmp === 'false') {
                 return false;
             }
-
             if ($returnTmp === 'null') {
                 return null;
             }
 
-            if (\defined($node->name->parts[0])) {
-                return \constant($node->name->parts[0]);
+            $constantNameTmp = '\\' . \implode('\\', $parts);
+            if (\defined($constantNameTmp)) {
+                return \constant($constantNameTmp);
             }
         }
 

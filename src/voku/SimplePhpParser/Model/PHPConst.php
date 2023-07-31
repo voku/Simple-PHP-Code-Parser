@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node\Const_;
+use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
@@ -15,10 +16,7 @@ class PHPConst extends BasePHPElement
 {
     use PHPDocElement;
 
-    /**
-     * @var string|null
-     */
-    public $parentName;
+    public ?string $parentName = null;
 
     /**
      * @var array|bool|float|int|string|null
@@ -27,15 +25,9 @@ class PHPConst extends BasePHPElement
      */
     public $value;
 
-    /**
-     * @var string|null
-     */
-    public $visibility;
+    public ?string $visibility = null;
 
-    /**
-     * @var string|null
-     */
-    public $type;
+    public ?string $type = null;
 
     /**
      * @param Const_ $node
@@ -111,8 +103,12 @@ class PHPConst extends BasePHPElement
         $parent = $node->getAttribute('parent');
         $parentParentNode = $parent ? $parent->getAttribute('parent') : null;
 
-        if ($parentParentNode instanceof Namespace_ && !empty($parentParentNode->name)) {
-            $namespace = '\\' . \implode('\\', $parentParentNode->name->parts) . '\\';
+        if (
+            $parentParentNode instanceof Namespace_
+            &&
+            $parentParentNode->name instanceof Name
+        ) {
+            $namespace = '\\' . \implode('\\', $parentParentNode->name->getParts()) . '\\';
         } else {
             $namespace = '';
         }
