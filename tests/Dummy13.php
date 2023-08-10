@@ -9,6 +9,9 @@ namespace voku\tests;
  */
 readonly final class Dummy13 implements \voku\tests\DummyInterface
 {
+    /**
+     * @var callable(int): string
+     */
     public int $lall;
 
     public function __construct(int $lall)

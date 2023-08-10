@@ -142,6 +142,8 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             $isReadonly = $phpClasses[Dummy13::class]->is_readonly;
             static::assertSame(true, $isReadonly);
 
+            static::assertSame('callable(int): string', $phpClasses[Dummy13::class]->properties['lall']->typeFromPhpDocExtended);
+
             $isReadonly = $phpClasses[Dummy13::class]->properties['lall']->is_readonly;
             static::assertSame(true, $isReadonly);
         } else {

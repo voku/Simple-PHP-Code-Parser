@@ -253,12 +253,11 @@ class PHPParameter extends BasePHPElement
 
                     $parsedParamTagParam = (string) $parsedParamTag;
                     $spitedData = Utils::splitTypeAndVariable($parsedParamTag);
-                    $parsedParamTagStr = $spitedData['parsedParamTagStr'];
                     $variableName = $spitedData['variableName'];
 
                     // check only the current "param"-tag
                     if ($variableName && \strtoupper($parameterName) === \strtoupper($variableName)) {
-                        $this->phpDocRaw = (string) $parsedParamTag;
+                        $this->phpDocRaw = $parsedParamTagParam;
                         $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
                     }
 
@@ -285,15 +284,10 @@ class PHPParameter extends BasePHPElement
                     }
 
                     $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
-
-                    break;
                 }
             }
 
-            // fallback for e.g. `callable()`
-            if (!$this->phpDocRaw || !$this->typeFromPhpDocExtended) {
-                $this->readPhpDocByTokens($docComment, $parameterName);
-            }
+            $this->readPhpDocByTokens($docComment, $parameterName);
 
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);

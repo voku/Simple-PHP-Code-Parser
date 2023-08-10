@@ -235,12 +235,14 @@ class PHPProperty extends BasePHPElement
 
             if (!empty($parsedParamTags)) {
                 foreach ($parsedParamTags as $parsedParamTag) {
+                    $parsedParamTagParam = (string) $parsedParamTag;
+
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
                         $type = $parsedParamTag->getType();
 
                         $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
-                        $typeFromPhpDocMaybeWithCommentTmp = \trim((string) $parsedParamTag);
+                        $typeFromPhpDocMaybeWithCommentTmp = \trim($parsedParamTagParam);
                         if (
                             $typeFromPhpDocMaybeWithCommentTmp
                             &&
@@ -255,8 +257,8 @@ class PHPProperty extends BasePHPElement
                         }
                     }
 
-                    $this->phpDocRaw = (string) $parsedParamTag;
-                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc((string) $parsedParamTag);
+                    $this->phpDocRaw = $parsedParamTagParam;
+                    $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagParam);
                 }
             }
 
@@ -275,9 +277,42 @@ class PHPProperty extends BasePHPElement
                     $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                 }
             }
+
+            $this->readPhpDocByTokens($docComment);
+
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
+    }
+
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
+    private function readPhpDocByTokens(string $docComment): void
+    {
+        $tokens = Utils::modernPhpdocTokens($docComment);
+
+        $paramContent = null;
+        foreach ($tokens->getTokens() as $token) {
+            $content = $token[0];
+
+            if ($content === '@var' || $content === '@psalm-var' || $content === '@phpstan-var') {
+                // reset
+                $paramContent = '';
+
+                continue;
+            }
+
+            if ($paramContent !== null) {
+                $paramContent .= $content;
+            }
+        }
+
+        $paramContent = $paramContent ? \trim($paramContent) : null;
+        if ($paramContent) {
+            $this->phpDocRaw = $paramContent;
+            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
         }
     }
 }
