@@ -246,12 +246,7 @@ final class Utils
         }
 
         if ($type instanceof \phpDocumentor\Reflection\Types\Object_) {
-            $tmpObject = (string) $type->getFqsen();
-            if ($tmpObject) {
-                return $tmpObject;
-            }
-
-            return 'object';
+            return $type->__toString();
         }
 
         if (\is_array($type) || $type instanceof \phpDocumentor\Reflection\Types\Compound) {

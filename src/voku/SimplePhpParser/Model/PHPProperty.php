@@ -278,8 +278,13 @@ class PHPProperty extends BasePHPElement
                 }
             }
 
-            $this->readPhpDocByTokens($docComment);
+        } catch (\Exception $e) {
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
 
+        try {
+            $this->readPhpDocByTokens($docComment);
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
@@ -293,26 +298,28 @@ class PHPProperty extends BasePHPElement
     {
         $tokens = Utils::modernPhpdocTokens($docComment);
 
-        $paramContent = null;
+        $varContent = null;
         foreach ($tokens->getTokens() as $token) {
             $content = $token[0];
 
             if ($content === '@var' || $content === '@psalm-var' || $content === '@phpstan-var') {
                 // reset
-                $paramContent = '';
+                $varContent = '';
 
                 continue;
             }
 
-            if ($paramContent !== null) {
-                $paramContent .= $content;
+            if ($varContent !== null) {
+                $varContent .= $content;
             }
         }
 
-        $paramContent = $paramContent ? \trim($paramContent) : null;
-        if ($paramContent) {
-            $this->phpDocRaw = $paramContent;
-            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
+        $varContent = $varContent ? \trim($varContent) : null;
+        if ($varContent) {
+            if (!$this->phpDocRaw) {
+                $this->phpDocRaw = $varContent;
+            }
+            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($varContent);
         }
     }
 }

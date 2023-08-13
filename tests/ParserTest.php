@@ -143,9 +143,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             static::assertSame(true, $isReadonly);
 
             static::assertSame('callable(int): string', $phpClasses[Dummy13::class]->properties['lall']->typeFromPhpDocExtended);
-
             $isReadonly = $phpClasses[Dummy13::class]->properties['lall']->is_readonly;
             static::assertSame(true, $isReadonly);
+
+            static::assertSame('callable(): int<0, 1>', $phpClasses[Dummy13::class]->methods['callableTest']->returnTypeFromPhpDocExtended);
         } else {
             static::markTestSkipped('only for PHP >= 8.2');
         }
@@ -202,12 +203,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            null,
+            'array{stdClass: \stdClass, numbers: int|float $lall',
             $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
         );
 
         static::assertSame(
-            null,
+            'array{stdClass: \stdClass, numbers: int|float <foo/>',
             $phpClasses[Dummy8::class]->methods['foo_broken']->returnPhpDocRaw
         );
 
@@ -440,7 +441,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'typeFromPhpDocMaybeWithComment' => '\\Dummy',
                     'typeFromPhpDoc'                 => 'Dummy',
                     'typeFromPhpDocSimple'           => '\\Dummy',
-                    'typeFromPhpDocExtended'         => '\\Dummy',
+                    'typeFromPhpDocExtended'         => 'Dummy',
                 ],
                 'paramsPhpDocRaw' => [
                     'foo' => null,

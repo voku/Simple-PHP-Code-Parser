@@ -224,7 +224,14 @@ class PHPClass extends BasePHPClass
      *
      * @return array
      *
-     * @psalm-return array<string, array{type: null|string, typeFromPhpDocMaybeWithComment: null|string, typeFromPhpDoc: null|string, typeFromPhpDocSimple: null|string, typeFromPhpDocExtended: null|string, typeFromDefaultValue: null|string}>
+     * @psalm-return array<string, array{
+     *     type: null|string,
+     *     typeFromPhpDocMaybeWithComment: null|string,
+     *     typeFromPhpDoc: null|string,
+     *     typeFromPhpDocSimple: null|string,
+     *     typeFromPhpDocExtended: null|string,
+     *     typeFromDefaultValue: null|string
+     * }>
      */
     public function getPropertiesInfo(
         array $access = ['public', 'protected', 'private'],

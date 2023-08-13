@@ -271,5 +271,49 @@ class PHPFunction extends BasePHPElement
             );
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
+
+        try {
+            $this->readPhpDocByTokens($docComment);
+        } catch (\Exception $e) {
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
+    }
+
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
+    private function readPhpDocByTokens(string $docComment): void
+    {
+        $tokens = Utils::modernPhpdocTokens($docComment);
+
+        $returnContent = null;
+        foreach ($tokens->getTokens() as $token) {
+            $content = $token[0];
+
+            if ($content === '@return' || $content === '@psalm-return' || $content === '@phpstan-return') {
+                // reset
+                $returnContent = '';
+
+                continue;
+            }
+
+            // We can stop if we found the end.
+            if ($content === '*/') {
+                break;
+            }
+
+            if ($returnContent !== null) {
+                $returnContent .= $content;
+            }
+        }
+
+        $returnContent = $returnContent ? \trim($returnContent) : null;
+        if ($returnContent) {
+            if (!$this->returnPhpDocRaw) {
+                $this->returnPhpDocRaw = $returnContent;
+            }
+            $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($returnContent);
+        }
     }
 }

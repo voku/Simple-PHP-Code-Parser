@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.20.1 (2023-08-11)
+
+- use "phpstan/phpdoc-parser" for more phpdocs
+
 ### 0.20.0 (2023-07-31)
 
 - add support for "readonly" properties

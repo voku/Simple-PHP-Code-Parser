@@ -287,8 +287,13 @@ class PHPParameter extends BasePHPElement
                 }
             }
 
-            $this->readPhpDocByTokens($docComment, $parameterName);
+        } catch (\Exception $e) {
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
 
+        try {
+            $this->readPhpDocByTokens($docComment, $parameterName);
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
@@ -325,7 +330,9 @@ class PHPParameter extends BasePHPElement
 
         $paramContent = $paramContent ? \trim($paramContent) : null;
         if ($paramContent) {
-            $this->phpDocRaw = $paramContent . ' ' . '$' . $parameterName;
+            if (!$this->phpDocRaw) {
+                $this->phpDocRaw = $paramContent . ' ' . '$' . $parameterName;
+            }
             $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
         }
     }
