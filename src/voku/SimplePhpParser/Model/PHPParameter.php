@@ -286,7 +286,6 @@ class PHPParameter extends BasePHPElement
                     $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                 }
             }
-
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
