@@ -7,7 +7,7 @@ namespace voku\tests;
 /**
  * @internal
  */
-readonly final class Dummy13 implements \voku\tests\DummyInterface
+final readonly class Dummy13 implements \voku\tests\DummyInterface
 {
     /**
      * @var callable(int): string
@@ -22,8 +22,11 @@ readonly final class Dummy13 implements \voku\tests\DummyInterface
     /**
      * @return callable(): int<0,1>
      */
-    public function callableTest(): callable {
-        return static function() { return 1; };
+    public function callableTest(): callable
+    {
+        return static function () {
+            return 1;
+        };
     }
 
     /**
