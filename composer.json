@@ -17,7 +17,7 @@
     ],
     "require": {
         "php": ">=7.4",
-        "react/async": "~3.0.0 || ~4.1.0",
+        "react/async": "~4.3.0",
         "react/filesystem": "^0.2@dev",
         "phpdocumentor/type-resolver": "~1.7.2",
         "phpdocumentor/reflection-docblock": "~5.3",
