@@ -74,13 +74,13 @@ class PHPParameter extends BasePHPElement
 
         if ($parameter->type !== null) {
             if (!$this->type) {
-                if (\method_exists($parameter->type, 'getParts')) {
-                    $parts = $parameter->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
+                $typeStr = Utils::typeNodeToString($parameter->type);
+                if ($typeStr !== null) {
+                    if (\method_exists($parameter->type, 'getParts')) {
+                        $this->type = '\\' . $typeStr;
+                    } else {
+                        $this->type = $typeStr;
                     }
-                } elseif (\property_exists($parameter->type, 'name')) {
-                    $this->type = $parameter->type->name;
                 }
             }
 

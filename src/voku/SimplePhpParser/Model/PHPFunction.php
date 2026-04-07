@@ -57,10 +57,9 @@ class PHPFunction extends BasePHPElement
 
         if ($node->returnType) {
             if (!$this->returnType) {
-                if (\method_exists($node->returnType, 'toString')) {
-                    $this->returnType = $node->returnType->toString();
-                } elseif (\property_exists($node->returnType, 'name') && $node->returnType->name) {
-                    $this->returnType = $node->returnType->name;
+                $returnTypeStr = Utils::typeNodeToString($node->returnType);
+                if ($returnTypeStr !== null) {
+                    $this->returnType = $returnTypeStr;
                 }
             }
 

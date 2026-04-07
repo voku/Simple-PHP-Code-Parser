@@ -30,6 +30,11 @@ class PHPConst extends BasePHPElement
     public ?string $type = null;
 
     /**
+     * Type from the constant's native type declaration (PHP 8.3+).
+     */
+    public ?string $typeFromDeclaration = null;
+
+    /**
      * @param Const_ $node
      * @param null   $dummy
      *
@@ -57,6 +62,14 @@ class PHPConst extends BasePHPElement
             }
 
             $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
+
+            // Typed class constants (PHP 8.3+)
+            if (\property_exists($parentNode, 'type') && $parentNode->type !== null) {
+                $typeDeclStr = Utils::typeNodeToString($parentNode->type);
+                if ($typeDeclStr !== null) {
+                    $this->typeFromDeclaration = $typeDeclStr;
+                }
+            }
         }
 
         $this->collectTags($node);
@@ -93,6 +106,14 @@ class PHPConst extends BasePHPElement
             $this->visibility = 'protected';
         } else {
             $this->visibility = 'public';
+        }
+
+        // Typed class constants (PHP 8.3+)
+        if (\method_exists($constant, 'getType')) {
+            $reflType = $constant->getType();
+            if ($reflType !== null) {
+                $this->typeFromDeclaration = (string) $reflType;
+            }
         }
 
         return $this;

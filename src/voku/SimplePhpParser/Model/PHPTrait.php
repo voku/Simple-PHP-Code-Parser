@@ -64,6 +64,23 @@ final class PHPTrait extends BasePHPClass
             }
         }
 
+        // Constants in traits (PHP 8.2+)
+        foreach ($node->getConstants() as $constNode) {
+            foreach ($constNode->consts as $const) {
+                $constNameTmp = $const->name->name;
+
+                if (isset($this->constants[$constNameTmp])) {
+                    $this->constants[$constNameTmp] = $this->constants[$constNameTmp]->readObjectFromPhpNode($const);
+                } else {
+                    $this->constants[$constNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromPhpNode($const);
+                }
+
+                if (!$this->constants[$constNameTmp]->file) {
+                    $this->constants[$constNameTmp]->file = $this->file;
+                }
+            }
+        }
+
         return $this;
     }
 
