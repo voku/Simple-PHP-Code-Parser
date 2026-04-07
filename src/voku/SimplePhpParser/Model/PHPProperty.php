@@ -66,8 +66,8 @@ class PHPProperty extends BasePHPElement
             $this->is_readonly = $node->isReadonly();
         }
 
-        // Extract PHP 8.0+ attributes
-        if (!empty($node->attrGroups)) {
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($node->attrGroups)) {
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 

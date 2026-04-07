@@ -113,8 +113,8 @@ class PHPParameter extends BasePHPElement
 
         $this->is_passed_by_ref = $parameter->byRef;
 
-        // Extract PHP 8.0+ attributes
-        if (!empty($parameter->attrGroups)) {
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($parameter->attrGroups)) {
             $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
         }
 

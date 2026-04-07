@@ -113,7 +113,11 @@ final class Utils
                     &&
                     $node->value->name
                 ) {
-                    $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    if ($node->value->name instanceof \PhpParser\Node\Name) {
+                        $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    } else {
+                        $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
+                    }
                     return $value === 'null' ? null : $value;
                 }
             }
@@ -571,7 +575,18 @@ final class Utils
         $result = [];
         foreach ($attrGroups as $group) {
             foreach ($group->attrs as $attr) {
-                $name = $attr->name->toString();
+                // If NameResolver has already resolved the name to FullyQualified,
+                // use that; otherwise check resolvedName attribute, then fall back
+                if ($attr->name instanceof \PhpParser\Node\Name\FullyQualified) {
+                    $name = $attr->name->toString();
+                } else {
+                    $resolvedName = $attr->name->getAttribute('resolvedName');
+                    if ($resolvedName instanceof \PhpParser\Node\Name) {
+                        $name = $resolvedName->toString();
+                    } else {
+                        $name = $attr->name->toString();
+                    }
+                }
 
                 $arguments = [];
                 foreach ($attr->args as $arg) {

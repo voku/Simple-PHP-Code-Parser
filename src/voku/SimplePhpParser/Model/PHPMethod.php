@@ -98,11 +98,13 @@ class PHPMethod extends PHPFunction
 
         $this->is_static = $node->isStatic();
 
-        // Extract PHP 8.0+ attributes
-        if (!empty($node->attrGroups)) {
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($node->attrGroups)) {
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
 
-            // Detect #[\Override] (PHP 8.3+)
+        // Detect #[\Override] (PHP 8.3+)
+        if ($this->is_override === null) {
             foreach ($this->attributes as $attr) {
                 if ($attr->name === 'Override' || $attr->name === '\\Override') {
                     $this->is_override = true;

@@ -1441,4 +1441,171 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
         static::assertArrayHasKey(DummyEnumUnit::class, $phpEnums);
         static::assertArrayHasKey(DummyEnumInt::class, $phpEnums);
     }
+
+    public function testAttributesOnClass(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyWithAttributes::class, $phpClasses);
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Class-level attributes
+        static::assertNotEmpty($class->attributes);
+        static::assertSame('voku\tests\DummyAttribute', $class->attributes[0]->name);
+        static::assertSame('TestClass', $class->attributes[0]->arguments['name']);
+        static::assertSame(1, $class->attributes[0]->arguments['priority']);
+    }
+
+    public function testAttributesOnProperty(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Property-level attributes
+        static::assertNotEmpty($class->properties['name']->attributes);
+        static::assertSame('voku\tests\DummyPropertyAttribute', $class->properties['name']->attributes[0]->name);
+        static::assertTrue($class->properties['name']->attributes[0]->arguments['required']);
+
+        // Property without required arg — default value
+        static::assertNotEmpty($class->properties['age']->attributes);
+        static::assertSame('voku\tests\DummyPropertyAttribute', $class->properties['age']->attributes[0]->name);
+    }
+
+    public function testAttributesOnMethod(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Method-level attributes
+        static::assertNotEmpty($class->methods['apiMethod']->attributes);
+        static::assertSame('voku\tests\DummyMethodAttribute', $class->methods['apiMethod']->attributes[0]->name);
+        static::assertSame('/api/test', $class->methods['apiMethod']->attributes[0]->arguments['route']);
+
+        // Method without attributes
+        static::assertEmpty($class->methods['plainMethod']->attributes);
+    }
+
+    public function testAttributesOnParameter(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Parameter-level attributes
+        $param1 = $class->methods['apiMethod']->parameters['param1'];
+        static::assertNotEmpty($param1->attributes);
+        static::assertSame('voku\tests\DummyParameterAttribute', $param1->attributes[0]->name);
+        static::assertSame('query', $param1->attributes[0]->arguments['type']);
+
+        // Parameter without attributes
+        $param2 = $class->methods['apiMethod']->parameters['param2'];
+        static::assertEmpty($param2->attributes);
+    }
+
+    public function testOverrideAttribute(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyOverride.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyOverrideChild::class, $phpClasses);
+
+        $child = $phpClasses[DummyOverrideChild::class];
+
+        // greet has #[\Override]
+        static::assertTrue($child->methods['greet']->is_override);
+
+        // farewell does NOT have #[\Override]
+        static::assertNull($child->methods['farewell']->is_override);
+
+        // newMethod does NOT have #[\Override]
+        static::assertNull($child->methods['newMethod']->is_override);
+
+        // Also check the Override attribute is in the attributes array
+        static::assertNotEmpty($child->methods['greet']->attributes);
+        $foundOverride = false;
+        foreach ($child->methods['greet']->attributes as $attr) {
+            if ($attr->name === 'Override') {
+                $foundOverride = true;
+            }
+        }
+        static::assertTrue($foundOverride, '#[Override] should be in the attributes array');
+    }
+
+    public function testModernSyntaxParsing(): void
+    {
+        // Verify the parser doesn't choke on modern PHP 8.x syntax
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyModernSyntax.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyFirstClassCallable::class, $phpClasses);
+
+        $class = $phpClasses[DummyFirstClassCallable::class];
+
+        // first-class callable method has Closure return type
+        static::assertSame('Closure', $class->methods['getCallable']->returnType);
+
+        // match expression method parses fine
+        static::assertSame('string', $class->methods['matchExample']->returnType);
+        static::assertSame('string', $class->methods['matchExample']->parameters['status']->type);
+
+        // named arguments example
+        static::assertSame('string', $class->methods['namedArgExample']->returnType);
+
+        // nullsafe operator example
+        static::assertSame('null|string', $class->methods['nullsafeExample']->returnType);
+    }
+
+    public function testAttributeFromStringInput(): void
+    {
+        $code = '
+        <?php
+        #[\Attribute]
+        class MyCustomAttr {
+            public function __construct(public string $value = "") {}
+        }
+
+        #[MyCustomAttr(value: "test")]
+        class TestTarget {
+            #[MyCustomAttr(value: "prop")]
+            public string $field = "";
+
+            #[MyCustomAttr(value: "method")]
+            public function doSomething(#[MyCustomAttr(value: "param")] int $x): void {}
+        }
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('TestTarget', $phpClasses);
+
+        $class = $phpClasses['TestTarget'];
+
+        // Class-level attribute
+        static::assertNotEmpty($class->attributes);
+        static::assertSame('MyCustomAttr', $class->attributes[0]->name);
+        static::assertSame('test', $class->attributes[0]->arguments['value']);
+
+        // Property-level attribute
+        static::assertNotEmpty($class->properties['field']->attributes);
+        static::assertSame('MyCustomAttr', $class->properties['field']->attributes[0]->name);
+        static::assertSame('prop', $class->properties['field']->attributes[0]->arguments['value']);
+
+        // Method-level attribute
+        static::assertNotEmpty($class->methods['doSomething']->attributes);
+        static::assertSame('MyCustomAttr', $class->methods['doSomething']->attributes[0]->name);
+        static::assertSame('method', $class->methods['doSomething']->attributes[0]->arguments['value']);
+
+        // Parameter-level attribute
+        static::assertNotEmpty($class->methods['doSomething']->parameters['x']->attributes);
+        static::assertSame('MyCustomAttr', $class->methods['doSomething']->parameters['x']->attributes[0]->name);
+        static::assertSame('param', $class->methods['doSomething']->parameters['x']->attributes[0]->arguments['value']);
+    }
 }
