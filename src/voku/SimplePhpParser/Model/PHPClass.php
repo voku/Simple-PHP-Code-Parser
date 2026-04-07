@@ -60,7 +60,7 @@ class PHPClass extends BasePHPClass
             if (\class_exists($this->name, true)) {
                 $classExists = true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // nothing
         }
         if ($classExists) {
@@ -177,7 +177,7 @@ class PHPClass extends BasePHPClass
                 ) {
                     $classExists = true;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // nothing
             }
             if ($classExists) {

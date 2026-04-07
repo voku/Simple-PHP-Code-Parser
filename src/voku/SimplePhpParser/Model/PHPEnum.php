@@ -62,7 +62,7 @@ class PHPEnum extends BasePHPClass
             if (\class_exists($this->name, true) || \enum_exists($this->name, true)) {
                 $enumExists = true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // nothing
         }
         if ($enumExists) {

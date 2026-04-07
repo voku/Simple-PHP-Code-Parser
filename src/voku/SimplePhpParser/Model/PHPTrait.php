@@ -33,7 +33,15 @@ final class PHPTrait extends BasePHPClass
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
-        if (\trait_exists($this->name, true)) {
+        $traitExists = false;
+        try {
+            if (\trait_exists($this->name, true)) {
+                $traitExists = true;
+            }
+        } catch (\Throwable $e) {
+            // nothing
+        }
+        if ($traitExists) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromReflection($reflectionClass);
         }

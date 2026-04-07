@@ -44,7 +44,7 @@ class PHPInterface extends BasePHPClass
             if (\interface_exists($this->name, true)) {
                 $interfaceExists = true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // nothing
         }
         if ($interfaceExists) {
@@ -131,7 +131,7 @@ class PHPInterface extends BasePHPClass
                 ) {
                     $interfaceExists = true;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // nothing
             }
             if ($interfaceExists) {
