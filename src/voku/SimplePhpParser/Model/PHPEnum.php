@@ -52,6 +52,11 @@ class PHPEnum extends BasePHPClass
             $this->scalarType = $node->scalarType->toString();
         }
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         $enumExists = false;
         try {
             if (\class_exists($this->name, true) || \enum_exists($this->name, true)) {
@@ -147,6 +152,9 @@ class PHPEnum extends BasePHPClass
         }
 
         $this->is_final = $clazz->isFinal();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
         if ($clazz instanceof ReflectionEnum) {
             $backingType = $clazz->getBackingType();

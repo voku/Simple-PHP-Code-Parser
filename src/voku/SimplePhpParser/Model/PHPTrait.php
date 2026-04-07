@@ -28,6 +28,11 @@ final class PHPTrait extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         if (\trait_exists($this->name, true)) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromReflection($reflectionClass);
@@ -120,6 +125,9 @@ final class PHPTrait extends BasePHPClass
         $this->is_instantiable = $clazz->isInstantiable();
 
         $this->is_iterable = $clazz->isIterable();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
         foreach ($clazz->getProperties() as $property) {
             $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);

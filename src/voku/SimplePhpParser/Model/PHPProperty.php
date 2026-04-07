@@ -42,6 +42,13 @@ class PHPProperty extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.0+ attributes on this property.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Property    $node
      * @param string|null $classStr
      *
@@ -57,6 +64,11 @@ class PHPProperty extends BasePHPElement
 
         if (method_exists($node, 'isReadonly')) {
             $this->is_readonly = $node->isReadonly();
+        }
+
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
         $this->prepareNode($node);
@@ -128,6 +140,9 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->is_static = $property->isStatic();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($property);
 
         if ($this->is_static) {
             try {

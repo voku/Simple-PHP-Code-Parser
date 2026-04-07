@@ -35,6 +35,13 @@ class PHPConst extends BasePHPElement
     public ?string $typeFromDeclaration = null;
 
     /**
+     * PHP 8.0+ attributes on this constant.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Const_ $node
      * @param null   $dummy
      *
@@ -69,6 +76,11 @@ class PHPConst extends BasePHPElement
                 if ($typeDeclStr !== null) {
                     $this->typeFromDeclaration = $typeDeclStr;
                 }
+            }
+
+            // Extract PHP 8.0+ attributes
+            if (!empty($parentNode->attrGroups)) {
+                $this->attributes = Utils::extractAttributesFromAstNode($parentNode->attrGroups);
             }
         }
 
@@ -115,6 +127,9 @@ class PHPConst extends BasePHPElement
                 $this->typeFromDeclaration = (string) $reflType;
             }
         }
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($constant);
 
         return $this;
     }

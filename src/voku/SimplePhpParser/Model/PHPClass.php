@@ -50,6 +50,11 @@ class PHPClass extends BasePHPClass
 
         $this->is_anonymous = $node->isAnonymous();
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         $classExists = false;
         try {
             if (\class_exists($this->name, true)) {
@@ -155,6 +160,9 @@ class PHPClass extends BasePHPClass
         $this->is_instantiable = $clazz->isInstantiable();
 
         $this->is_iterable = $clazz->isIterable();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
         $parent = $clazz->getParentClass();
         if ($parent) {

@@ -38,6 +38,13 @@ class PHPParameter extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.0+ attributes on this parameter.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Param        $parameter
      * @param FunctionLike $node
      * @param mixed|null   $classStr
@@ -105,6 +112,11 @@ class PHPParameter extends BasePHPElement
         $this->is_vararg = $parameter->variadic;
 
         $this->is_passed_by_ref = $parameter->byRef;
+
+        // Extract PHP 8.0+ attributes
+        if (!empty($parameter->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+        }
 
         return $this;
     }
@@ -181,6 +193,9 @@ class PHPParameter extends BasePHPElement
         $this->is_vararg = $parameter->isVariadic();
 
         $this->is_passed_by_ref = $parameter->isPassedByReference();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($parameter);
 
         return $this;
     }

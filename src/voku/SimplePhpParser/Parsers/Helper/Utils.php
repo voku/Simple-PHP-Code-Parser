@@ -9,6 +9,7 @@ use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
+use voku\SimplePhpParser\Model\PHPAttribute;
 
 final class Utils
 {
@@ -556,6 +557,62 @@ final class Utils
         }
 
         return null;
+    }
+
+    /**
+     * Extract PHPAttribute instances from AST node attribute groups.
+     *
+     * @param \PhpParser\Node\AttributeGroup[] $attrGroups
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromAstNode(array $attrGroups): array
+    {
+        $result = [];
+        foreach ($attrGroups as $group) {
+            foreach ($group->attrs as $attr) {
+                $name = $attr->name->toString();
+
+                $arguments = [];
+                foreach ($attr->args as $arg) {
+                    $argValue = self::getPhpParserValueFromNode($arg);
+                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                        $argValue = null;
+                    }
+
+                    if ($arg->name !== null) {
+                        $arguments[$arg->name->name] = $argValue;
+                    } else {
+                        $arguments[] = $argValue;
+                    }
+                }
+
+                $result[] = new PHPAttribute($name, $arguments);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
+     *
+     * @param \ReflectionClass|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromReflection($reflection): array
+    {
+        if (!\method_exists($reflection, 'getAttributes')) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($reflection->getAttributes() as $attr) {
+            $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());
+        }
+
+        return $result;
     }
 
     private static function findParentClassDeclaringConstant(

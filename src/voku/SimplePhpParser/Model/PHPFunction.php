@@ -21,6 +21,13 @@ class PHPFunction extends BasePHPElement
      */
     public array $parameters = [];
 
+    /**
+     * PHP 8.0+ attributes on this function.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
     public ?string $returnPhpDocRaw = null;
 
     public ?string $returnType = null;
@@ -48,6 +55,11 @@ class PHPFunction extends BasePHPElement
         $this->prepareNode($node);
 
         $this->name = static::getFQN($node);
+
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
 
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\function_exists($this->name)) {
@@ -129,6 +141,9 @@ class PHPFunction extends BasePHPElement
     public function readObjectFromReflection($function): self
     {
         $this->name = $function->getName();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($function);
 
         if (!$this->line) {
             $lineTmp = $function->getStartLine();

@@ -21,6 +21,11 @@ class PHPMethod extends PHPFunction
     public ?bool $is_inheritdoc = null;
 
     /**
+     * Whether the method has the #[\Override] attribute.
+     */
+    public ?bool $is_override = null;
+
+    /**
      * @phpstan-var null|class-string
      */
     public ?string $parentName = null;
@@ -93,6 +98,20 @@ class PHPMethod extends PHPFunction
 
         $this->is_static = $node->isStatic();
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+
+            // Detect #[\Override] (PHP 8.3+)
+            foreach ($this->attributes as $attr) {
+                if ($attr->name === 'Override' || $attr->name === '\\Override') {
+                    $this->is_override = true;
+
+                    break;
+                }
+            }
+        }
+
         if ($node->isPrivate()) {
             $this->access = 'private';
         } elseif ($node->isProtected()) {
@@ -150,6 +169,18 @@ class PHPMethod extends PHPFunction
         $this->is_static = $method->isStatic();
 
         $this->is_final = $method->isFinal();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($method);
+
+        // Detect #[\Override] (PHP 8.3+)
+        foreach ($this->attributes as $attr) {
+            if ($attr->name === 'Override' || $attr->name === '\\Override') {
+                $this->is_override = true;
+
+                break;
+            }
+        }
 
         $returnType = $method->getReturnType();
         if ($returnType !== null) {
