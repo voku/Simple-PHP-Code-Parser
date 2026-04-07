@@ -203,7 +203,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall',
+            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
             $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
         );
 

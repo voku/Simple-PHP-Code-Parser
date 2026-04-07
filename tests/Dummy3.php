@@ -254,7 +254,7 @@ namespace voku\tests {
          *
          * @return void
          */
-        public function __construct(\Psr\Container\ContainerInterface $container = null)
+        public function __construct(?\Psr\Container\ContainerInterface $container = null)
         {
         }
 
