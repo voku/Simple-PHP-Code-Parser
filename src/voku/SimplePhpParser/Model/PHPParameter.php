@@ -73,23 +73,9 @@ class PHPParameter extends BasePHPElement
         }
 
         if ($parameter->type !== null) {
-            if (!$this->type) {
-                if (\method_exists($parameter->type, 'getParts')) {
-                    $parts = $parameter->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
-                    }
-                } elseif (\property_exists($parameter->type, 'name')) {
-                    $this->type = $parameter->type->name;
-                }
-            }
-
-            if ($parameter->type instanceof \PhpParser\Node\NullableType) {
-                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                    $this->type = 'null|' . $this->type;
-                } elseif (!$this->type) {
-                    $this->type = 'null|mixed';
-                }
+            $type = Utils::typeNodeToString($parameter->type);
+            if ($type !== null) {
+                $this->type = $type;
             }
         }
 

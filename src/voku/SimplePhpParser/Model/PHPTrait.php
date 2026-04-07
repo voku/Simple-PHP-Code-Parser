@@ -28,7 +28,7 @@ final class PHPTrait extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
-        if (\trait_exists($this->name, true)) {
+        if (self::canAutoloadFromPhpNode($node) && \trait_exists($this->name, true)) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromReflection($reflectionClass);
         }

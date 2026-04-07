@@ -35,12 +35,14 @@ class PHPInterface extends BasePHPClass
         $this->name = static::getFQN($node);
 
         $interfaceExists = false;
-        try {
-            if (\interface_exists($this->name, true)) {
-                $interfaceExists = true;
+        if (self::canAutoloadFromPhpNode($node)) {
+            try {
+                if (\interface_exists($this->name, true)) {
+                    $interfaceExists = true;
+                }
+            } catch (\Exception $e) {
+                // nothing
             }
-        } catch (\Exception $e) {
-            // nothing
         }
         if ($interfaceExists) {
             $reflectionInterface = Utils::createClassReflectionInstance($this->name);

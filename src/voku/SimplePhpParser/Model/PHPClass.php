@@ -51,12 +51,14 @@ class PHPClass extends BasePHPClass
         $this->is_anonymous = $node->isAnonymous();
 
         $classExists = false;
-        try {
-            if (\class_exists($this->name, true)) {
-                $classExists = true;
+        if (self::canAutoloadFromPhpNode($node)) {
+            try {
+                if (\class_exists($this->name, true)) {
+                    $classExists = true;
+                }
+            } catch (\Exception $e) {
+                // nothing
             }
-        } catch (\Exception $e) {
-            // nothing
         }
         if ($classExists) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);

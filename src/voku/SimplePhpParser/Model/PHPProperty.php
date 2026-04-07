@@ -73,23 +73,9 @@ class PHPProperty extends BasePHPElement
         }
 
         if ($node->type !== null) {
-            if (!$this->type) {
-                if (\method_exists($node->type, 'getParts')) {
-                    $parts = $node->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
-                    }
-                } elseif (\property_exists($node->type, 'name') && $node->type->name) {
-                    $this->type = $node->type->name;
-                }
-            }
-
-            if ($node->type instanceof \PhpParser\Node\NullableType) {
-                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                    $this->type = 'null|' . $this->type;
-                } elseif (!$this->type) {
-                    $this->type = 'null|mixed';
-                }
+            $type = Utils::typeNodeToString($node->type);
+            if ($type !== null) {
+                $this->type = $type;
             }
         }
 

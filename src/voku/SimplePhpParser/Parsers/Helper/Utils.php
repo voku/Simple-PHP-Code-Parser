@@ -233,6 +233,84 @@ final class Utils
     }
 
     /**
+     * @param \PhpParser\Node|null $typeNode
+     *
+     * @return string|null
+     */
+    public static function typeNodeToString($typeNode): ?string
+    {
+        if ($typeNode === null) {
+            return null;
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\NullableType) {
+            $innerType = self::typeNodeToString($typeNode->type);
+
+            return $innerType !== null ? 'null|' . $innerType : 'null|mixed';
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\UnionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                if ($innerType instanceof \PhpParser\Node\IntersectionType) {
+                    $innerIntersection = self::typeNodeToString($innerType);
+                    $parts[] = $innerIntersection !== null ? '(' . $innerIntersection . ')' : 'mixed';
+
+                    continue;
+                }
+
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('|', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\IntersectionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('&', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Name) {
+            $typeString = $typeNode->toString();
+            if (
+                $typeString === 'self'
+                ||
+                $typeString === 'static'
+                ||
+                $typeString === 'parent'
+            ) {
+                return $typeString;
+            }
+
+            return '\\' . \ltrim($typeString, '\\');
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Identifier) {
+            return self::normalizePhpType($typeNode->name) ?? $typeNode->name;
+        }
+
+        if (\method_exists($typeNode, 'toString')) {
+            $typeString = $typeNode->toString();
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        if (\property_exists($typeNode, 'name') && $typeNode->name) {
+            $typeString = (string) $typeNode->name;
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        return null;
+    }
+
+    /**
      * @param \phpDocumentor\Reflection\Type|\phpDocumentor\Reflection\Type[]|null $type
      *
      * @return string

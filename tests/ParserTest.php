@@ -174,7 +174,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
         $phpClasses = $phpCode->getClasses();
 
-        static::assertSame('\Foooooooo', $phpClasses[Dummy8::class]->properties['foooooooo']->defaultValue);
+        static::assertSame('\voku\tests\Foooooooo', $phpClasses[Dummy8::class]->properties['foooooooo']->defaultValue);
 
         static::assertSame(Dummy8::class, $phpClasses[Dummy8::class]->name);
 
@@ -193,7 +193,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'float|int',
+            'int|float',
             $phpClasses[Dummy8::class]->methods['test_multi_param_type']->parameters['param1']->type
         );
 
@@ -203,7 +203,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall',
+            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
             $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
         );
 
@@ -1149,6 +1149,57 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
 
         $phpFunctionsInfo = $phpCode->getFunctionsInfo();
         self::assertSame('int', $phpFunctionsInfo['fsockopen']['paramsTypes']['errno']['typeFromPhpDoc']);
+    }
+
+    public function testResolvedComplexTypeHintsFromAst(): void
+    {
+        if (PHP_VERSION_ID < 80000) {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+
+        $phpCode = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+final class DummyFromString
+{
+    public function example(\DateTimeInterface|\DateTimeImmutable|null $date): void
+    {
+    }
+}
+PHP
+        );
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(
+            '\DateTimeInterface|\DateTimeImmutable|null',
+            $phpClasses['voku\tests\DummyFromString']->methods['example']->parameters['date']->type
+        );
+    }
+
+    public function testTypedClassConstantsFromAst(): void
+    {
+        if (PHP_VERSION_ID < 80300) {
+            static::markTestSkipped('only for PHP >= 8.3');
+        }
+
+        $phpCode = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+final class DummyTypedConstant
+{
+    public const string NAME = 'foo';
+}
+PHP
+        );
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame('string', $phpClasses['voku\tests\DummyTypedConstant']->constants['NAME']->type);
     }
 
     /**

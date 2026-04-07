@@ -231,13 +231,16 @@ final class PhpCodeParser
             return $errorHandler;
         }
 
+        $preparationTraverser = new NodeTraverser();
+        $preparationTraverser->addVisitor(new ParentConnector());
+        $preparationTraverser->addVisitor($nameResolver);
+        $preparationTraverser->traverse($parsedCode);
+
         $visitor->fileName = $fileName;
 
-        $traverser = new NodeTraverser();
-        $traverser->addVisitor(new ParentConnector());
-        $traverser->addVisitor($nameResolver);
-        $traverser->addVisitor($visitor);
-        $traverser->traverse($parsedCode);
+        $readerTraverser = new NodeTraverser();
+        $readerTraverser->addVisitor($visitor);
+        $readerTraverser->traverse($parsedCode);
 
         return $parserContainer;
     }
