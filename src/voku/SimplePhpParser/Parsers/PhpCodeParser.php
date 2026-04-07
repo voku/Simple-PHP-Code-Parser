@@ -220,11 +220,21 @@ final class PhpCodeParser
 
         $visitor->fileName = $fileName;
 
-        $traverser = new NodeTraverser();
-        $traverser->addVisitor(new ParentConnector());
-        $traverser->addVisitor($nameResolver);
-        $traverser->addVisitor($visitor);
-        $traverser->traverse($parsedCode);
+        // Pass 1: set parent attributes and fully resolve all names in the AST.
+        // NameResolver modifies Name nodes in-place (converting them to FullyQualified),
+        // so by the time ASTVisitor runs in pass 2, every type-hint Name node already
+        // carries its fully-qualified form. This is necessary because ASTVisitor processes
+        // class members (properties, methods) eagerly inside enterNode(Class_), before
+        // the single-pass traverser would have had a chance to visit those child nodes.
+        $traverser1 = new NodeTraverser();
+        $traverser1->addVisitor(new ParentConnector());
+        $traverser1->addVisitor($nameResolver);
+        $traverser1->traverse($parsedCode);
+
+        // Pass 2: extract model objects from the already-resolved AST.
+        $traverser2 = new NodeTraverser();
+        $traverser2->addVisitor($visitor);
+        $traverser2->traverse($parsedCode);
 
         return $parserContainer;
     }
