@@ -84,7 +84,7 @@ class PHPEnum extends BasePHPClass
 
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
-                $interfaceFQN = implode('\\', $interfaceObject->getParts());
+                $interfaceFQN = \implode('\\', $interfaceObject->getParts());
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
                 /** @var class-string $interfaceFQN */
                 $interfaceFQN = $interfaceFQN;

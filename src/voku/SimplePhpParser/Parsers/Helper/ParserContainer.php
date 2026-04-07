@@ -356,7 +356,7 @@ class ParserContainer
     /**
      * @param array<string, \voku\SimplePhpParser\Model\PHPEnum> $enums
      */
-    public function setEnums($enums): void
+    public function setEnums(array $enums): void
     {
         foreach ($enums as $name => $enum) {
             $this->enums[$name] = $enum;
