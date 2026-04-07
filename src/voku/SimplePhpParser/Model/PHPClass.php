@@ -508,7 +508,9 @@ class PHPClass extends BasePHPClass
             return false;
         }
 
-        // Standalone true, false, null are PHP 8.2+
+        // Standalone true, false, null as the *sole* type (not in a nullable like ?string)
+        // are PHP 8.2+ only. PHP-Parser represents these as Identifier nodes (not Name).
+        // Nullable null (?null) is syntactically invalid; NullableType wraps the inner type.
         if ($typeNode instanceof \PhpParser\Node\Identifier) {
             $name = \strtolower($typeNode->name);
             return $name === 'true' || $name === 'false' || $name === 'null';
