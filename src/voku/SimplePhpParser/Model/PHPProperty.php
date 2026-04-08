@@ -88,11 +88,7 @@ class PHPProperty extends BasePHPElement
             if (!$this->type) {
                 $typeStr = Utils::typeNodeToString($node->type);
                 if ($typeStr !== null) {
-                    if (\method_exists($node->type, 'getParts')) {
-                        $this->type = '\\' . $typeStr;
-                    } else {
-                        $this->type = $typeStr;
-                    }
+                    $this->type = $typeStr;
                 }
             }
 

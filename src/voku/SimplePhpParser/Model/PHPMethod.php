@@ -106,7 +106,7 @@ class PHPMethod extends PHPFunction
         // Detect #[\Override] (PHP 8.3+)
         if ($this->is_override === null) {
             foreach ($this->attributes as $attr) {
-                if ($attr->name === 'Override' || $attr->name === '\\Override') {
+                if ($attr->name === 'Override') {
                     $this->is_override = true;
 
                     break;
@@ -177,7 +177,7 @@ class PHPMethod extends PHPFunction
 
         // Detect #[\Override] (PHP 8.3+)
         foreach ($this->attributes as $attr) {
-            if ($attr->name === 'Override' || $attr->name === '\\Override') {
+            if ($attr->name === 'Override') {
                 $this->is_override = true;
 
                 break;

@@ -552,6 +552,10 @@ final class Utils
             return \implode('&', $parts);
         }
 
+        if ($typeNode instanceof \PhpParser\Node\Name) {
+            return '\\' . $typeNode->toString();
+        }
+
         if (\method_exists($typeNode, 'toString')) {
             return $typeNode->toString();
         }

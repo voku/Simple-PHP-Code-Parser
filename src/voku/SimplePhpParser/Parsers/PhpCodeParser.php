@@ -200,7 +200,7 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ASTVisitor $visitor
     ) {
-        $parser = (new ParserFactory())->createForNewestSupportedVersion();
+        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
 
         $errorHandler = new ParserErrorHandler();
 

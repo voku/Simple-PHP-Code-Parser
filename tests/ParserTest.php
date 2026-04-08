@@ -1549,7 +1549,7 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
         $class = $phpClasses[DummyFirstClassCallable::class];
 
         // first-class callable method has Closure return type
-        static::assertSame('Closure', $class->methods['getCallable']->returnType);
+        static::assertSame('\Closure', $class->methods['getCallable']->returnType);
 
         // match expression method parses fine
         static::assertSame('string', $class->methods['matchExample']->returnType);
