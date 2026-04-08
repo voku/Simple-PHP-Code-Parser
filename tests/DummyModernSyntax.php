@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace voku\tests;
 
 /**
- * Test fixture for PHP 8.1 fibers and first-class callable syntax.
+ * Test fixture for modern PHP syntax: first-class callables, match,
+ * named arguments, and the nullsafe operator.
  */
 class DummyFirstClassCallable
 {

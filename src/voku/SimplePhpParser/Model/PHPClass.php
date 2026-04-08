@@ -56,9 +56,11 @@ class PHPClass extends BasePHPClass
         }
 
         // PHP < 8.2 raises an uncatchable E_COMPILE_ERROR for certain PHP 8.2+ syntax
-        // (standalone true/false/null types, DNF types, readonly class). Skip autoloading
-        // in that case; AST data is still read from the node below.
-        $canAutoload = \PHP_VERSION_ID >= 80200 || !self::nodeUsesPHP82PlusSyntax($node);
+        // (standalone true/false/null types, DNF types, readonly class). Similarly,
+        // PHP < 8.3 raises an error for PHP 8.3+ syntax (typed class constants).
+        // Skip autoloading in those cases; AST data is still read from the node below.
+        $canAutoload = (\PHP_VERSION_ID >= 80200 || !self::nodeUsesPHP82PlusSyntax($node))
+            && (\PHP_VERSION_ID >= 80300 || !self::nodeUsesPHP83PlusSyntax($node));
         $classExists = false;
         if ($canAutoload) {
             try {
@@ -486,6 +488,28 @@ class PHPClass extends BasePHPClass
                 if (self::containsPHP82PlusType($stmt->type)) {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the class node uses syntax that requires PHP 8.3+ and would
+     * cause an uncatchable E_COMPILE_ERROR when autoloaded on PHP < 8.3.
+     *
+     * Covers: typed class constants (Stmt\ClassConst with a non-null type).
+     *
+     * @param Class_ $node
+     *
+     * @return bool
+     */
+    private static function nodeUsesPHP83PlusSyntax(Class_ $node): bool
+    {
+        foreach ($node->stmts as $stmt) {
+            // Typed class constants are PHP 8.3+
+            if ($stmt instanceof \PhpParser\Node\Stmt\ClassConst && $stmt->type !== null) {
+                return true;
             }
         }
 

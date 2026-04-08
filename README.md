@@ -138,8 +138,8 @@ $class = $phpClasses['MyClass'];
 
 // Class-level attributes
 foreach ($class->attributes as $attr) {
-    echo $attr->name;       // e.g. "MyAttribute"
-    echo $attr->arguments;  // constructor arguments
+    echo $attr->name;          // e.g. "MyAttribute"
+    print_r($attr->arguments); // constructor arguments (array)
 }
 
 // Method/property/parameter attributes work the same way
