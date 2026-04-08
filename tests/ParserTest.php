@@ -1301,15 +1301,23 @@ parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset
 
         $class = $phpClasses[Dummy14::class];
 
+        // On PHP < 8.2, Dummy14 cannot be autoloaded (it contains PHP 8.2+ syntax such as
+        // standalone `null` return type), so intersection types are sourced from the AST and
+        // carry a leading backslash on each class-name component (FQN format).
+        // On PHP >= 8.2, the class is reflected and reflection's __toString() omits the backslash.
+        $expectedIntersection = \PHP_VERSION_ID >= 80200
+            ? 'Countable&voku\tests\DummyInterface4'
+            : '\Countable&\voku\tests\DummyInterface4';
+
         // Intersection type on property
-        static::assertSame('Countable&voku\tests\DummyInterface4', $class->properties['intersectionProp']->type);
+        static::assertSame($expectedIntersection, $class->properties['intersectionProp']->type);
 
         // Intersection type on parameter
         $method = $class->methods['getIntersection'];
-        static::assertSame('Countable&voku\tests\DummyInterface4', $method->parameters['input']->type);
+        static::assertSame($expectedIntersection, $method->parameters['input']->type);
 
         // Intersection return type
-        static::assertSame('Countable&voku\tests\DummyInterface4', $method->returnType);
+        static::assertSame($expectedIntersection, $method->returnType);
     }
 
     public function testNeverReturnType(): void
