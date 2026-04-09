@@ -23,7 +23,7 @@ use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
-final class ASTVisitor extends NodeVisitorAbstract
+class ASTVisitor extends NodeVisitorAbstract
 {
     /**
      * @var string|null
@@ -93,7 +93,7 @@ final class ASTVisitor extends NodeVisitorAbstract
                 if (
                     $node->name instanceof Node\Name
                     &&
-                    $node->name->getParts()[0] === 'define'
+                    $node->name->toString() === 'define'
                 ) {
                     $constant = new PHPDefineConstant($this->parserContainer);
                     $constant = $constant->readObjectFromPhpNode($node);

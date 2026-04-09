@@ -10,7 +10,7 @@ use PhpParser\NodeVisitorAbstract;
 /**
  * The visitor is required to provide "parent" attribute to nodes
  */
-final class ParentConnector extends NodeVisitorAbstract
+class ParentConnector extends NodeVisitorAbstract
 {
     /**
      * @var Node[]

@@ -144,7 +144,7 @@ class PHPConst extends BasePHPElement
             &&
             $parentParentNode->name instanceof Name
         ) {
-            $namespace = '\\' . \implode('\\', $parentParentNode->name->getParts()) . '\\';
+            $namespace = '\\' . $parentParentNode->name->toString() . '\\';
         } else {
             $namespace = '';
         }

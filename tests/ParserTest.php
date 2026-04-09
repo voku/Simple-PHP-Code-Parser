@@ -47,7 +47,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         $parsedParamTag = $withComplexReturnArray->parameters['parsedParamTag'];
         static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $parsedParamTag->type);
-        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag <p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeFromPhpDocMaybeWithComment);
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag ' . "\n" . '<p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeFromPhpDocMaybeWithComment);
     }
 
     public function testSimpleOneClassV3(): void
@@ -406,7 +406,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpFunctions = $phpCode->getFunctions();
 
         static::assertSame('route', $phpFunctions['route']->name);
-        static::assertSame(['export' => '@export (Router.route)', 'return' => '@return array[][]|false'], $phpFunctions['route']->tagNames);
+        static::assertSame(['export' => '@export (Router.route)', 'return' => '@return mixed[][][]|false'], $phpFunctions['route']->tagNames);
     }
 
     public function testGetFunctionsInfo(): void
@@ -503,14 +503,14 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     ],
                     'returnTypes' => [
                         'type'                           => 'array',
-                        'typeFromPhpDocMaybeWithComment' => 'array<int,int>',
-                        'typeFromPhpDoc'                 => 'array<int,int>',
+                        'typeFromPhpDocMaybeWithComment' => 'array<int, int>',
+                        'typeFromPhpDoc'                 => 'array<int, int>',
                         'typeFromPhpDocSimple'           => 'int[]',
                         'typeFromPhpDocExtended'         => 'array<int, int>',
                     ],
                     'paramsPhpDocRaw' => [
                     ],
-                    'returnPhpDocRaw' => 'array<int,int>',
+                    'returnPhpDocRaw' => 'array<int, int>',
                     'line'            => 51,
                     'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'           => '',
@@ -548,10 +548,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'paramsTypes'     => [
                         'parsedParamTag' => [
                             'type'                           => null,
-                            'typeFromPhpDocMaybeWithComment' => null,
-                            'typeFromPhpDoc'                 => null,
-                            'typeFromPhpDocSimple'           => null,
-                            'typeFromPhpDocExtended'         => null,
+                            'typeFromPhpDocMaybeWithComment' => 'mixed $parsedParamTag',
+                            'typeFromPhpDoc'                 => 'mixed',
+                            'typeFromPhpDocSimple'           => 'mixed',
+                            'typeFromPhpDocExtended'         => 'mixed',
                             'typeFromDefaultValue'           => null,
                         ],
                             ],
@@ -563,12 +563,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDocExtended'         => 'array{parsedParamTagStr: string, variableName: (null[]|string)}',
                         ],
                         'paramsPhpDocRaw' => [
-                            'parsedParamTag' => '$parsedParamTag',
+                            'parsedParamTag' => 'mixed $parsedParamTag',
                         ],
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error'           => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
+                        'error'           => '',
                         'is_deprecated'   => false,
                         'is_static'       => true,
                         'is_meta'         => false,
@@ -857,14 +857,14 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     ],
                     'returnTypes' => [
                         'type'                           => 'array',
-                        'typeFromPhpDocMaybeWithComment' => 'array<int,int>',
-                        'typeFromPhpDoc'                 => 'array<int,int>',
+                        'typeFromPhpDocMaybeWithComment' => 'array<int, int>',
+                        'typeFromPhpDoc'                 => 'array<int, int>',
                         'typeFromPhpDocSimple'           => 'int[]',
                         'typeFromPhpDocExtended'         => 'array<int, int>',
                     ],
                     'paramsPhpDocRaw' => [
                     ],
-                    'returnPhpDocRaw' => 'array<int,int>',
+                    'returnPhpDocRaw' => 'array<int, int>',
                     'line'            => 51,
                     'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'           => '',
@@ -879,10 +879,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'paramsTypes'     => [
                         'parsedParamTag' => [
                             'type'                           => null,
-                            'typeFromPhpDocMaybeWithComment' => null,
-                            'typeFromPhpDoc'                 => null,
-                            'typeFromPhpDocSimple'           => null,
-                            'typeFromPhpDocExtended'         => null,
+                            'typeFromPhpDocMaybeWithComment' => 'mixed $parsedParamTag',
+                            'typeFromPhpDoc'                 => 'mixed',
+                            'typeFromPhpDocSimple'           => 'mixed',
+                            'typeFromPhpDocExtended'         => 'mixed',
                             'typeFromDefaultValue'           => null,
                         ],
                             ],
@@ -894,13 +894,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDocExtended'         => 'array{parsedParamTagStr: string, variableName: (null[]|string)}',
                         ],
                         'paramsPhpDocRaw' => [
-                            'parsedParamTag' => '$parsedParamTag',
+                            'parsedParamTag' => 'mixed $parsedParamTag',
                         ],
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error' => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1
-parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
+                        'error' => '',
                         'is_deprecated' => false,
                         'is_static'     => true,
                         'is_meta'       => false,

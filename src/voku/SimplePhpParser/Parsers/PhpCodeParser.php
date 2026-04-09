@@ -22,12 +22,12 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 use function React\Async\await;
 use function React\Promise\all;
 
-final class PhpCodeParser
+class PhpCodeParser
 {
     /**
      * @internal
      */
-    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v5-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v6-';
 
     /**
      * @param string   $code
@@ -200,7 +200,7 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ASTVisitor $visitor
     ) {
-        $parser = (new ParserFactory())->create(ParserFactory::PREFER_PHP7);
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
 
         $errorHandler = new ParserErrorHandler();
 

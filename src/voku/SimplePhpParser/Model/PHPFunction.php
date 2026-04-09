@@ -87,7 +87,7 @@ class PHPFunction extends BasePHPElement
         $docComment = $node->getDocComment();
         if ($docComment) {
             try {
-                $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
@@ -243,7 +243,7 @@ class PHPFunction extends BasePHPElement
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedReturnTag = $phpDoc->getTagsByName('return');
 

@@ -49,7 +49,7 @@ class PHPMethod extends PHPFunction
         $docComment = $node->getDocComment();
         if ($docComment) {
             try {
-                $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {

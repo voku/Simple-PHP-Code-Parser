@@ -11,7 +11,7 @@ use ReflectionClass;
 use ReflectionFunction;
 use voku\SimplePhpParser\Model\PHPAttribute;
 
-final class Utils
+class Utils
 {
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
 
@@ -114,7 +114,7 @@ final class Utils
                     $node->value->name
                 ) {
                     if ($node->value->name instanceof \PhpParser\Node\Name) {
-                        $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                        $value = $node->value->name->toString() ?: $node->value->name->name;
                     } else {
                         $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
                     }
@@ -167,7 +167,8 @@ final class Utils
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
-            $parts = $node->name->getParts();
+            $nameStr = $node->name->toString();
+            $parts = explode('\\', $nameStr);
 
             $returnTmp = \strtolower($parts[0]);
             if ($returnTmp === 'true') {
@@ -180,7 +181,7 @@ final class Utils
                 return null;
             }
 
-            $constantNameTmp = '\\' . \implode('\\', $parts);
+            $constantNameTmp = '\\' . $nameStr;
             if (\defined($constantNameTmp)) {
                 return \constant($constantNameTmp);
             }
@@ -417,7 +418,8 @@ final class Utils
         static $LAXER = null;
 
         if ($LAXER === null) {
-            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer();
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer($config);
         }
 
         return new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
@@ -431,7 +433,8 @@ final class Utils
         static $TYPE_PARSER = null;
 
         if ($TYPE_PARSER === null) {
-            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser(new \PHPStan\PhpDocParser\Parser\ConstExprParser());
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser($config, new \PHPStan\PhpDocParser\Parser\ConstExprParser($config));
         }
 
         $tokens = self::modernPhpdocTokens($input);

@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Class_;
 use ReflectionClass;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPClass extends BasePHPClass
@@ -79,7 +80,7 @@ class PHPClass extends BasePHPClass
         $this->collectTags($node);
 
         if (!empty($node->extends)) {
-            $classExtended = implode('\\', $node->extends->getParts());
+            $classExtended = $node->extends->toString();
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
             /** @var class-string $classExtended */
             $classExtended = $classExtended;
@@ -121,7 +122,7 @@ class PHPClass extends BasePHPClass
 
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
-                $interfaceFQN = implode('\\', $interfaceObject->getParts());
+                $interfaceFQN = $interfaceObject->toString();
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
                 /** @var class-string $interfaceFQN */
                 $interfaceFQN = $interfaceFQN;
@@ -401,7 +402,7 @@ class PHPClass extends BasePHPClass
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedPropertyTags = $phpDoc->getTagsByName('property')
                                + $phpDoc->getTagsByName('property-read')
