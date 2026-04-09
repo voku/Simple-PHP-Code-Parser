@@ -38,6 +38,13 @@ class PHPParameter extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.0+ attributes on this parameter.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Param        $parameter
      * @param FunctionLike $node
      * @param mixed|null   $classStr
@@ -74,13 +81,9 @@ class PHPParameter extends BasePHPElement
 
         if ($parameter->type !== null) {
             if (!$this->type) {
-                if (\method_exists($parameter->type, 'getParts')) {
-                    $parts = $parameter->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
-                    }
-                } elseif (\property_exists($parameter->type, 'name')) {
-                    $this->type = $parameter->type->name;
+                $typeStr = Utils::typeNodeToString($parameter->type);
+                if ($typeStr !== null) {
+                    $this->type = $typeStr;
                 }
             }
 
@@ -105,6 +108,11 @@ class PHPParameter extends BasePHPElement
         $this->is_vararg = $parameter->variadic;
 
         $this->is_passed_by_ref = $parameter->byRef;
+
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($parameter->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+        }
 
         return $this;
     }
@@ -181,6 +189,9 @@ class PHPParameter extends BasePHPElement
         $this->is_vararg = $parameter->isVariadic();
 
         $this->is_passed_by_ref = $parameter->isPassedByReference();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($parameter);
 
         return $this;
     }

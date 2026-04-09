@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Const_;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Enum_;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Trait_;
@@ -15,6 +16,7 @@ use PhpParser\NodeVisitorAbstract;
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
+use voku\SimplePhpParser\Model\PHPEnum;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPTrait;
@@ -70,10 +72,17 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $this->parserContainer->addConstant($constant);
                 } elseif (($phpCodeParentConstantName = $this->parserContainer->getClass($constant->parentName)) !== null) {
                     $phpCodeParentConstantName->constants[$constant->name] = $constant;
+                } elseif (($enum = $this->parserContainer->getEnum($constant->parentName)) !== null) {
+                    $enum->constants[$constant->name] = $constant;
                 } else {
                     $interface = $this->parserContainer->getInterface($constant->parentName);
                     if ($interface) {
                         $interface->constants[$constant->name] = $constant;
+                    } else {
+                        $trait = $this->parserContainer->getTrait($constant->parentName);
+                        if ($trait) {
+                            $trait->constants[$constant->name] = $constant;
+                        }
                     }
                 }
 
@@ -125,6 +134,17 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $class->file = $this->fileName;
                 }
                 $this->parserContainer->addClass($class);
+
+                break;
+
+            case $node instanceof Enum_:
+
+                $enum = new PHPEnum($this->parserContainer);
+                $enum = $enum->readObjectFromPhpNode($node);
+                if (!$enum->file) {
+                    $enum->file = $this->fileName;
+                }
+                $this->parserContainer->addEnum($enum);
 
                 break;
 

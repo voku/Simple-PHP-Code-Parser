@@ -34,12 +34,17 @@ class PHPInterface extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         $interfaceExists = false;
         try {
             if (\interface_exists($this->name, true)) {
                 $interfaceExists = true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             // nothing
         }
         if ($interfaceExists) {
@@ -105,6 +110,9 @@ class PHPInterface extends BasePHPClass
 
         $this->is_iterable = $interface->isIterable();
 
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($interface);
+
         foreach ($interface->getMethods() as $method) {
             $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
         }
@@ -123,7 +131,7 @@ class PHPInterface extends BasePHPClass
                 ) {
                     $interfaceExists = true;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // nothing
             }
             if ($interfaceExists) {

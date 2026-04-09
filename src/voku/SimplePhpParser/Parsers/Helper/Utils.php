@@ -9,6 +9,7 @@ use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
+use voku\SimplePhpParser\Model\PHPAttribute;
 
 final class Utils
 {
@@ -112,7 +113,11 @@ final class Utils
                     &&
                     $node->value->name
                 ) {
-                    $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    if ($node->value->name instanceof \PhpParser\Node\Name) {
+                        $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    } else {
+                        $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
+                    }
                     return $value === 'null' ? null : $value;
                 }
             }
@@ -203,6 +208,7 @@ final class Utils
             case 'false':
             case 'null':
             case 'mixed':
+            case 'never':
                 return $type_string_lower;
         }
 
@@ -496,6 +502,136 @@ final class Utils
         }
 
         return 1;
+    }
+
+    /**
+     * Convert a PhpParser type node to a string representation.
+     *
+     * Handles Identifier, Name, NullableType, UnionType, IntersectionType
+     * and nested DNF types like (A&B)|C.
+     *
+     * @param \PhpParser\Node\Identifier|\PhpParser\Node\Name|\PhpParser\Node\ComplexType|null $typeNode
+     *
+     * @return string|null
+     */
+    public static function typeNodeToString($typeNode): ?string
+    {
+        if ($typeNode === null) {
+            return null;
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\NullableType) {
+            $inner = self::typeNodeToString($typeNode->type);
+
+            return $inner !== null ? 'null|' . $inner : 'null';
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\UnionType) {
+            $parts = [];
+            foreach ($typeNode->types as $inner) {
+                if ($inner instanceof \PhpParser\Node\IntersectionType) {
+                    $subParts = [];
+                    foreach ($inner->types as $subType) {
+                        $subParts[] = self::typeNodeToString($subType) ?? 'mixed';
+                    }
+                    $parts[] = '(' . \implode('&', $subParts) . ')';
+                } else {
+                    $parts[] = self::typeNodeToString($inner) ?? 'mixed';
+                }
+            }
+
+            return \implode('|', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\IntersectionType) {
+            $parts = [];
+            foreach ($typeNode->types as $inner) {
+                $parts[] = self::typeNodeToString($inner) ?? 'mixed';
+            }
+
+            return \implode('&', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Name) {
+            return '\\' . $typeNode->toString();
+        }
+
+        if (\method_exists($typeNode, 'toString')) {
+            return $typeNode->toString();
+        }
+
+        if (\property_exists($typeNode, 'name') && $typeNode->name) {
+            return $typeNode->name;
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract PHPAttribute instances from AST node attribute groups.
+     *
+     * @param \PhpParser\Node\AttributeGroup[] $attrGroups
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromAstNode(array $attrGroups): array
+    {
+        $result = [];
+        foreach ($attrGroups as $group) {
+            foreach ($group->attrs as $attr) {
+                // If NameResolver has already resolved the name to FullyQualified,
+                // use that; otherwise check resolvedName attribute, then fall back
+                if ($attr->name instanceof \PhpParser\Node\Name\FullyQualified) {
+                    $name = $attr->name->toString();
+                } else {
+                    $resolvedName = $attr->name->getAttribute('resolvedName');
+                    if ($resolvedName instanceof \PhpParser\Node\Name) {
+                        $name = $resolvedName->toString();
+                    } else {
+                        $name = $attr->name->toString();
+                    }
+                }
+
+                $arguments = [];
+                foreach ($attr->args as $arg) {
+                    $argValue = self::getPhpParserValueFromNode($arg);
+                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                        $argValue = null;
+                    }
+
+                    if ($arg->name !== null) {
+                        $arguments[$arg->name->name] = $argValue;
+                    } else {
+                        $arguments[] = $argValue;
+                    }
+                }
+
+                $result[] = new PHPAttribute($name, $arguments);
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
+     *
+     * @param \ReflectionClass|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromReflection($reflection): array
+    {
+        if (!\method_exists($reflection, 'getAttributes')) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($reflection->getAttributes() as $attr) {
+            $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());
+        }
+
+        return $result;
     }
 
     private static function findParentClassDeclaringConstant(

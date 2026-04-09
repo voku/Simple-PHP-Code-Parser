@@ -28,7 +28,25 @@ final class PHPTrait extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
-        if (\trait_exists($this->name, true)) {
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
+        // PHP < 8.2 raises an uncatchable E_COMPILE_ERROR for traits with constants.
+        // Skip autoloading in that case; constants are still read from the AST below.
+        $canAutoload = \PHP_VERSION_ID >= 80200 || empty($node->getConstants());
+        $traitExists = false;
+        if ($canAutoload) {
+            try {
+                if (\trait_exists($this->name, true)) {
+                    $traitExists = true;
+                }
+            } catch (\Throwable $e) {
+                // nothing
+            }
+        }
+        if ($traitExists) {
             $reflectionClass = Utils::createClassReflectionInstance($this->name);
             $this->readObjectFromReflection($reflectionClass);
         }
@@ -61,6 +79,23 @@ final class PHPTrait extends BasePHPClass
 
             if (!$this->methods[$methodNameTmp]->file) {
                 $this->methods[$methodNameTmp]->file = $this->file;
+            }
+        }
+
+        // Constants in traits (PHP 8.2+)
+        foreach ($node->getConstants() as $constNode) {
+            foreach ($constNode->consts as $const) {
+                $constNameTmp = $const->name->name;
+
+                if (isset($this->constants[$constNameTmp])) {
+                    $this->constants[$constNameTmp] = $this->constants[$constNameTmp]->readObjectFromPhpNode($const);
+                } else {
+                    $this->constants[$constNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromPhpNode($const);
+                }
+
+                if (!$this->constants[$constNameTmp]->file) {
+                    $this->constants[$constNameTmp]->file = $this->file;
+                }
             }
         }
 
@@ -103,6 +138,9 @@ final class PHPTrait extends BasePHPClass
         $this->is_instantiable = $clazz->isInstantiable();
 
         $this->is_iterable = $clazz->isIterable();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
         foreach ($clazz->getProperties() as $property) {
             $propertyPhp = (new PHPProperty($this->parserContainer))->readObjectFromReflection($property);
