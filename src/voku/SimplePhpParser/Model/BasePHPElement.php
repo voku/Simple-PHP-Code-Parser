@@ -83,7 +83,7 @@ abstract class BasePHPElement
             if ($node->namespacedName) {
                 $fqn = $node->namespacedName->toString();
             } elseif (\property_exists($node, 'name') && $node->name) {
-                $fqn =  $node->name->name;
+                $fqn = $node->name->name;
             }
         }
 
