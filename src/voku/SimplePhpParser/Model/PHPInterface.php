@@ -70,7 +70,7 @@ class PHPInterface extends BasePHPClass
 
         if (!empty($node->extends)) {
             /** @var class-string $interfaceExtended */
-            $interfaceExtended = \implode('\\', $node->extends[0]->getParts());
+            $interfaceExtended = $node->extends[0]->toString();
             $this->parentInterfaces[] = $interfaceExtended;
         }
 

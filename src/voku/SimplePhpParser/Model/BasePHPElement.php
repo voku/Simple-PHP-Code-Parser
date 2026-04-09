@@ -55,7 +55,7 @@ abstract class BasePHPElement
             &&
             $parent->name instanceof Name
         ) {
-            $namespace = '\\' . \implode('\\', $parent->name->getParts()) . '\\';
+            $namespace = '\\' . $parent->name->toString() . '\\';
         } else {
             $namespace = '';
         }
@@ -81,10 +81,9 @@ abstract class BasePHPElement
             \property_exists($node, 'namespacedName')
         ) {
             if ($node->namespacedName) {
-                $fqn = \implode('\\', $node->namespacedName->getParts());
+                $fqn = $node->namespacedName->toString();
             } elseif (\property_exists($node, 'name') && $node->name) {
-                var_dump($node->name);
-                $fqn =  $node->name->name;
+                $fqn = $node->name->toString();
             }
         }
 
