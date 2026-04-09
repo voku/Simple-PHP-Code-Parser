@@ -97,6 +97,8 @@ abstract class BasePHPElement
 
     protected function prepareNode(Node $node): void
     {
-        $this->line = $node->getLine();
+        $this->line = method_exists($node, 'getStartLine')
+            ? $node->getStartLine()
+            : $node->getLine(); // @phpstan-ignore-line getLine() was removed in PHP-Parser v5
     }
 }

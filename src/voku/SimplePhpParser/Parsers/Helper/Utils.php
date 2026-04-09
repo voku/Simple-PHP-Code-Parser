@@ -114,7 +114,9 @@ final class Utils
                     $node->value->name
                 ) {
                     if ($node->value->name instanceof \PhpParser\Node\Name) {
-                        $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                        $value = method_exists($node->value->name, 'getParts')
+                            ? implode('\\', $node->value->name->getParts())
+                            : $node->value->name->name;
                     } else {
                         $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
                     }
@@ -167,7 +169,9 @@ final class Utils
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
-            $parts = $node->name->getParts();
+            $parts = method_exists($node->name, 'getParts')
+                ? $node->name->getParts()
+                : [$node->name->name];
 
             $returnTmp = \strtolower($parts[0]);
             if ($returnTmp === 'true') {
