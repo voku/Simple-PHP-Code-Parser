@@ -79,7 +79,7 @@ class PHPClass extends BasePHPClass
         $this->collectTags($node);
 
         if (!empty($node->extends)) {
-            $classExtended = implode('\\', $node->extends->getParts());
+            $classExtended = $node->extends->toString();
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
             /** @var class-string $classExtended */
             $classExtended = $classExtended;
@@ -121,7 +121,7 @@ class PHPClass extends BasePHPClass
 
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
-                $interfaceFQN = implode('\\', $interfaceObject->getParts());
+                $interfaceFQN = $interfaceObject->toString();
                 /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
                 /** @var class-string $interfaceFQN */
                 $interfaceFQN = $interfaceFQN;
