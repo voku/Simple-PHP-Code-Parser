@@ -455,7 +455,12 @@ final class Utils
      */
     public static function getCpuCores(): int
     {
-        return (new \Fidry\CpuCoreCounter\CpuCoreCounter())->getAvailableForParallelisation()->availableCpus;
+        static $cores = null;
+        if ($cores === null) {
+            $cores = (new \Fidry\CpuCoreCounter\CpuCoreCounter())->getAvailableForParallelisation()->availableCpus;
+        }
+
+        return $cores;
     }
 
     /**
