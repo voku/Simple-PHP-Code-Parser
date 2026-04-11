@@ -45,9 +45,7 @@ class PHPClass extends BasePHPClass
 
         $this->is_abstract = $node->isAbstract();
 
-        if (method_exists($node, 'isReadOnly')) {
-            $this->is_readonly = $node->isReadOnly();
-        }
+        $this->is_readonly = $node->isReadonly();
 
         $this->is_anonymous = $node->isAnonymous();
 
