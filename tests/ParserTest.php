@@ -409,6 +409,74 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame(['export' => '@export (Router.route)', 'return' => '@return mixed[][][]|false'], $phpFunctions['route']->tagNames);
     }
 
+    public function testMalformedParamPhpDocReportingVariants(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+class BrokenPhpDocVariantsParent
+{
+    /**
+     * @param $value
+     */
+    public function brokenParam($value): void
+    {
+    }
+
+    /**
+     * @psalm-param $value
+     */
+    public function brokenPsalmParam($value): void
+    {
+    }
+
+    /**
+     * @param mixed $value
+     */
+    public function validMixed($value): void
+    {
+    }
+
+    /**
+     * @param array{foo:int,bar:string} $value
+     */
+    public function validShape($value): void
+    {
+    }
+
+    /**
+     * @param int $valueSuffix
+     */
+    public function validDifferentParameterName($value): void
+    {
+    }
+}
+
+class BrokenPhpDocVariantsChild extends BrokenPhpDocVariantsParent
+{
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $parentMethodsInfo = $phpClasses['voku\tests\BrokenPhpDocVariantsParent']->getMethodsInfo();
+
+        static::assertStringContainsString(
+            'Unexpected token "$value", expected type at offset 0 on line 1',
+            $parentMethodsInfo['brokenParam']['error']
+        );
+        static::assertStringContainsString(
+            'Unexpected token "$value", expected type at offset 0 on line 1',
+            $parentMethodsInfo['brokenPsalmParam']['error']
+        );
+        static::assertSame('', $parentMethodsInfo['validMixed']['error']);
+        static::assertSame('', $parentMethodsInfo['validShape']['error']);
+        static::assertSame('', $parentMethodsInfo['validDifferentParameterName']['error']);
+    }
+
     public function testGetFunctionsInfo(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(
@@ -568,7 +636,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error'           => '',
+                        'error'           => 'parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated'   => false,
                         'is_static'       => true,
                         'is_meta'         => false,

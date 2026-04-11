@@ -127,6 +127,17 @@ class PHPParameter extends BasePHPElement
     {
         $this->name = $parameter->getName();
 
+        $method = $parameter->getDeclaringFunction();
+        $lineTmp = $method->getStartLine();
+        if ($lineTmp !== false) {
+            $this->line = $lineTmp;
+        }
+
+        $fileTmp = $method->getFileName();
+        if ($fileTmp !== false) {
+            $this->file = $fileTmp;
+        }
+
         if ($parameter->isDefaultValueAvailable()) {
             try {
                 $this->defaultValue = $parameter->getDefaultValue();
@@ -137,8 +148,6 @@ class PHPParameter extends BasePHPElement
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
             }
         }
-
-        $method = $parameter->getDeclaringFunction();
 
         $docComment = $method->getDocComment();
         if ($docComment) {
