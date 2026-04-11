@@ -491,6 +491,10 @@ final class Utils
     public static function recoverBrokenPhpdocType(string $input): ?string
     {
         $tokens = self::modernPhpdocTokens($input)->getTokens();
+        if ($tokens === []) {
+            return null;
+        }
+
         $candidateTokens = [];
         foreach ($tokens as $token) {
             if ($token[0] !== '') {
@@ -502,9 +506,10 @@ final class Utils
             return null;
         }
 
-        $endToken = $tokens[\count($tokens) - 1] ?? ['', \PHPStan\PhpDocParser\Lexer\Lexer::TOKEN_END, 1];
+        $endToken = $tokens[\count($tokens) - 1];
+        $minCandidateCount = \max(1, \count($candidateTokens) - self::MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS + 1);
 
-        for ($i = \count($candidateTokens), $attempts = 0; $i > 0 && $attempts < self::MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS; --$i, ++$attempts) {
+        for ($i = \count($candidateTokens); $i >= $minCandidateCount; --$i) {
             $candidate = \array_slice($candidateTokens, 0, $i);
             if (\trim(\implode('', \array_column($candidate, 0))) === '') {
                 return null;
