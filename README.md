@@ -35,6 +35,8 @@ We will use:
 
 ### Supported PHP Features
 
+CI covers PHP 8.1 - 8.5 with the currently supported dependency ranges.
+
 | Feature | PHP Version | Supported |
 |---|---|---|
 | Attributes (class, method, property, parameter, constant) | 8.0+ | ✅ |
@@ -54,6 +56,7 @@ We will use:
 | Trait constants | 8.2+ | ✅ |
 | Typed class constants | 8.3+ | ✅ |
 | `#[\Override]` attribute detection | 8.3+ | ✅ |
+| Property hooks / asymmetric visibility | 8.4+ | ✅ |
 
 ### Install via "composer require"
 
