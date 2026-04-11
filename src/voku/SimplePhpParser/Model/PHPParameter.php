@@ -128,9 +128,11 @@ class PHPParameter extends BasePHPElement
         $this->name = $parameter->getName();
 
         $method = $parameter->getDeclaringFunction();
-        $lineTmp = $method->getStartLine();
-        if ($lineTmp !== false) {
-            $this->line = $lineTmp;
+        if (!$this->line) {
+            $lineTmp = $method->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
         }
 
         $fileTmp = $method->getFileName();
