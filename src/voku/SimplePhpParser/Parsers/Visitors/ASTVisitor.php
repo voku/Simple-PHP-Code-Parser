@@ -21,7 +21,6 @@ use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
-use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 final class ASTVisitor extends NodeVisitorAbstract
 {
