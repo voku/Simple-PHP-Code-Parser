@@ -231,9 +231,9 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertNull($lall->type);
         static::assertNull($lall->typeFromPhpDocMaybeWithComment);
-        static::assertNull($lall->typeFromPhpDoc);
-        static::assertNull($lall->typeFromPhpDocSimple);
-        static::assertNull($lall->typeFromPhpDocExtended);
+        static::assertSame('array', $lall->typeFromPhpDoc);
+        static::assertSame('array', $lall->typeFromPhpDocSimple);
+        static::assertSame('array', $lall->typeFromPhpDocExtended);
         static::assertNull($lall->typeFromDefaultValue);
         static::assertSame(
             'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
@@ -242,9 +242,9 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         static::assertNull($fooBroken->returnType);
         static::assertNull($fooBroken->returnTypeFromPhpDocMaybeWithComment);
-        static::assertNull($fooBroken->returnTypeFromPhpDoc);
-        static::assertNull($fooBroken->returnTypeFromPhpDocSimple);
-        static::assertNull($fooBroken->returnTypeFromPhpDocExtended);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDoc);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDocSimple);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDocExtended);
         static::assertSame(
             'array{stdClass: \stdClass, numbers: int|float <foo/>',
             $fooBroken->returnPhpDocRaw
@@ -257,18 +257,18 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'lall' => [
                         'type'                           => null,
                         'typeFromPhpDocMaybeWithComment' => null,
-                        'typeFromPhpDoc'                 => null,
-                        'typeFromPhpDocSimple'           => null,
-                        'typeFromPhpDocExtended'         => null,
+                        'typeFromPhpDoc'                 => 'array',
+                        'typeFromPhpDocSimple'           => 'array',
+                        'typeFromPhpDocExtended'         => 'array',
                         'typeFromDefaultValue'           => null,
                     ],
                 ],
                 'returnTypes' => [
                     'type'                           => null,
                     'typeFromPhpDocMaybeWithComment' => null,
-                    'typeFromPhpDoc'                 => null,
-                    'typeFromPhpDocSimple'           => null,
-                    'typeFromPhpDocExtended'         => null,
+                    'typeFromPhpDoc'                 => 'array',
+                    'typeFromPhpDocSimple'           => 'array',
+                    'typeFromPhpDocExtended'         => 'array',
                 ],
                 'paramsPhpDocRaw' => [
                     'lall' => 'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
@@ -529,6 +529,12 @@ PHP;
             'Unexpected token "$value", expected type at offset 0 on line 1',
             $parentMethodsInfo['brokenPsalmParam']['error']
         );
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDoc']);
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDocSimple']);
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDocExtended']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDoc']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDocSimple']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDocExtended']);
         static::assertSame('', $parentMethodsInfo['validMixed']['error']);
         static::assertSame('', $parentMethodsInfo['validShape']['error']);
         static::assertSame('', $parentMethodsInfo['validDifferentParameterName']['error']);

@@ -505,6 +505,31 @@ final class Utils
         );
     }
 
+    public static function recoverBrokenPhpdocType(string $input): ?string
+    {
+        $parts = [];
+        foreach (self::modernPhpdocTokens($input)->getTokens() as $token) {
+            if (($token[0] ?? '') !== '') {
+                $parts[] = $token[0];
+            }
+        }
+
+        while ($parts !== []) {
+            $candidate = \trim(\implode('', $parts));
+            if ($candidate === '') {
+                return null;
+            }
+
+            try {
+                return self::modernPhpdoc($candidate);
+            } catch (\Exception $e) {
+                array_pop($parts);
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Returns number of cpu cores available for parallelisation.
      *

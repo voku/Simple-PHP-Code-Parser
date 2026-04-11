@@ -327,7 +327,19 @@ class PHPFunction extends BasePHPElement
             if (!$this->returnPhpDocRaw) {
                 $this->returnPhpDocRaw = $returnContent;
             }
-            $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($returnContent);
+            try {
+                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($returnContent);
+            } catch (\Exception $e) {
+                $recoveredType = Utils::recoverBrokenPhpdocType($returnContent);
+                if ($recoveredType !== null) {
+                    $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
+                    $this->returnTypeFromPhpDoc = $this->returnTypeFromPhpDoc ?? $normalizedRecoveredType;
+                    $this->returnTypeFromPhpDocSimple = $this->returnTypeFromPhpDocSimple ?? $normalizedRecoveredType;
+                    $this->returnTypeFromPhpDocExtended = $recoveredType;
+                }
+
+                throw $e;
+            }
         }
     }
 }

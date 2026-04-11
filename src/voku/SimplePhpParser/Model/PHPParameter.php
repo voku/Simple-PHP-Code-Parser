@@ -355,7 +355,19 @@ class PHPParameter extends BasePHPElement
             if (!$this->phpDocRaw) {
                 $this->phpDocRaw = $paramContent . ' ' . '$' . $parameterName;
             }
-            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
+            try {
+                $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
+            } catch (\Exception $e) {
+                $recoveredType = Utils::recoverBrokenPhpdocType($paramContent);
+                if ($recoveredType !== null) {
+                    $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
+                    $this->typeFromPhpDoc = $this->typeFromPhpDoc ?? $normalizedRecoveredType;
+                    $this->typeFromPhpDocSimple = $this->typeFromPhpDocSimple ?? $normalizedRecoveredType;
+                    $this->typeFromPhpDocExtended = $recoveredType;
+                }
+
+                throw $e;
+            }
         }
     }
 
