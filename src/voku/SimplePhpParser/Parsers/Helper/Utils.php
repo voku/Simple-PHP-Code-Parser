@@ -452,59 +452,18 @@ final class Utils
     }
 
     /**
-     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb + modified (do not use all cores, we still want to work)
-     *
-     * returns number of cpu cores
-     * Copyleft 2018, license: WTFPL
+     * Returns number of cpu cores available for parallelisation.
      *
      * @return int<1, max>
      */
     public static function getCpuCores(): int
     {
-        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $str = \trim((string) \shell_exec('wmic cpu get NumberOfCores 2>&1'));
-            $matches = [];
-            if (!$str || !\preg_match('#(\d+)#', $str, $matches)) {
-                return 1;
-            }
-
-            $return = (int)round((int)$matches[1] / 2);
-            if ($return > 1) {
-                return $return;
-            }
-
-            return 1;
+        static $cores = null;
+        if ($cores === null) {
+            $cores = (new \Fidry\CpuCoreCounter\CpuCoreCounter())->getAvailableForParallelisation()->availableCpus;
         }
 
-        /** @noinspection PhpUsageOfSilenceOperatorInspection */
-        $ret = @\shell_exec('nproc');
-        if (\is_string($ret)) {
-            $ret = \trim($ret);
-            /** @noinspection PhpAssignmentInConditionInspection */
-            if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                $return = (int)round($tmp / 2);
-                if ($return > 1) {
-                    return $return;
-                }
-
-                return 1;
-            }
-        }
-
-        if (\is_readable('/proc/cpuinfo')) {
-            $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
-            $count = \substr_count($cpuinfo, 'processor');
-            if ($count > 0) {
-                $return = (int)round($count / 2);
-                if ($return > 1) {
-                    return $return;
-                }
-
-                return 1;
-            }
-        }
-
-        return 1;
+        return $cores;
     }
 
     /**
