@@ -287,6 +287,69 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             ],
             self::removeLocalPathForTheTest($phpClass->getMethodsInfo()['foo_broken'])
         );
+
+        // -- getPropertiesInfo(): class-string<T> generic + typeFromDefaultValue ---------
+        // $foooooooo has @var class-string<Foooooooo> and a default of Foooooooo::class,
+        // so typeFromDefaultValue should be 'string' (gettype of a string constant) and
+        // typeFromPhpDocExtended should preserve the generic while typeFromPhpDocSimple
+        // collapses it to the base type.
+        $propsInfo = $phpClass->getPropertiesInfo();
+        static::assertArrayHasKey('foooooooo', $propsInfo);
+        static::assertSame('class-string<Foooooooo>', $propsInfo['foooooooo']['typeFromPhpDocExtended']);
+        static::assertSame('string', $propsInfo['foooooooo']['typeFromPhpDocSimple']);
+        static::assertSame('string', $propsInfo['foooooooo']['typeFromDefaultValue']);
+        static::assertNull($propsInfo['foooooooo']['type']); // no native type on the property
+
+        // -- list<int> return: typeFromPhpDocSimple collapses to int[] ------------------
+        $fooList = $phpClass->methods['foo_list'];
+        static::assertSame('list<int>', $fooList->returnTypeFromPhpDoc);
+        static::assertSame('int[]', $fooList->returnTypeFromPhpDocSimple);
+        static::assertSame('list<int>', $fooList->returnTypeFromPhpDocExtended);
+        static::assertSame('list<int>', $fooList->returnPhpDocRaw);
+
+        // -- Well-formed array shape (foo_mixed): union-inside-shape normalization ------
+        // typeFromPhpDocExtended should normalize int|float inside an array shape to
+        // (int|float); the raw phpDoc and typeFromPhpDoc preserve the original.
+        $fooMixed = $phpClass->methods['foo_mixed'];
+        $lallMixed = $fooMixed->parameters['lall'];
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float} $lall', $lallMixed->phpDocRaw);
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float}', $lallMixed->typeFromPhpDoc);
+        static::assertSame('array', $lallMixed->typeFromPhpDocSimple);
+        static::assertSame('array{stdClass: \stdClass, numbers: (int|float)}', $lallMixed->typeFromPhpDocExtended);
+        // return type mirrors the param shape
+        static::assertSame('array{stdClass: \stdClass, numbers: (int|float)}', $fooMixed->returnTypeFromPhpDocExtended);
+        static::assertSame('array', $fooMixed->returnTypeFromPhpDocSimple);
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float}', $fooMixed->returnPhpDocRaw);
+
+        // -- Callable shape types (withCallback / withCallbackMulti) -------------------
+        // Verifies that callable(args): return type annotations are preserved as-is
+        // through typeFromPhpDocExtended and collapsed to 'callable' in typeFromPhpDocSimple.
+        $withCallback = $phpClass->methods['withCallback'];
+        $cbParam = $withCallback->parameters['callback'];
+        static::assertSame('callable(string): string', $cbParam->typeFromPhpDoc);
+        static::assertSame('callable', $cbParam->typeFromPhpDocSimple);
+        static::assertSame('callable(string): string', $cbParam->typeFromPhpDocExtended);
+        static::assertSame('callable(string): string $callback', $cbParam->phpDocRaw);
+
+        $withCallbackMulti = $phpClass->methods['withCallbackMulti'];
+        $cb1 = $withCallbackMulti->parameters['callback'];
+        $cb2 = $withCallbackMulti->parameters['callback2'];
+        static::assertSame('callable(string, int, string): string', $cb1->typeFromPhpDocExtended);
+        static::assertSame('callable', $cb1->typeFromPhpDocSimple);
+        static::assertSame('callable(): numeric', $cb2->typeFromPhpDocExtended);
+        static::assertSame('callable', $cb2->typeFromPhpDocSimple);
+
+        // -- Native union types vs. phpDoc union types (test_multi_param_type) ---------
+        // The AST type for int|float comes out as 'float|int' (alphabetical from
+        // php-parser), while @param says 'int|float'; similarly for bool|int return.
+        $multiParam = $phpClass->methods['test_multi_param_type'];
+        $param1 = $multiParam->parameters['param1'];
+        static::assertNotNull($param1->type);            // has a native type hint
+        static::assertSame('int|float', $param1->typeFromPhpDoc);
+        static::assertSame('int|float', $param1->typeFromPhpDocExtended);
+        static::assertNotNull($multiParam->returnType);  // has a native return type
+        static::assertSame('bool|int', $multiParam->returnTypeFromPhpDoc);
+        static::assertSame('bool|int', $multiParam->returnTypeFromPhpDocExtended);
     }
 
     public function testSimpleOneTrait(): void
