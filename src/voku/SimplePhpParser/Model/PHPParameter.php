@@ -329,36 +329,69 @@ class PHPParameter extends BasePHPElement
     {
         $tokens = Utils::modernPhpdocTokens($docComment);
 
+        // Track standard (@param) and extended (@phpstan-param / @psalm-param) content separately
+        // so that the more specific phpstan/psalm annotation always wins regardless of tag order.
+        // We scan the ENTIRE docblock to find all occurrences of both tag types for this parameter.
         $paramContent = null;
+        $extendedParamContent = null;
+        $currentTarget = null; // 'standard' | 'extended'
+        $currentContent = '';
+
         foreach ($tokens->getTokens() as $token) {
             $content = $token[0];
 
-            if ($content === '@param' || $content === '@psalm-param' || $content === '@phpstan-param') {
-                // reset
-                $paramContent = '';
-
+            if ($content === '@param') {
+                $currentTarget = 'standard';
+                $currentContent = '';
                 continue;
             }
 
-            // We can stop if we found the param variable e.g. `@param array{foo:int} $param`.
-            if ($content === '$' . $parameterName) {
-                break;
+            if ($content === '@psalm-param' || $content === '@phpstan-param') {
+                $currentTarget = 'extended';
+                $currentContent = '';
+                continue;
             }
 
-            if ($paramContent !== null) {
-                $paramContent .= $content;
+            if ($currentTarget !== null) {
+                // Check if we hit the target parameter variable e.g. `$param`.
+                if ($content === '$' . $parameterName) {
+                    if ($currentTarget === 'standard') {
+                        $paramContent = \trim($currentContent);
+                    } else {
+                        $extendedParamContent = \trim($currentContent);
+                    }
+                    $currentTarget = null;
+                    $currentContent = '';
+                    continue;
+                }
+
+                // Check if we hit a different parameter variable — discard this tag.
+                if (\strlen($content) > 1 && $content[0] === '$') {
+                    $currentTarget = null;
+                    $currentContent = '';
+                    continue;
+                }
+
+                $currentContent .= $content;
             }
         }
 
-        $paramContent = $paramContent ? \trim($paramContent) : null;
-        if ($paramContent) {
+        // Prefer @phpstan-param / @psalm-param over plain @param regardless of tag order.
+        $bestContent = null;
+        if ($extendedParamContent !== null && $extendedParamContent !== '') {
+            $bestContent = $extendedParamContent;
+        } elseif ($paramContent !== null && $paramContent !== '') {
+            $bestContent = $paramContent;
+        }
+
+        if ($bestContent) {
             if (!$this->phpDocRaw) {
-                $this->phpDocRaw = $paramContent . ' ' . '$' . $parameterName;
+                $this->phpDocRaw = $bestContent . ' ' . '$' . $parameterName;
             }
             try {
-                $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
+                $this->typeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
             } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
-                $recoveredType = Utils::recoverBrokenPhpdocType($paramContent);
+                $recoveredType = Utils::recoverBrokenPhpdocType($bestContent);
                 if ($recoveredType !== null) {
                     $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
                     $this->typeFromPhpDoc = $this->typeFromPhpDoc ?? $normalizedRecoveredType;

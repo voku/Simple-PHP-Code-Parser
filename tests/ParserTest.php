@@ -846,7 +846,7 @@ PHP;
                             'typeFromPhpDocMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'                 => 'int[]|null',
                             'typeFromPhpDocSimple'           => 'int[]|null',
-                            'typeFromPhpDocExtended'         => 'int[]|null',
+                            'typeFromPhpDocExtended'         => '?list<int>',
                             'typeFromDefaultValue'           => 'array',
                         ],
                             ],
@@ -1177,7 +1177,7 @@ PHP;
                             'typeFromPhpDocMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'                 => 'int[]|null',
                             'typeFromPhpDocSimple'           => 'int[]|null',
-                            'typeFromPhpDocExtended'         => 'int[]|null',
+                            'typeFromPhpDocExtended'         => '?list<int>',
                             'typeFromDefaultValue'           => 'array',
                         ],
                             ],
@@ -2135,5 +2135,132 @@ PHP;
         static::assertSame('private', $phpClasses['Foo']->properties['name']->access);
         static::assertSame('string', $phpClasses['Foo']->properties['name']->type);
         static::assertSame('string', $phpClasses['Foo']->properties['name']->typeFromPhpDoc);
+    }
+
+    public function testPhpstanParamAlwaysWinsOverPlainParam(): void
+    {
+        // @phpstan-param comes AFTER @param — historically only the first @param was picked up
+        // because the scanner broke at $value immediately; the extended annotation was never reached.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @param string $value
+     * @phpstan-param array{key: string} $value
+     */
+    public function bar($value): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['value'];
+        static::assertSame('array{key: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanParamWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-param comes BEFORE @param — scanner resets on @param and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-param array{key: string} $value
+     * @param string $value
+     */
+    public function bar($value): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['value'];
+        static::assertSame('array{key: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanReturnAlwaysWinsOverPlainReturn(): void
+    {
+        // @phpstan-return comes AFTER @return
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @return string
+     * @phpstan-return array{key: string}
+     */
+    public function bar() {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('array{key: string}', $method->returnTypeFromPhpDocExtended);
+    }
+
+    public function testPhpstanReturnWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-return comes BEFORE @return — scanner resets on @return and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-return array{key: string}
+     * @return string
+     */
+    public function bar() {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('array{key: string}', $method->returnTypeFromPhpDocExtended);
+    }
+
+    public function testPhpstanVarAlwaysWinsOverPlainVar(): void
+    {
+        // @phpstan-var comes AFTER @var
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @var string
+     * @phpstan-var array{key: string}
+     */
+    public $bar;
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $property = $phpClasses['Foo']->properties['bar'];
+        static::assertSame('array{key: string}', $property->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanVarWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-var comes BEFORE @var — scanner resets on @var and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-var array{key: string}
+     * @var string
+     */
+    public $bar;
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $property = $phpClasses['Foo']->properties['bar'];
+        static::assertSame('array{key: string}', $property->typeFromPhpDocExtended);
     }
 }

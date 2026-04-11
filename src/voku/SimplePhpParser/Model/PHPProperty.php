@@ -524,28 +524,47 @@ class PHPProperty extends BasePHPElement
     {
         $tokens = Utils::modernPhpdocTokens($docComment);
 
+        // Track standard (@var) and extended (@phpstan-var / @psalm-var) content separately
+        // so that the more specific phpstan/psalm annotation always wins regardless of tag order.
         $varContent = null;
+        $extendedVarContent = null;
+        $currentTarget = null; // 'standard' | 'extended'
+
         foreach ($tokens->getTokens() as $token) {
             $content = $token[0];
 
-            if ($content === '@var' || $content === '@psalm-var' || $content === '@phpstan-var') {
-                // reset
+            if ($content === '@var') {
+                $currentTarget = 'standard';
                 $varContent = '';
-
                 continue;
             }
 
-            if ($varContent !== null) {
+            if ($content === '@psalm-var' || $content === '@phpstan-var') {
+                $currentTarget = 'extended';
+                $extendedVarContent = '';
+                continue;
+            }
+
+            if ($currentTarget === 'standard') {
                 $varContent .= $content;
+            } elseif ($currentTarget === 'extended') {
+                $extendedVarContent .= $content;
             }
         }
 
-        $varContent = $varContent ? \trim($varContent) : null;
-        if ($varContent) {
+        // Prefer @phpstan-var / @psalm-var over plain @var regardless of tag order.
+        $bestContent = null;
+        if ($extendedVarContent !== null && \trim($extendedVarContent) !== '') {
+            $bestContent = \trim($extendedVarContent);
+        } elseif ($varContent !== null && \trim($varContent) !== '') {
+            $bestContent = \trim($varContent);
+        }
+
+        if ($bestContent) {
             if (!$this->phpDocRaw) {
-                $this->phpDocRaw = $varContent;
+                $this->phpDocRaw = $bestContent;
             }
-            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($varContent);
+            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
         }
     }
 }
