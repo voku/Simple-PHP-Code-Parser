@@ -57,8 +57,10 @@ jobs:
         run: |
           if [[ "${{ matrix.parser-version }}" == "v4" ]]; then
             # php-parser v4: pin phpunit to ^9.6 because phpunit 11's php-code-coverage requires php-parser v5.
-            # --with-all-dependencies allows phpunit/php-code-coverage and transitive deps to be downgraded.
-            composer update --prefer-dist --no-interaction --with-all-dependencies nikic/php-parser:'^4.18' phpunit/phpunit:'^9.6'
+            # Use --with (temporary constraint) instead of listing packages positionally: the latter is a
+            # partial-update and requires a lock file, which libraries do not commit. --with does a full
+            # resolve with the extra constraint, so it works fine without a lock file.
+            composer update --prefer-dist --no-interaction --with nikic/php-parser:'^4.18' --with phpunit/phpunit:'^9.6'
           elif [[ "${{ matrix.composer }}" == "lowest" ]]; then
             composer update --prefer-dist --no-interaction --prefer-lowest --prefer-stable
           else
