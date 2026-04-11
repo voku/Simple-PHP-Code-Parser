@@ -79,6 +79,10 @@ class PhpCodeParser
         array $pathExcludeRegex = [],
         array $fileExtensions = []
     ): ParserContainer {
+        // Push a disposable handler so restore_error_handler() below will only
+        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
+        // intact on the stack.
+        \set_error_handler(null);
         foreach ($autoloaderProjectPaths as $projectPath) {
             if (\file_exists($projectPath) && \is_file($projectPath)) {
                 require_once $projectPath;
