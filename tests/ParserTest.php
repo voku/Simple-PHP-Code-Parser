@@ -1861,6 +1861,95 @@ PHP
         static::assertSame('param', $class->methods['doSomething']->parameters['x']->attributes[0]->arguments['value']);
     }
 
+    public function testConstantAndFunctionAttributesFromStringInput(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+use Attribute;
+use voku\tests\ParserAttr as ParserAttributeAlias;
+
+#[Attribute(Attribute::TARGET_CLASS_CONSTANT | Attribute::TARGET_FUNCTION | Attribute::TARGET_PARAMETER)]
+class ParserAttr
+{
+    public function __construct(public string $name = '')
+    {
+    }
+}
+
+class AttributeTargets
+{
+    #[ParserAttributeAlias(name: 'const')]
+    public const FOO = 1;
+}
+
+#[ParserAttributeAlias(name: 'function')]
+function attribute_target(
+    #[ParserAttributeAlias(name: 'parameter')] string &$label,
+    int $count = 1,
+    string ...$ids
+): void {
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+        $phpFunctions = $phpCode->getFunctions();
+
+        static::assertArrayHasKey('voku\tests\AttributeTargets', $phpClasses);
+        static::assertArrayHasKey('voku\tests\attribute_target', $phpFunctions);
+
+        $class = $phpClasses['voku\tests\AttributeTargets'];
+        $function = $phpFunctions['voku\tests\attribute_target'];
+
+        static::assertNotEmpty($class->constants['FOO']->attributes);
+        static::assertSame('voku\tests\ParserAttr', $class->constants['FOO']->attributes[0]->name);
+        static::assertSame('const', $class->constants['FOO']->attributes[0]->arguments['name']);
+
+        static::assertNotEmpty($function->attributes);
+        static::assertSame('voku\tests\ParserAttr', $function->attributes[0]->name);
+        static::assertSame('function', $function->attributes[0]->arguments['name']);
+
+        static::assertNotEmpty($function->parameters['label']->attributes);
+        static::assertSame('voku\tests\ParserAttr', $function->parameters['label']->attributes[0]->name);
+        static::assertSame('parameter', $function->parameters['label']->attributes[0]->arguments['name']);
+    }
+
+    public function testStandaloneFunctionParameterMetadataFromStringInput(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+function parameter_metadata(string &$label, int $count = 1, ?string $optional = null, string ...$ids): void
+{
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpFunctions = $phpCode->getFunctions();
+
+        static::assertArrayHasKey('voku\tests\parameter_metadata', $phpFunctions);
+
+        $function = $phpFunctions['voku\tests\parameter_metadata'];
+
+        static::assertTrue($function->parameters['label']->is_passed_by_ref);
+        static::assertNull($function->parameters['label']->defaultValue);
+        static::assertNull($function->parameters['label']->typeFromDefaultValue);
+
+        static::assertSame(1, $function->parameters['count']->defaultValue);
+        static::assertSame('int', $function->parameters['count']->typeFromDefaultValue);
+
+        static::assertNull($function->parameters['optional']->defaultValue);
+        static::assertSame('null', $function->parameters['optional']->typeFromDefaultValue);
+
+        static::assertTrue($function->parameters['ids']->is_vararg);
+        static::assertSame('string', $function->parameters['ids']->type);
+    }
+
     public function testPropertyHooksFromStringInput(): void
     {
         if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
