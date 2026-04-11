@@ -442,6 +442,76 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('array{parsedParamTagStr: string, variableName: (null[]|string)}', $phpInterfaces[DummyInterface::class]->methods['withComplexReturnArray']->returnTypeFromPhpDocExtended);
     }
 
+    public function testCurrentPhpFeaturesAreAvailableViaSimpleApi(): void
+    {
+        $pathExcludeRegex = ['/Dummy5|Dummy1[0|1|3]|Dummy8/'];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__, [], $pathExcludeRegex);
+
+        $phpClasses = $phpCode->getClasses();
+        $phpInterfaces = $phpCode->getInterfaces();
+        $phpTraits = $phpCode->getTraits();
+        $phpEnums = $phpCode->getEnums();
+        $phpFunctions = $phpCode->getFunctions();
+        $phpConstants = $phpCode->getConstants();
+        $phpFunctionsInfo = self::removeLocalPathForTheTest($phpCode->getFunctionsInfo());
+
+        static::assertArrayHasKey(Dummy::class, $phpClasses);
+        static::assertArrayHasKey(DummyWithAttributes::class, $phpClasses);
+        static::assertArrayHasKey(DummyFirstClassCallable::class, $phpClasses);
+        static::assertArrayHasKey(DummyOverrideChild::class, $phpClasses);
+        static::assertArrayHasKey(DummyCombinedSources::class, $phpClasses);
+
+        static::assertArrayHasKey(DummyInterface::class, $phpInterfaces);
+        static::assertArrayHasKey(DummyTrait::class, $phpTraits);
+        static::assertArrayHasKey('voku\tests\foo', $phpFunctions);
+        static::assertArrayHasKey('LALL', $phpConstants);
+        static::assertArrayHasKey(DummyEnum::class, $phpEnums);
+
+        static::assertSame('int', $phpFunctionsInfo['voku\tests\foo']['paramsTypes']['foo']['type']);
+        static::assertSame('int', $phpFunctionsInfo['voku\tests\foo']['paramsTypes']['foo']['typeFromDefaultValue']);
+
+        static::assertSame('voku\tests\DummyAttribute', $phpClasses[DummyWithAttributes::class]->attributes[0]->name);
+        static::assertSame('\Closure', $phpClasses[DummyFirstClassCallable::class]->methods['getCallable']->returnType);
+        static::assertTrue($phpClasses[DummyOverrideChild::class]->methods['greet']->is_override);
+        static::assertSame(
+            'array{status: string, retries: (int|float)}',
+            $phpClasses[DummyCombinedSources::class]->methods['buildSnapshot']->returnTypeFromPhpDocExtended
+        );
+
+        if (\PHP_VERSION_ID >= 80100) {
+            static::assertArrayHasKey(Dummy11::class, $phpClasses);
+            static::assertSame(true, $phpClasses[Dummy11::class]->properties['title']->is_readonly);
+        }
+
+        if (\PHP_VERSION_ID >= 80200) {
+            static::assertArrayHasKey(Dummy13::class, $phpClasses);
+            static::assertTrue($phpClasses[Dummy13::class]->is_readonly);
+
+            static::assertArrayHasKey(Dummy15::class, $phpClasses);
+            static::assertStringContainsString('Countable', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('Traversable', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('|', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('&', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
+        }
+
+        if (\PHP_VERSION_ID >= 80300) {
+            static::assertArrayHasKey(Dummy16::class, $phpClasses);
+            static::assertSame('string', $phpClasses[Dummy16::class]->constants['NAME']->typeFromDeclaration);
+        }
+
+        if (\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $propertyHooks = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPropertyHooks.php')->getClasses()['voku\tests\DummyPropertyHooks'];
+            static::assertArrayHasKey('get', $propertyHooks->properties['fullName']->hooks);
+            static::assertArrayHasKey('set', $propertyHooks->properties['fullName']->hooks);
+            static::assertSame('private', $propertyHooks->properties['email']->access_set);
+            static::assertSame('protected', $propertyHooks->properties['age']->access_set);
+        }
+    }
+
     public function testSimpleStringInputClasses(): void
     {
         $code = '<?php

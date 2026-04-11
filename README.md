@@ -126,6 +126,24 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
 
+Unified metadata API:
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+
+$phpClasses = $phpCode->getClasses();
+$phpInterfaces = $phpCode->getInterfaces();
+$phpTraits = $phpCode->getTraits();
+$phpEnums = $phpCode->getEnums();
+$phpFunctions = $phpCode->getFunctions();
+$phpConstants = $phpCode->getConstants();
+
+$functionInfo = $phpCode->getFunctionsInfo();
+$methodInfo = $phpClasses[MyService::class]->getMethodsInfo();
+$propertyInfo = $phpClasses[MyService::class]->getPropertiesInfo();
+```
+
+The library is meant to be the simple integration layer that other tools can call instead of wiring together `nikic/php-parser`, `phpstan/phpdoc-parser`, `phpDocumentor`, and native reflection themselves. The test suite validates supported PHP 8.x features through PHP 8.5, including modern type declarations and metadata such as attributes, enums, readonly constructs, typed constants, and property hooks.
+
 Access enums:
 ```php
 $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
