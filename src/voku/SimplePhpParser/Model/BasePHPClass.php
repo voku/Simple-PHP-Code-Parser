@@ -214,24 +214,4 @@ abstract class BasePHPClass extends BasePHPElement
 
         return false;
     }
-
-    /**
-     * @phpstan-return ''|'private'|'protected'|'public'
-     */
-    protected static function getAsymmetricSetVisibility(object $node): string
-    {
-        if (\method_exists($node, 'isPublicSet') && $node->isPublicSet()) {
-            return 'public';
-        }
-
-        if (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet()) {
-            return 'protected';
-        }
-
-        if (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet()) {
-            return 'private';
-        }
-
-        return '';
-    }
 }

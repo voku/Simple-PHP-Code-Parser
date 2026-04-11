@@ -225,7 +225,7 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->is_readonly = $parameter->isReadonly();
-        $this->access_set = self::getAsymmetricSetVisibilityFromParam($parameter);
+        $this->access_set = self::getAsymmetricSetVisibility($parameter);
 
         if ($parameter->type !== null) {
             $typeStr = Utils::typeNodeToString($parameter->type);
@@ -256,27 +256,6 @@ class PHPProperty extends BasePHPElement
 
         return $this;
     }
-
-    /**
-     * @phpstan-return ''|'private'|'protected'|'public'
-     */
-    private static function getAsymmetricSetVisibilityFromParam(object $parameter): string
-    {
-        if (\method_exists($parameter, 'isPublicSet') && $parameter->isPublicSet()) {
-            return 'public';
-        }
-
-        if (\method_exists($parameter, 'isProtectedSet') && $parameter->isProtectedSet()) {
-            return 'protected';
-        }
-
-        if (\method_exists($parameter, 'isPrivateSet') && $parameter->isPrivateSet()) {
-            return 'private';
-        }
-
-        return '';
-    }
-
     /**
      * @param ReflectionProperty $property
      *
