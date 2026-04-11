@@ -96,6 +96,11 @@ abstract class BasePHPElement
 
     protected function prepareNode(Node $node): void
     {
-        $this->line = $node->getStartLine();
+        // Keep the legacy getLine() fallback because we support multiple php-parser
+        // versions and some restored compatibility code paths still rely on the alias.
+        // @phpstan-ignore function.alreadyNarrowedType
+        $this->line = \method_exists($node, 'getStartLine')
+            ? $node->getStartLine()
+            : $node->getLine();
     }
 }

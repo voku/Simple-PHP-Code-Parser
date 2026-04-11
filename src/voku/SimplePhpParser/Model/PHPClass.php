@@ -45,7 +45,11 @@ class PHPClass extends BasePHPClass
 
         $this->is_abstract = $node->isAbstract();
 
-        $this->is_readonly = $node->isReadonly();
+        // Keep the guard for cross-version php-parser compatibility when readonly
+        // helpers are restored or backported differently in downstream installs.
+        if (\method_exists($node, 'isReadonly')) {
+            $this->is_readonly = $node->isReadonly();
+        }
 
         $this->is_anonymous = $node->isAnonymous();
 

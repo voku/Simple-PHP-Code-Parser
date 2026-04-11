@@ -39,7 +39,7 @@ class PHPDefineConstant extends PHPConst
 
         $this->name = $constName;
 
-        /* @phpstan-ignore-next-line */
+        // @phpstan-ignore argument.type
         $this->value = Utils::getPhpParserValueFromNode($node->args[1]);
 
         $this->type = Utils::normalizePhpType(\gettype($this->value));
