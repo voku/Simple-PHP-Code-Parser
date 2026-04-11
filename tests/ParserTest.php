@@ -203,20 +203,6 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
-            $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
-        );
-
-        static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float <foo/>',
-            $phpClasses[Dummy8::class]->methods['foo_broken']->returnPhpDocRaw
-        );
-
-        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->returnTypeFromPhpDocExtended);
-
-        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
-
-        static::assertSame(
             'callable(string): string',
             $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
         );
@@ -239,14 +225,68 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         }
 
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
-        $phpClasses = $phpCode->getClasses();
+        $phpClass = $phpCode->getClasses()[Dummy8::class];
+        $fooBroken = $phpClass->methods['foo_broken'];
+        $lall = $fooBroken->parameters['lall'];
 
+        static::assertNull($lall->type);
+        static::assertNull($lall->typeFromPhpDocMaybeWithComment);
+        static::assertNull($lall->typeFromPhpDoc);
+        static::assertNull($lall->typeFromPhpDocSimple);
+        static::assertNull($lall->typeFromPhpDocExtended);
+        static::assertNull($lall->typeFromDefaultValue);
         static::assertSame(
             'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
-            $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
+            $lall->phpDocRaw
         );
 
-        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
+        static::assertNull($fooBroken->returnType);
+        static::assertNull($fooBroken->returnTypeFromPhpDocMaybeWithComment);
+        static::assertNull($fooBroken->returnTypeFromPhpDoc);
+        static::assertNull($fooBroken->returnTypeFromPhpDocSimple);
+        static::assertNull($fooBroken->returnTypeFromPhpDocExtended);
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: int|float <foo/>',
+            $fooBroken->returnPhpDocRaw
+        );
+
+        static::assertSame(
+            [
+                'fullDescription' => '',
+                'paramsTypes'     => [
+                    'lall' => [
+                        'type'                           => null,
+                        'typeFromPhpDocMaybeWithComment' => null,
+                        'typeFromPhpDoc'                 => null,
+                        'typeFromPhpDocSimple'           => null,
+                        'typeFromPhpDocExtended'         => null,
+                        'typeFromDefaultValue'           => null,
+                    ],
+                ],
+                'returnTypes' => [
+                    'type'                           => null,
+                    'typeFromPhpDocMaybeWithComment' => null,
+                    'typeFromPhpDoc'                 => null,
+                    'typeFromPhpDocSimple'           => null,
+                    'typeFromPhpDocExtended'         => null,
+                ],
+                'paramsPhpDocRaw' => [
+                    'lall' => 'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+                ],
+                'returnPhpDocRaw' => 'array{stdClass: \stdClass, numbers: int|float <foo/>',
+                'line'            => 62,
+                'file'            => 'Simple-PHP-Code-Parser/tests/Dummy8.php',
+                'error'           => 'foo_broken:62 | Unexpected token ":", expected \'}\' at offset 34 on line 1' . "\n"
+                    . 'lall:62 | Unexpected token "$lall", expected \'}\' at offset 46 on line 1' . "\n"
+                    . 'lall:62 | Unexpected token "", expected \'}\' at offset 45 on line 1',
+                'is_deprecated'   => false,
+                'is_static'       => false,
+                'is_meta'         => false,
+                'is_internal'     => false,
+                'is_removed'      => false,
+            ],
+            self::removeLocalPathForTheTest($phpClass->getMethodsInfo()['foo_broken'])
+        );
     }
 
     public function testSimpleOneTrait(): void
