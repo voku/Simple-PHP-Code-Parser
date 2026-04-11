@@ -1800,6 +1800,10 @@ PHP
 
     public function testPropertyHooksFromStringInput(): void
     {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Property hooks require nikic/php-parser v5');
+        }
+
         $code = (string) \file_get_contents(__DIR__ . '/DummyPropertyHooks.php');
 
         $phpCode = PhpCodeParser::getFromString($code);
