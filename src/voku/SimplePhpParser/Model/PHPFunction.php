@@ -329,7 +329,7 @@ class PHPFunction extends BasePHPElement
             }
             try {
                 $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($returnContent);
-            } catch (\Exception $e) {
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
                 $recoveredType = Utils::recoverBrokenPhpdocType($returnContent);
                 if ($recoveredType !== null) {
                     $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
@@ -338,7 +338,7 @@ class PHPFunction extends BasePHPElement
                     $this->returnTypeFromPhpDocExtended = $recoveredType;
                 }
 
-                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . $e->getMessage();
                 $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }

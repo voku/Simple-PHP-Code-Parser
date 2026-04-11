@@ -357,7 +357,7 @@ class PHPParameter extends BasePHPElement
             }
             try {
                 $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
-            } catch (\Exception $e) {
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
                 $recoveredType = Utils::recoverBrokenPhpdocType($paramContent);
                 if ($recoveredType !== null) {
                     $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
