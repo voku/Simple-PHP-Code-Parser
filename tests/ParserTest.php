@@ -483,19 +483,22 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         if (\PHP_VERSION_ID >= 80100) {
-            static::assertArrayHasKey(Dummy11::class, $phpClasses);
-            static::assertSame(true, $phpClasses[Dummy11::class]->properties['title']->is_readonly);
+            $promotedProperties = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy11.php')->getClasses();
+            static::assertArrayHasKey(Dummy11::class, $promotedProperties);
+            static::assertSame(true, $promotedProperties[Dummy11::class]->properties['title']->is_readonly);
         }
 
         if (\PHP_VERSION_ID >= 80200) {
-            static::assertArrayHasKey(Dummy13::class, $phpClasses);
-            static::assertTrue($phpClasses[Dummy13::class]->is_readonly);
+            $readonlyClasses = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy13.php')->getClasses();
+            static::assertArrayHasKey(Dummy13::class, $readonlyClasses);
+            static::assertTrue($readonlyClasses[Dummy13::class]->is_readonly);
 
-            static::assertArrayHasKey(Dummy15::class, $phpClasses);
-            static::assertStringContainsString('Countable', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
-            static::assertStringContainsString('Traversable', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
-            static::assertStringContainsString('|', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
-            static::assertStringContainsString('&', (string) $phpClasses[Dummy15::class]->methods['getDnf']->returnType);
+            $dnfClasses = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy15.php')->getClasses();
+            static::assertArrayHasKey(Dummy15::class, $dnfClasses);
+            static::assertStringContainsString('Countable', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('Traversable', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('|', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('&', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
         }
 
         if (\PHP_VERSION_ID >= 80300) {
