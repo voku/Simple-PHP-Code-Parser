@@ -366,7 +366,7 @@ class PHPParameter extends BasePHPElement
                     $this->typeFromPhpDocExtended = $recoveredType;
                 }
 
-                throw $e;
+                $this->addParseError($e);
             }
         }
     }

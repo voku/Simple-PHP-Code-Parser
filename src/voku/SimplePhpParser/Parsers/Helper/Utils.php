@@ -514,16 +514,16 @@ final class Utils
             }
         }
 
-        while ($parts !== []) {
-            $candidate = \trim(\implode('', $parts));
+        for ($i = \count($parts); $i > 0; --$i) {
+            $candidate = \trim(\implode('', \array_slice($parts, 0, $i)));
             if ($candidate === '') {
                 return null;
             }
 
             try {
                 return self::modernPhpdoc($candidate);
-            } catch (\Exception $e) {
-                array_pop($parts);
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
+                continue;
             }
         }
 

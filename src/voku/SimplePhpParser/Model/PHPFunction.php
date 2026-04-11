@@ -338,7 +338,8 @@ class PHPFunction extends BasePHPElement
                     $this->returnTypeFromPhpDocExtended = $recoveredType;
                 }
 
-                throw $e;
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
             }
         }
     }
