@@ -83,7 +83,7 @@ abstract class BasePHPElement
             if ($node->namespacedName) {
                 $fqn = $node->namespacedName->toString();
             } elseif (\property_exists($node, 'name') && $node->name) {
-                $fqn = $node->name->name;
+                $fqn = $node->name instanceof Name ? $node->name->toString() : (string) $node->name;
             }
         }
 
@@ -96,6 +96,8 @@ abstract class BasePHPElement
 
     protected function prepareNode(Node $node): void
     {
-        $this->line = $node->getStartLine();
+        $this->line = method_exists($node, 'getStartLine')
+            ? $node->getStartLine()
+            : $node->getLine(); // @phpstan-ignore-line getLine() was removed in PHP-Parser v5
     }
 }

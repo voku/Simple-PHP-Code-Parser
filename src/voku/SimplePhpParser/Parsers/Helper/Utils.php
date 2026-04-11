@@ -114,7 +114,7 @@ class Utils
                     $node->value->name
                 ) {
                     if ($node->value->name instanceof \PhpParser\Node\Name) {
-                        $value = $node->value->name->toString() ?: $node->value->name->name;
+                        $value = $node->value->name->toString();
                     } else {
                         $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
                     }
