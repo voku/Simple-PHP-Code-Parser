@@ -1868,8 +1868,8 @@ PHP
         static::assertTrue($method->parameters['withMeta']->defaultValue);
         static::assertSame('bool', $method->parameters['withMeta']->typeFromDefaultValue);
 
-        static::assertSame('\DateTimeImmutable', $freeze->parameters['at']->type);
-        static::assertSame('\DateTimeImmutable', $freeze->returnType);
+        static::assertSame('DateTimeImmutable', \ltrim((string) $freeze->parameters['at']->type, '\\'));
+        static::assertSame('DateTimeImmutable', \ltrim((string) $freeze->returnType, '\\'));
     }
 
     public function testAttributeFromStringInput(): void
