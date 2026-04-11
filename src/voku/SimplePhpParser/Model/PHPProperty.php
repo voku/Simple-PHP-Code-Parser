@@ -407,6 +407,10 @@ class PHPProperty extends BasePHPElement
             return 'null|mixed';
         }
 
+        if ($type === 'null') {
+            return 'null|mixed';
+        }
+
         $typeParts = \explode('|', $type);
         if (\in_array('null', $typeParts, true)) {
             return $type;
