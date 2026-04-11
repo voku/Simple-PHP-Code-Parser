@@ -326,7 +326,8 @@ final class PhpCodeParser
         foreach ($phpFileArray as $cacheKey => $path) {
             $content = \file_get_contents($path);
             if ($content === false) {
-                throw new \RuntimeException('Could not read file: ' . $path);
+                $lastError = \error_get_last();
+                throw new \RuntimeException('Could not read file: ' . $path . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
             }
 
             $response = [
