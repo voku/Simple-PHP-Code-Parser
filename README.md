@@ -35,6 +35,24 @@ We will use:
 
 ### Supported PHP Features
 
+Runtime support for this library is PHP 8.1+, while the parser test suite validates analyzable source syntax from PHP 5.3 through PHP 8.5.
+
+#### Legacy source syntax that can still be analyzed
+
+| Source Syntax Generation | Representative coverage |
+|---|---|
+| PHP 5.3 | namespaces, closures with `use`, `array()` syntax |
+| PHP 5.4 | traits, `callable`, short arrays |
+| PHP 5.5 | generators / `yield`, `finally` |
+| PHP 5.6 | variadics, argument unpacking-ready syntax, constant arrays |
+| PHP 7.0 | scalar parameter types, return types, anonymous classes |
+| PHP 7.1 | nullable types, `iterable`, `void` |
+| PHP 7.2 | `object` type |
+| PHP 7.3 | trailing commas in calls |
+| PHP 7.4 | typed properties, arrow functions |
+
+#### Modern source syntax coverage
+
 | Feature | PHP Version | Supported |
 |---|---|---|
 | Attributes (class, method, property, parameter, constant) | 8.0+ | ✅ |
@@ -54,6 +72,7 @@ We will use:
 | Trait constants | 8.2+ | ✅ |
 | Typed class constants | 8.3+ | ✅ |
 | `#[\Override]` attribute detection | 8.3+ | ✅ |
+| Property hooks / asymmetric visibility | 8.4+ | ✅ |
 
 ### Install via "composer require"
 
@@ -122,6 +141,24 @@ $phpClasses = $phpCode->getClasses();
 
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
+
+Unified metadata API:
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+
+$phpClasses = $phpCode->getClasses();
+$phpInterfaces = $phpCode->getInterfaces();
+$phpTraits = $phpCode->getTraits();
+$phpEnums = $phpCode->getEnums();
+$phpFunctions = $phpCode->getFunctions();
+$phpConstants = $phpCode->getConstants();
+
+$functionInfo = $phpCode->getFunctionsInfo();
+$methodInfo = $phpClasses[MyService::class]->getMethodsInfo();
+$propertyInfo = $phpClasses[MyService::class]->getPropertiesInfo();
+```
+
+The library is meant to be the simple integration layer that other tools can call instead of wiring together `nikic/php-parser`, `phpstan/phpdoc-parser`, `phpDocumentor`, and native reflection themselves. The test suite validates analyzable PHP source from PHP 5.3 through PHP 8.5, including legacy syntax generations and modern type declarations / metadata such as attributes, enums, readonly constructs, typed constants, and property hooks.
 
 Access enums:
 ```php

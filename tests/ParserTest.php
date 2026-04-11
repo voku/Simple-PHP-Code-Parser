@@ -84,6 +84,308 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('voku\tests\Dummy6', $phpClasses[Dummy9::class]->parentClass);
     }
 
+    public function testPhp53LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '5.3',
+            <<<'PHP'
+<?php
+
+namespace Legacy53;
+
+use ArrayObject as BaseArrayObject;
+
+interface Contract
+{
+    public function map(array $input);
+}
+
+class FeatureSet extends BaseArrayObject implements Contract
+{
+    const VERSION = '5.3';
+
+    public $items = array('legacy');
+
+    public function map(array $input)
+    {
+        $filter = function ($value) use ($input) {
+            return $value . ':' . count($input);
+        };
+
+        return $filter(reset($input));
+    }
+}
+
+function helper(array $input = array())
+{
+    return $input;
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $phpInterfaces = $phpCode->getInterfaces();
+                $phpFunctions = $phpCode->getFunctions();
+
+                static::assertArrayHasKey('Legacy53\FeatureSet', $phpClasses);
+                static::assertArrayHasKey('Legacy53\Contract', $phpInterfaces);
+                static::assertArrayHasKey('Legacy53\helper', $phpFunctions);
+                static::assertSame('5.3', $phpClasses['Legacy53\FeatureSet']->constants['VERSION']->value);
+                static::assertSame(['legacy'], $phpClasses['Legacy53\FeatureSet']->properties['items']->defaultValue);
+                static::assertSame('array', $phpFunctions['Legacy53\helper']->parameters['input']->typeFromDefaultValue);
+            }
+        );
+    }
+
+    public function testPhp54LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '5.4',
+            <<<'PHP'
+<?php
+
+namespace Legacy54;
+
+trait TimestampTrait
+{
+    public function createdAt()
+    {
+        return ['created' => true];
+    }
+}
+
+class FeatureSet
+{
+    use TimestampTrait;
+
+    public function walk(callable $callback, array $items = [])
+    {
+        return $callback($items);
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $phpTraits = $phpCode->getTraits();
+
+                static::assertArrayHasKey('Legacy54\FeatureSet', $phpClasses);
+                static::assertArrayHasKey('Legacy54\TimestampTrait', $phpTraits);
+                static::assertArrayHasKey('walk', $phpClasses['Legacy54\FeatureSet']->methods);
+                static::assertSame('callable', $phpClasses['Legacy54\FeatureSet']->methods['walk']->parameters['callback']->type);
+                static::assertSame([], $phpClasses['Legacy54\FeatureSet']->methods['walk']->parameters['items']->defaultValue);
+            }
+        );
+    }
+
+    public function testPhp55LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '5.5',
+            <<<'PHP'
+<?php
+
+namespace Legacy55;
+
+class FeatureSet
+{
+    public function stream(array $items)
+    {
+        try {
+            foreach ($items as $item) {
+                yield $item;
+            }
+        } finally {
+            $done = true;
+        }
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+
+                static::assertArrayHasKey('Legacy55\FeatureSet', $phpClasses);
+                static::assertArrayHasKey('stream', $phpClasses['Legacy55\FeatureSet']->methods);
+                static::assertSame('array', $phpClasses['Legacy55\FeatureSet']->methods['stream']->parameters['items']->type);
+            }
+        );
+    }
+
+    public function testPhp56LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '5.6',
+            <<<'PHP'
+<?php
+
+namespace Legacy56;
+
+class FeatureSet
+{
+    const OPTIONS = ['a' => 1, 'b' => 2];
+
+    public function joinParts($prefix, ...$parts)
+    {
+        return vsprintf($prefix, $parts);
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $class = $phpClasses['Legacy56\FeatureSet'];
+
+                static::assertArrayHasKey('OPTIONS', $class->constants);
+                static::assertTrue($class->methods['joinParts']->parameters['parts']->is_vararg ?? false);
+            }
+        );
+    }
+
+    public function testPhp70LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '7.0',
+            <<<'PHP'
+<?php
+
+namespace Legacy70;
+
+class FeatureSet
+{
+    public function sum(int $left, int $right): int
+    {
+        $helper = new class() {
+        };
+
+        return ($left ?? 0) + ($right ?? 0);
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $method = $phpClasses['Legacy70\FeatureSet']->methods['sum'];
+
+                static::assertSame('int', $method->parameters['left']->type);
+                static::assertSame('int', $method->parameters['right']->type);
+                static::assertSame('int', $method->returnType);
+            }
+        );
+    }
+
+    public function testPhp71LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '7.1',
+            <<<'PHP'
+<?php
+
+namespace Legacy71;
+
+class FeatureSet
+{
+    public function hydrate(?string $name, iterable $rows): void
+    {
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $method = $phpClasses['Legacy71\FeatureSet']->methods['hydrate'];
+
+                static::assertSame('null|string', $method->parameters['name']->type);
+                static::assertSame('iterable', $method->parameters['rows']->type);
+                static::assertSame('void', $method->returnType);
+            }
+        );
+    }
+
+    public function testPhp72LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '7.2',
+            <<<'PHP'
+<?php
+
+namespace Legacy72;
+
+class FeatureSet
+{
+    public function normalize(object $input): object
+    {
+        return $input;
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $method = $phpClasses['Legacy72\FeatureSet']->methods['normalize'];
+
+                static::assertSame('object', $method->parameters['input']->type);
+                static::assertSame('object', $method->returnType);
+            }
+        );
+    }
+
+    public function testPhp73LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '7.3',
+            <<<'PHP'
+<?php
+
+namespace Legacy73;
+
+class FeatureSet
+{
+    public function render(array $parts): string
+    {
+        return implode(
+            '-',
+            $parts,
+        );
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $method = $phpClasses['Legacy73\FeatureSet']->methods['render'];
+
+                static::assertSame('array', $method->parameters['parts']->type);
+                static::assertSame('string', $method->returnType);
+            }
+        );
+    }
+
+    public function testPhp74LegacySyntaxCheckpoint(): void
+    {
+        $this->assertLegacyVersionCheckpoint(
+            '7.4',
+            <<<'PHP'
+<?php
+
+namespace Legacy74;
+
+class FeatureSet
+{
+    public int $count = 0;
+
+    public function map(array $items): array
+    {
+        $transform = fn (int $value): int => $value + $this->count;
+
+        return array_map($transform, $items);
+    }
+}
+PHP,
+            static function (\voku\SimplePhpParser\Parsers\Helper\ParserContainer $phpCode): void {
+                $phpClasses = $phpCode->getClasses();
+                $class = $phpClasses['Legacy74\FeatureSet'];
+
+                static::assertSame('int', $class->properties['count']->type);
+                static::assertSame(0, $class->properties['count']->defaultValue);
+                static::assertSame('array', $class->methods['map']->parameters['items']->type);
+                static::assertSame('array', $class->methods['map']->returnType);
+            }
+        );
+    }
+
     public function testUnionTypes(): void
     {
         if (PHP_VERSION_ID < 80000) {
@@ -440,6 +742,79 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         self::assertFalse($phpInterfaces[DummyInterface::class]->is_iterable);
 
         static::assertSame('array{parsedParamTagStr: string, variableName: (null[]|string)}', $phpInterfaces[DummyInterface::class]->methods['withComplexReturnArray']->returnTypeFromPhpDocExtended);
+    }
+
+    public function testCurrentPhpFeaturesAreAvailableViaSimpleApi(): void
+    {
+        $pathExcludeRegex = ['/Dummy5|Dummy1[0|1|3]|Dummy8/'];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__, [], $pathExcludeRegex);
+
+        $phpClasses = $phpCode->getClasses();
+        $phpInterfaces = $phpCode->getInterfaces();
+        $phpTraits = $phpCode->getTraits();
+        $phpEnums = $phpCode->getEnums();
+        $phpFunctions = $phpCode->getFunctions();
+        $phpConstants = $phpCode->getConstants();
+        $phpFunctionsInfo = self::removeLocalPathForTheTest($phpCode->getFunctionsInfo());
+
+        static::assertArrayHasKey(Dummy::class, $phpClasses);
+        static::assertArrayHasKey(DummyWithAttributes::class, $phpClasses);
+        static::assertArrayHasKey(DummyFirstClassCallable::class, $phpClasses);
+        static::assertArrayHasKey(DummyOverrideChild::class, $phpClasses);
+        static::assertArrayHasKey(DummyCombinedSources::class, $phpClasses);
+
+        static::assertArrayHasKey(DummyInterface::class, $phpInterfaces);
+        static::assertArrayHasKey(DummyTrait::class, $phpTraits);
+        static::assertArrayHasKey('voku\tests\foo', $phpFunctions);
+        static::assertArrayHasKey('LALL', $phpConstants);
+        static::assertArrayHasKey(DummyEnum::class, $phpEnums);
+
+        static::assertSame('int', $phpFunctionsInfo['voku\tests\foo']['paramsTypes']['foo']['type']);
+        static::assertSame('int', $phpFunctionsInfo['voku\tests\foo']['paramsTypes']['foo']['typeFromDefaultValue']);
+
+        static::assertSame('voku\tests\DummyAttribute', $phpClasses[DummyWithAttributes::class]->attributes[0]->name);
+        static::assertSame('\Closure', $phpClasses[DummyFirstClassCallable::class]->methods['getCallable']->returnType);
+        static::assertTrue($phpClasses[DummyOverrideChild::class]->methods['greet']->is_override);
+        static::assertSame(
+            'array{status: string, retries: (int|float)}',
+            $phpClasses[DummyCombinedSources::class]->methods['buildSnapshot']->returnTypeFromPhpDocExtended
+        );
+
+        if (\PHP_VERSION_ID >= 80100) {
+            $promotedProperties = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy11.php')->getClasses();
+            static::assertArrayHasKey(Dummy11::class, $promotedProperties);
+            static::assertSame(true, $promotedProperties[Dummy11::class]->properties['title']->is_readonly);
+        }
+
+        if (\PHP_VERSION_ID >= 80200) {
+            $readonlyClasses = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy13.php')->getClasses();
+            static::assertArrayHasKey(Dummy13::class, $readonlyClasses);
+            static::assertTrue($readonlyClasses[Dummy13::class]->is_readonly);
+
+            $dnfClasses = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy15.php')->getClasses();
+            static::assertArrayHasKey(Dummy15::class, $dnfClasses);
+            static::assertStringContainsString('Countable', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('Traversable', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('|', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+            static::assertStringContainsString('&', (string) $dnfClasses[Dummy15::class]->methods['getDnf']->returnType);
+        }
+
+        if (\PHP_VERSION_ID >= 80300) {
+            static::assertArrayHasKey(Dummy16::class, $phpClasses);
+            static::assertSame('string', $phpClasses[Dummy16::class]->constants['NAME']->typeFromDeclaration);
+        }
+
+        if (\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $propertyHooks = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPropertyHooks.php')->getClasses()['voku\tests\DummyPropertyHooks'];
+            static::assertArrayHasKey('get', $propertyHooks->properties['fullName']->hooks);
+            static::assertArrayHasKey('set', $propertyHooks->properties['fullName']->hooks);
+            static::assertSame('private', $propertyHooks->properties['email']->access_set);
+            static::assertSame('protected', $propertyHooks->properties['age']->access_set);
+        }
     }
 
     public function testSimpleStringInputClasses(): void
@@ -1433,6 +1808,27 @@ PHP
         return $helper;
     }
 
+    private static function normalizeTypeForAssertion(?string $type): ?string
+    {
+        if ($type === null || !\str_starts_with($type, '\\')) {
+            return $type;
+        }
+
+        return \substr($type, 1);
+    }
+
+    private function assertLegacyVersionCheckpoint(
+        string $version,
+        string $code,
+        callable $assertions
+    ): void {
+        $phpCode = PhpCodeParser::getFromString($code);
+
+        static::assertSame([], $phpCode->getParseErrors(), 'PHP ' . $version . ' checkpoint should parse without errors');
+
+        $assertions($phpCode);
+    }
+
     public function testEnumString(): void
     {
         if (\PHP_VERSION_ID < 80100) {
@@ -1822,6 +2218,57 @@ PHP
 
         // nullsafe operator example
         static::assertSame('null|string', $class->methods['nullsafeExample']->returnType);
+    }
+
+    public function testCombinedMetadataSources(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyCombinedSources.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyCombinedSources::class, $phpClasses);
+
+        $class = $phpClasses[DummyCombinedSources::class];
+        $property = $class->properties['dependencyClass'];
+        $method = $class->methods['buildSnapshot'];
+        $freeze = $class->methods['freeze'];
+        $shapeFromPhpDoc = 'array{status: string, retries: int|float}';
+        $shapeFromPhpDocExtended = 'array{status: string, retries: (int|float)}';
+
+        static::assertSame('voku\tests\DummyCombinedClassAttribute', $class->attributes[0]->name);
+        static::assertSame('combined', $class->attributes[0]->arguments['label']);
+
+        static::assertSame('string', $property->type);
+        static::assertSame('class-string<DummyCombinedDependency>', $property->typeFromPhpDocExtended);
+        static::assertSame('string', $property->typeFromPhpDocSimple);
+        static::assertSame('string', $property->typeFromDefaultValue);
+        static::assertSame('voku\tests\DummyCombinedPropertyAttribute', $property->attributes[0]->name);
+        static::assertSame('reflection', $property->attributes[0]->arguments['source']);
+
+        static::assertSame('Build a payload snapshot.', $method->summary);
+        static::assertSame('Collects native types, advanced phpDoc types and reflection metadata together.', $method->description);
+        static::assertSame('array', $method->returnType);
+        static::assertSame($shapeFromPhpDoc, $method->returnTypeFromPhpDoc);
+        static::assertSame($shapeFromPhpDocExtended, $method->returnTypeFromPhpDocExtended);
+        static::assertSame('voku\tests\DummyCombinedMethodAttribute', $method->attributes[0]->name);
+        static::assertSame('method', $method->attributes[0]->arguments['label']);
+
+        static::assertSame('array', $method->parameters['payload']->type);
+        static::assertSame($shapeFromPhpDoc, $method->parameters['payload']->typeFromPhpDoc);
+        static::assertSame('array', $method->parameters['payload']->typeFromPhpDocSimple);
+        static::assertSame($shapeFromPhpDocExtended, $method->parameters['payload']->typeFromPhpDocExtended);
+        static::assertSame('voku\tests\DummyCombinedParameterAttribute', $method->parameters['payload']->attributes[0]->name);
+        static::assertSame('payload', $method->parameters['payload']->attributes[0]->arguments['label']);
+
+        static::assertSame('callable', $method->parameters['formatter']->type);
+        static::assertSame('callable(string): string', $method->parameters['formatter']->typeFromPhpDocExtended);
+        static::assertSame('voku\tests\DummyCombinedParameterAttribute', $method->parameters['formatter']->attributes[0]->name);
+        static::assertSame('formatter', $method->parameters['formatter']->attributes[0]->arguments['label']);
+
+        static::assertTrue($method->parameters['withMeta']->defaultValue);
+        static::assertSame('bool', $method->parameters['withMeta']->typeFromDefaultValue);
+
+        static::assertSame('DateTimeImmutable', self::normalizeTypeForAssertion($freeze->parameters['at']->type));
+        static::assertSame('DateTimeImmutable', self::normalizeTypeForAssertion($freeze->returnType));
     }
 
     public function testAttributeFromStringInput(): void

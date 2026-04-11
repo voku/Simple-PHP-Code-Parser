@@ -521,7 +521,10 @@ class PHPClass extends BasePHPClass
             $existingProperty->access_set = $promotedProperty->access_set;
         }
 
-        if ($existingProperty->hooks === [] && $promotedProperty->hooks !== []) {
+        // AST is the ground truth for promoted-property hooks; always prefer it
+        // when the param node carries hook data. Only fall back to whatever
+        // reflection already populated when the AST node has nothing.
+        if ($promotedProperty->hooks !== []) {
             $existingProperty->hooks = $promotedProperty->hooks;
         }
 
