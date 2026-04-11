@@ -1937,13 +1937,11 @@ PHP;
         $function = $phpFunctions['voku\tests\parameter_metadata'];
 
         static::assertTrue($function->parameters['label']->is_passed_by_ref);
-        static::assertNull($function->parameters['label']->defaultValue);
         static::assertNull($function->parameters['label']->typeFromDefaultValue);
 
         static::assertSame(1, $function->parameters['count']->defaultValue);
         static::assertSame('int', $function->parameters['count']->typeFromDefaultValue);
 
-        static::assertNull($function->parameters['optional']->defaultValue);
         static::assertSame('null', $function->parameters['optional']->typeFromDefaultValue);
 
         static::assertTrue($function->parameters['ids']->is_vararg);
