@@ -2263,4 +2263,48 @@ PHP;
         $property = $phpClasses['Foo']->properties['bar'];
         static::assertSame('array{key: string}', $property->typeFromPhpDocExtended);
     }
+
+    public function testArrayShapeKeyMatchingVariableNameIsNotCorrupted(): void
+    {
+        // When an array-shape key has the same name as the parameter variable,
+        // splitTypeAndVariable must not strip the key from the type string.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-param array{userId: int, name: string} $userId
+     */
+    public function bar($userId): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['userId'];
+        static::assertSame('array{userId: int, name: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testDnfPhpDocTypeIsNotCorrupted(): void
+    {
+        // DNF types like (Foo&Bar)|null must preserve inner parentheses
+        // after modernPhpdoc normalisation.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @param (Countable&Traversable)|null $input
+     * @return (Countable&Traversable)|null
+     */
+    public function bar($input) { return $input; }
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('(Countable & Traversable)|null', $method->parameters['input']->typeFromPhpDocExtended);
+        static::assertSame('(Countable & Traversable)|null', $method->returnTypeFromPhpDocExtended);
+    }
 }

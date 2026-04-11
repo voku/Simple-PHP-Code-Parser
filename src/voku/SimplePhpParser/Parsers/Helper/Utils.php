@@ -43,7 +43,7 @@ final class Utils
                 $variableName = $variableNameHelper['variableName'];
             }
             $parsedParamTagStr = \str_replace(
-                (string) $variableName,
+                '$' . (string) $variableName,
                 '',
                 $parsedParamTagStr
             );
@@ -546,6 +546,20 @@ final class Utils
 
         $typeNode = $TYPE_PARSER->parse($tokens);
 
+        $result = (string) $typeNode;
+
+        // PHPStan v2 wraps top-level union/intersection nodes in outer
+        // parentheses, e.g. "(int | string)".  Strip exactly one balanced
+        // pair of outer parens so we don't mangle DNF types such as
+        // "((Foo & Bar) | null)" → "(Foo & Bar)|null".
+        if (
+            \strlen($result) >= 2
+            && $result[0] === '('
+            && $result[\strlen($result) - 1] === ')'
+        ) {
+            $result = \substr($result, 1, -1);
+        }
+
         return \str_replace(
             [
                 ' | ',
@@ -553,7 +567,7 @@ final class Utils
             [
                 '|',
             ],
-            \trim((string) $typeNode, ')(')
+            $result
         );
     }
 
