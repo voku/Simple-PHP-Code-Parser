@@ -7,7 +7,7 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 use PhpParser\Error;
 use PhpParser\ErrorHandler;
 
-class ParserErrorHandler extends ErrorHandler\Collecting
+final class ParserErrorHandler extends ErrorHandler\Collecting
 {
     /**
      * Handle an error generated during lexing, parsing or some other operation.

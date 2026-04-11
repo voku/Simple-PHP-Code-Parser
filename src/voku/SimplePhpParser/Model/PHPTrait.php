@@ -10,7 +10,7 @@ use ReflectionClass;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
-class PHPTrait extends BasePHPClass
+final class PHPTrait extends BasePHPClass
 {
     /**
      * @phpstan-var class-string

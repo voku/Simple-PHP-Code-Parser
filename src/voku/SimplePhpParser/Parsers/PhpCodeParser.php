@@ -22,7 +22,7 @@ use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
 use function React\Async\await;
 use function React\Promise\all;
 
-class PhpCodeParser
+final class PhpCodeParser
 {
     /**
      * @internal
@@ -83,16 +83,19 @@ class PhpCodeParser
         // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
         // intact on the stack.
         \set_error_handler(null);
-        foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath) && \is_file($projectPath)) {
-                require_once $projectPath;
-            } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
-                require_once $projectPath . '/vendor/autoload.php';
-            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                require_once $projectPath . '/../vendor/autoload.php';
+        try {
+            foreach ($autoloaderProjectPaths as $projectPath) {
+                if (\file_exists($projectPath) && \is_file($projectPath)) {
+                    require_once $projectPath;
+                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
+                    require_once $projectPath . '/vendor/autoload.php';
+                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                    require_once $projectPath . '/../vendor/autoload.php';
+                }
             }
+        } finally {
+            \restore_error_handler();
         }
-        \restore_error_handler();
 
         $phpCodes = self::getCode(
             $pathOrCode,

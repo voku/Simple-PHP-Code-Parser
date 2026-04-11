@@ -23,7 +23,7 @@ use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
-class ASTVisitor extends NodeVisitorAbstract
+final class ASTVisitor extends NodeVisitorAbstract
 {
     /**
      * @var string|null

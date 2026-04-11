@@ -6,7 +6,7 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 
 use phpDocumentor\Reflection\DocBlockFactory;
 
-class DocFactoryProvider
+final class DocFactoryProvider
 {
     private static ?DocBlockFactory $docFactory = null;
 
