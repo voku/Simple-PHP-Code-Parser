@@ -899,7 +899,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error' => '',
+                        'error' => 'parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated' => false,
                         'is_static'     => true,
                         'is_meta'       => false,

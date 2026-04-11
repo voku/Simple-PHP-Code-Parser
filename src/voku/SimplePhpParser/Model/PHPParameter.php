@@ -299,16 +299,16 @@ class PHPParameter extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
-            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            $this->addParseError($e);
         }
 
         try {
             $this->readPhpDocByTokens($docComment, $parameterName);
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
-            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            $this->addParseError($e);
         }
+
+        $this->reportBrokenParamTagWithoutType($docComment, $parameterName);
     }
 
     /**
@@ -346,5 +346,39 @@ class PHPParameter extends BasePHPElement
             }
             $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
         }
+    }
+
+    private function reportBrokenParamTagWithoutType(string $docComment, string $parameterName): void
+    {
+        if ($this->line === null) {
+            return;
+        }
+
+        if (!\preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/u', $parameterName)) {
+            return;
+        }
+
+        if (
+            !\preg_match(
+                '#@(param|psalm-param|phpstan-param)[ \t]+\$' . $parameterName . '(?=[ \t\r\n\*]|$)#u',
+                $docComment
+            )
+        ) {
+            return;
+        }
+
+        try {
+            // Re-parse the malformed tag payload to preserve the original parser
+            // error message even though the docblock library now falls back to mixed.
+            Utils::modernPhpdoc('$' . $parameterName);
+        } catch (\Exception $e) {
+            $this->addParseError($e);
+        }
+    }
+
+    private function addParseError(\Exception $e): void
+    {
+        $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+        $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
     }
 }
