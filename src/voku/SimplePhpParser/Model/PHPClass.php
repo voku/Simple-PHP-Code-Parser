@@ -463,39 +463,36 @@ class PHPClass extends BasePHPClass
 
     private function addPromotedPropertiesFromConstructor(Class_ $node): void
     {
-        foreach ($node->getMethods() as $method) {
-            if ($method->name->name !== '__construct') {
+        $method = $node->getMethod('__construct');
+        if ($method === null) {
+            return;
+        }
+
+        foreach ($method->params as $parameter) {
+            if (!self::isPromotedParameter($parameter)) {
                 continue;
             }
 
-            foreach ($method->params as $parameter) {
-                if (!self::isPromotedParameter($parameter)) {
-                    continue;
-                }
-
-                $parameterVar = $parameter->var;
-                if (
-                    !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
-                    || !\is_string($parameterVar->name)
-                ) {
-                    continue;
-                }
-
-                $promotedProperty = (new PHPProperty($this->parserContainer))
-                    ->readObjectFromPromotedParam($parameter, $this->name);
-
-                $propertyName = $parameterVar->name;
-                $existingProperty = $this->properties[$propertyName] ?? null;
-                if ($existingProperty !== null) {
-                    $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $parameter);
-
-                    continue;
-                }
-
-                $this->properties[$propertyName] = $promotedProperty;
+            $parameterVar = $parameter->var;
+            if (
+                !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
+                || !\is_string($parameterVar->name)
+            ) {
+                continue;
             }
 
-            break;
+            $promotedProperty = (new PHPProperty($this->parserContainer))
+                ->readObjectFromPromotedParam($parameter, $this->name);
+
+            $propertyName = $parameterVar->name;
+            $existingProperty = $this->properties[$propertyName] ?? null;
+            if ($existingProperty !== null) {
+                $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $parameter);
+
+                continue;
+            }
+
+            $this->properties[$propertyName] = $promotedProperty;
         }
     }
 
@@ -504,7 +501,7 @@ class PHPClass extends BasePHPClass
         PHPProperty $promotedProperty,
         \PhpParser\Node\Param $parameter
     ): void {
-        if ($existingProperty->access === '' && $promotedProperty->access !== '') {
+        if ($promotedProperty->access !== '') {
             $existingProperty->access = $promotedProperty->access;
         }
 

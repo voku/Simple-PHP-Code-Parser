@@ -2110,4 +2110,30 @@ PHP;
         );
         static::assertSame('id', $class->properties['id']->attributes[0]->arguments['name']);
     }
+
+    public function testPromotedPropertyVisibilityOverridesPhpDocPropertyVisibility(): void
+    {
+        $code = <<<'PHP'
+<?php
+/**
+ * @property string $name
+ */
+class Foo
+{
+    public function __construct(
+        private string $name
+    ) {
+    }
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('Foo', $phpClasses);
+        static::assertArrayHasKey('name', $phpClasses['Foo']->properties);
+        static::assertSame('private', $phpClasses['Foo']->properties['name']->access);
+        static::assertSame('string', $phpClasses['Foo']->properties['name']->type);
+        static::assertSame('string', $phpClasses['Foo']->properties['name']->typeFromPhpDoc);
+    }
 }
