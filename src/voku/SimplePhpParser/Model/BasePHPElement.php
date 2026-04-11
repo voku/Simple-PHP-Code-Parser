@@ -123,4 +123,34 @@ abstract class BasePHPElement
 
         return '';
     }
+
+    protected static function isPromotedParameter(\PhpParser\Node\Param $parameter): bool
+    {
+        return ($parameter->flags & \PhpParser\Node\Stmt\Class_::VISIBILITY_MODIFIER_MASK) !== 0;
+    }
+
+    /**
+     * @phpstan-return ''|'private'|'protected'|'public'
+     */
+    protected static function getVisibilityFromModifierFlags(int $flags): string
+    {
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PRIVATE) !== 0) {
+            return 'private';
+        }
+
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PROTECTED) !== 0) {
+            return 'protected';
+        }
+
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PUBLIC) !== 0) {
+            return 'public';
+        }
+
+        return '';
+    }
+
+    protected static function hasReadonlyModifier(int $flags): bool
+    {
+        return ($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_READONLY) !== 0;
+    }
 }

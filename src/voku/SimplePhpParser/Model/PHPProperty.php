@@ -216,15 +216,12 @@ class PHPProperty extends BasePHPElement
         $this->name = $parameterVar->name;
         $this->is_static = false;
 
-        if ($parameter->isPrivate()) {
-            $this->access = 'private';
-        } elseif ($parameter->isProtected()) {
-            $this->access = 'protected';
-        } else {
+        $this->access = self::getVisibilityFromModifierFlags($parameter->flags);
+        if ($this->access === '') {
             $this->access = 'public';
         }
 
-        $this->is_readonly = $parameter->isReadonly();
+        $this->is_readonly = self::hasReadonlyModifier($parameter->flags);
         $this->access_set = self::getAsymmetricSetVisibility($parameter);
 
         if ($parameter->type !== null) {

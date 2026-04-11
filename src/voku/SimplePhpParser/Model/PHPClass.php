@@ -614,7 +614,7 @@ class PHPClass extends BasePHPClass
             }
 
             foreach ($method->params as $param) {
-                if (!$param->isPromoted()) {
+                if (!self::isPromotedParameter($param)) {
                     continue;
                 }
 
@@ -622,16 +622,54 @@ class PHPClass extends BasePHPClass
                 if (
                     !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
                     || !\is_string($parameterVar->name)
-                    || isset($this->properties[$parameterVar->name])
                 ) {
                     continue;
                 }
 
-                $this->properties[$parameterVar->name] = (new PHPProperty($this->parserContainer))
+                $promotedProperty = (new PHPProperty($this->parserContainer))
                     ->readObjectFromPromotedParam($param, $this->name);
+
+                if (isset($this->properties[$parameterVar->name])) {
+                    $this->mergePromotedPropertyData($this->properties[$parameterVar->name], $promotedProperty, $param);
+
+                    continue;
+                }
+
+                $this->properties[$parameterVar->name] = $promotedProperty;
             }
 
             break;
+        }
+    }
+
+    private function mergePromotedPropertyData(
+        PHPProperty $existingProperty,
+        PHPProperty $promotedProperty,
+        \PhpParser\Node\Param $parameter
+    ): void {
+        if ($existingProperty->access === '' && $promotedProperty->access !== '') {
+            $existingProperty->access = $promotedProperty->access;
+        }
+
+        if ($existingProperty->type === null && $promotedProperty->type !== null) {
+            $existingProperty->type = $promotedProperty->type;
+        }
+
+        if ($existingProperty->is_readonly === null && $promotedProperty->is_readonly !== null) {
+            $existingProperty->is_readonly = $promotedProperty->is_readonly;
+        }
+
+        if ($existingProperty->access_set === '' && $promotedProperty->access_set !== '') {
+            $existingProperty->access_set = $promotedProperty->access_set;
+        }
+
+        if ($existingProperty->attributes === [] && $promotedProperty->attributes !== []) {
+            $existingProperty->attributes = $promotedProperty->attributes;
+        }
+
+        if ($parameter->default !== null) {
+            $existingProperty->defaultValue = $promotedProperty->defaultValue;
+            $existingProperty->typeFromDefaultValue = $promotedProperty->typeFromDefaultValue;
         }
     }
 }

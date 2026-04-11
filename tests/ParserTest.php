@@ -2066,4 +2066,33 @@ PHP;
         static::assertArrayHasKey('age', $class->methods['__construct']->parameters);
         static::assertArrayHasKey('id', $class->methods['__construct']->parameters);
     }
+
+    public function testPromotedPropertyDefaultsFromAutoloadedFileInput(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPromotedPropertyDefaults.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPromotedPropertyDefaults', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPromotedPropertyDefaults'];
+
+        static::assertArrayHasKey('age', $class->properties);
+        static::assertSame(0, $class->properties['age']->defaultValue);
+        static::assertSame('int', $class->properties['age']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedDefaultAttribute',
+            $class->properties['age']->attributes[0]->name
+        );
+        static::assertSame('age', $class->properties['age']->attributes[0]->arguments['name']);
+
+        static::assertArrayHasKey('id', $class->properties);
+        static::assertTrue($class->properties['id']->is_readonly);
+        static::assertNull($class->properties['id']->defaultValue);
+        static::assertSame('null', $class->properties['id']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedDefaultAttribute',
+            $class->properties['id']->attributes[0]->name
+        );
+        static::assertSame('id', $class->properties['id']->attributes[0]->arguments['name']);
+    }
 }
