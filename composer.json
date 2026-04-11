@@ -17,8 +17,6 @@
     ],
     "require": {
         "php": ">=8.1",
-        "react/async": "~4.3.0",
-        "react/filesystem": "^0.2@dev",
         "phpdocumentor/type-resolver": "~1.7.2 || ~2.0",
         "phpdocumentor/reflection-docblock": "~5.3 || ~6.0",
         "phpdocumentor/reflection-common": "~2.2",

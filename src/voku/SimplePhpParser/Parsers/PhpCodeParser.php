@@ -8,8 +8,6 @@ use FilesystemIterator;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
-use React\Filesystem\Node\FileInterface;
-use React\Filesystem\Node\NodeInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -20,8 +18,6 @@ use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
-use function React\Async\await;
-use function React\Promise\all;
 
 final class PhpCodeParser
 {
@@ -265,8 +261,6 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
-        /** @var list<\React\Promise\PromiseInterface<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}>> $phpFilePromises */
-        $phpFilePromises = [];
 
         // fallback
         if (\count($fileExtensions) === 0) {
@@ -329,45 +323,23 @@ final class PhpCodeParser
             $phpFileArray[$cacheKey] = $path;
         }
 
-        $phpFileArrayChunks = \array_chunk($phpFileArray, Utils::getCpuCores(), true);
-        foreach ($phpFileArrayChunks as $phpFileArrayChunk) {
-            $filesystem = \React\Filesystem\Factory::create();
-
-            foreach ($phpFileArrayChunk as $cacheKey => $path) {
-                $phpFilePromises[] = $filesystem->detect($path)->then(
-                    static function (NodeInterface $node) use ($path, $cacheKey): array {
-                        if (!$node instanceof FileInterface) {
-                            throw new \RuntimeException('Expected a file node for: ' . $path);
-                        }
-
-                        return [
-                            'content'  => $node->getContents()->then(static function (string $contents): string {
-                                return $contents;
-                            }),
-                            'fileName' => $path,
-                            'cacheKey' => $cacheKey,
-                        ];
-                    },
-                    function ($e) {
-                        throw $e;
-                    }
-                );
+        foreach ($phpFileArray as $cacheKey => $path) {
+            $content = \file_get_contents($path);
+            if ($content === false) {
+                $lastError = \error_get_last();
+                throw new \RuntimeException('Could not read file: ' . $path . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
             }
 
-            /** @var list<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}> $phpFilePromiseResponses */
-            $phpFilePromiseResponses = await(all($phpFilePromises));
-            foreach ($phpFilePromiseResponses as $response) {
-                $response['content'] = await($response['content']);
+            $response = [
+                'content'  => $content,
+                'fileName' => $path,
+                'cacheKey' => $cacheKey,
+            ];
 
-                assert(is_string($response['content']));
-                assert(is_string($response['cacheKey']));
-                assert($response['fileName'] === null || is_string($response['fileName']));
+            @$cache->setItem($cacheKey, $response);
 
-                @$cache->setItem($response['cacheKey'], $response);
-
-                $phpCodes[$response['cacheKey']]['content'] = $response['content'];
-                $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
-            }
+            $phpCodes[$cacheKey]['content'] = $content;
+            $phpCodes[$cacheKey]['fileName'] = $path;
         }
 
         return $phpCodes;
