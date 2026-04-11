@@ -613,12 +613,12 @@ class PHPClass extends BasePHPClass
                 continue;
             }
 
-            foreach ($method->params as $param) {
-                if (!self::isPromotedParameter($param)) {
+            foreach ($method->params as $parameter) {
+                if (!self::isPromotedParameter($parameter)) {
                     continue;
                 }
 
-                $parameterVar = $param->var;
+                $parameterVar = $parameter->var;
                 if (
                     !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
                     || !\is_string($parameterVar->name)
@@ -627,12 +627,12 @@ class PHPClass extends BasePHPClass
                 }
 
                 $promotedProperty = (new PHPProperty($this->parserContainer))
-                    ->readObjectFromPromotedParam($param, $this->name);
+                    ->readObjectFromPromotedParam($parameter, $this->name);
 
                 $propertyName = $parameterVar->name;
                 $existingProperty = $this->properties[$propertyName] ?? null;
                 if ($existingProperty !== null) {
-                    $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $param);
+                    $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $parameter);
 
                     continue;
                 }
