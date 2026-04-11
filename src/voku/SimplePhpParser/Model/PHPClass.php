@@ -134,7 +134,7 @@ class PHPClass extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $clazz
+     * @param ReflectionClass<object> $clazz
      *
      * @return $this
      */
@@ -471,7 +471,7 @@ class PHPClass extends BasePHPClass
     private static function nodeUsesPHP82PlusSyntax(Class_ $node): bool
     {
         // readonly class is PHP 8.2+
-        if (\method_exists($node, 'isReadOnly') && $node->isReadOnly()) {
+        if ($node->isReadonly()) {
             return true;
         }
 

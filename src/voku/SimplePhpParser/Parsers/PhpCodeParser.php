@@ -9,6 +9,7 @@ use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use React\Filesystem\Node\FileInterface;
+use React\Filesystem\Node\NodeInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -264,7 +265,7 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
-        /** @var \React\Promise\PromiseInterface[] $phpFilePromises */
+        /** @var list<\React\Promise\PromiseInterface<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}>> $phpFilePromises */
         $phpFilePromises = [];
 
         // fallback
@@ -334,9 +335,13 @@ final class PhpCodeParser
 
             foreach ($phpFileArrayChunk as $cacheKey => $path) {
                 $phpFilePromises[] = $filesystem->detect($path)->then(
-                    function (FileInterface $file) use ($path, $cacheKey) {
+                    static function (NodeInterface $node) use ($path, $cacheKey): array {
+                        if (!$node instanceof FileInterface) {
+                            throw new \RuntimeException('Expected a file node for: ' . $path);
+                        }
+
                         return [
-                            'content'  => $file->getContents()->then(static function (string $contents) {
+                            'content'  => $node->getContents()->then(static function (string $contents): string {
                                 return $contents;
                             }),
                             'fileName' => $path,
@@ -349,6 +354,7 @@ final class PhpCodeParser
                 );
             }
 
+            /** @var list<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}> $phpFilePromiseResponses */
             $phpFilePromiseResponses = await(all($phpFilePromises));
             foreach ($phpFilePromiseResponses as $response) {
                 $response['content'] = await($response['content']);

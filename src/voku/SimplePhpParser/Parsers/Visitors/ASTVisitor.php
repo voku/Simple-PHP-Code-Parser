@@ -46,9 +46,8 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param \PhpParser\Node $node
      *
-     * @return int|\PhpParser\Node|null
      */
-    public function enterNode(Node $node)
+    public function enterNode(Node $node): Node
     {
         switch (true) {
             case $node instanceof Function_:
@@ -192,7 +191,7 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param \voku\SimplePhpParser\Model\PHPClass $class
      *
-     * @return array
+     * @return class-string[]
      */
     public function combineImplementedInterfaces($class): array
     {
@@ -204,19 +203,21 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             $phpCodeInterfaces = $this->parserContainer->getInterface($interface);
             if ($phpCodeInterfaces !== null) {
-                $interfaces[] = $phpCodeInterfaces->parentInterfaces;
+                foreach ($phpCodeInterfaces->parentInterfaces as $parentInterface) {
+                    $interfaces[] = $parentInterface;
+                }
             }
         }
 
-        if ($class->parentClass === null) {
-            return $interfaces;
+        if ($class->parentClass !== null) {
+            $parentClass = $this->parserContainer->getClass($class->parentClass);
+            if ($parentClass !== null) {
+                $interfaces = \array_merge($interfaces, $this->combineImplementedInterfaces($parentClass));
+            }
         }
 
-        $parentClass = $this->parserContainer->getClass($class->parentClass);
-        if ($parentClass !== null) {
-            $inherited = $this->combineImplementedInterfaces($parentClass);
-            $interfaces = Utils::flattenArray($inherited, false);
-        }
+        /** @var class-string[] $interfaces */
+        $interfaces = \array_values(\array_unique($interfaces));
 
         return $interfaces;
     }

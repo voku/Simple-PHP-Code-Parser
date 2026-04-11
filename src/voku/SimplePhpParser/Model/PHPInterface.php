@@ -80,7 +80,7 @@ class PHPInterface extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $interface
+     * @param ReflectionClass<object> $interface
      *
      * @return $this
      */

@@ -131,7 +131,7 @@ class PHPEnum extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $clazz
+     * @param ReflectionClass<object> $clazz
      *
      * @return $this
      */
@@ -159,11 +159,7 @@ class PHPEnum extends BasePHPClass
         if ($clazz instanceof ReflectionEnum) {
             $backingType = $clazz->getBackingType();
             if ($backingType !== null) {
-                if (\method_exists($backingType, 'getName')) {
-                    $this->scalarType = $backingType->getName();
-                } else {
-                    $this->scalarType = (string) $backingType;
-                }
+                $this->scalarType = $backingType->getName();
             }
 
             foreach ($clazz->getCases() as $case) {

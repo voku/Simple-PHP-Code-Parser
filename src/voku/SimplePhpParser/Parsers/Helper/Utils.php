@@ -16,10 +16,10 @@ final class Utils
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
 
     /**
-     * @param array $arr
+     * @param array<mixed> $arr
      * @param bool  $group
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     public static function flattenArray(array $arr, bool $group): array
     {
@@ -29,9 +29,7 @@ final class Utils
     /**
      * @param \phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag
      *
-     * @return array
-     *
-     * @paalm-return array{parsedParamTagStr: string, variableName: null|string}
+     * @return array{parsedParamTagStr: string, variableName: null|string}
      */
     public static function splitTypeAndVariable(\phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag): array
     {
@@ -373,7 +371,7 @@ final class Utils
             return 'mixed';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\Scalar) {
+        if ($type instanceof \phpDocumentor\Reflection\PseudoTypes\Scalar) {
             return 'string|int|float|bool';
         }
 
@@ -425,8 +423,6 @@ final class Utils
         }
 
         $reflection = new \ReflectionFunction($functionName);
-        \assert($reflection instanceof \ReflectionFunction);
-
         $FUNCTION_REFLECTION_INSTANCE[$functionName] = $reflection;
 
         return $reflection;
@@ -434,6 +430,8 @@ final class Utils
 
     /**
      * @phpstan-param class-string $className
+     *
+     * @phpstan-return ReflectionClass<object>
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
     {
@@ -444,8 +442,6 @@ final class Utils
         }
 
         $reflection = new ReflectionClass($className);
-        \assert($reflection instanceof ReflectionClass);
-
         $CLASS_REFLECTION_INSTANCE[$className] = $reflection;
 
         return $reflection;
@@ -458,7 +454,7 @@ final class Utils
      *
      * @phpstan-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
      */
-    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactory
+    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactoryInterface
     {
         static $DOC_BLOCK_FACTORY_INSTANCE = null;
 
@@ -466,29 +462,9 @@ final class Utils
             return $DOC_BLOCK_FACTORY_INSTANCE;
         }
 
-        $fqsenResolver = new \phpDocumentor\Reflection\FqsenResolver();
-        $tagFactory = new \phpDocumentor\Reflection\DocBlock\StandardTagFactory($fqsenResolver);
-        $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
-        $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
+        $DOC_BLOCK_FACTORY_INSTANCE = \phpDocumentor\Reflection\DocBlockFactory::createInstance($additionalTags);
 
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($descriptionFactory);
-
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($typeResolver);
-
-        $docBlockFactory = new \phpDocumentor\Reflection\DocBlockFactory($descriptionFactory, $tagFactory);
-        foreach ($additionalTags as $tagName => $tagHandler) {
-            $docBlockFactory->registerTagHandler($tagName, $tagHandler);
-        }
-
-        $DOC_BLOCK_FACTORY_INSTANCE = $docBlockFactory;
-
-        return $docBlockFactory;
+        return $DOC_BLOCK_FACTORY_INSTANCE;
     }
 
     public static function modernPhpdocTokens(string $input): \PHPStan\PhpDocParser\Parser\TokenIterator
@@ -593,16 +569,12 @@ final class Utils
     /**
      * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
      *
-     * @param \ReflectionClass|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     * @param \ReflectionClass<object>|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
      *
      * @return PHPAttribute[]
      */
     public static function extractAttributesFromReflection($reflection): array
     {
-        if (!\method_exists($reflection, 'getAttributes')) {
-            return [];
-        }
-
         $result = [];
         foreach ($reflection->getAttributes() as $attr) {
             $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());

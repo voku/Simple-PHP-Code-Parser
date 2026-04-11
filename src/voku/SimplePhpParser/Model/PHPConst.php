@@ -58,7 +58,7 @@ class PHPConst extends BasePHPElement
         $parentNode = $node->getAttribute('parent');
 
         if ($parentNode instanceof ClassConst) {
-            if (\property_exists($parentNode, 'type') && $parentNode->type !== null) {
+            if ($parentNode->type !== null) {
                 $this->type = Utils::typeNodeToString($parentNode->type);
             }
 
@@ -73,7 +73,7 @@ class PHPConst extends BasePHPElement
             $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
 
             // Typed class constants (PHP 8.3+)
-            if (\property_exists($parentNode, 'type') && $parentNode->type !== null) {
+            if ($parentNode->type !== null) {
                 $typeDeclStr = Utils::typeNodeToString($parentNode->type);
                 if ($typeDeclStr !== null) {
                     $this->typeFromDeclaration = $typeDeclStr;

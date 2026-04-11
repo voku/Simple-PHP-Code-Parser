@@ -74,8 +74,6 @@ abstract class BasePHPClass extends BasePHPElement
         if (
             $node instanceof \PhpParser\Node\Stmt\Class_
             &&
-            \method_exists($node, 'isReadonly')
-            &&
             $node->isReadonly()
         ) {
             return true;
@@ -131,8 +129,6 @@ abstract class BasePHPClass extends BasePHPElement
     {
         if (
             $node instanceof \PhpParser\Node\Stmt\ClassConst
-            &&
-            \property_exists($node, 'type')
             &&
             $node->type !== null
         ) {
