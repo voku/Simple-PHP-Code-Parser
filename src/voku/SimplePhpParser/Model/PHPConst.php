@@ -55,11 +55,13 @@ class PHPConst extends BasePHPElement
 
         $this->value = Utils::getPhpParserValueFromNode($node);
 
-        $this->type = Utils::normalizePhpType(\gettype($this->value));
-
         $parentNode = $node->getAttribute('parent');
 
         if ($parentNode instanceof ClassConst) {
+            if ($parentNode->type !== null) {
+                $this->type = Utils::typeNodeToString($parentNode->type);
+            }
+
             if ($parentNode->isPrivate()) {
                 $this->visibility = 'private';
             } elseif ($parentNode->isProtected()) {
@@ -71,7 +73,7 @@ class PHPConst extends BasePHPElement
             $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
 
             // Typed class constants (PHP 8.3+)
-            if (\property_exists($parentNode, 'type') && $parentNode->type !== null) {
+            if ($parentNode->type !== null) {
                 $typeDeclStr = Utils::typeNodeToString($parentNode->type);
                 if ($typeDeclStr !== null) {
                     $this->typeFromDeclaration = $typeDeclStr;
@@ -82,6 +84,10 @@ class PHPConst extends BasePHPElement
             if (empty($this->attributes) && !empty($parentNode->attrGroups)) {
                 $this->attributes = Utils::extractAttributesFromAstNode($parentNode->attrGroups);
             }
+        }
+
+        if ($this->type === null) {
+            $this->type = Utils::normalizePhpType(\gettype($this->value));
         }
 
         $this->collectTags($node);

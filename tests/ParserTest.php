@@ -1218,6 +1218,57 @@ PHP;
         self::assertSame('int', $phpFunctionsInfo['fsockopen']['paramsTypes']['errno']['typeFromPhpDoc']);
     }
 
+    public function testResolvedComplexTypeHintsFromAst(): void
+    {
+        if (PHP_VERSION_ID < 80000) {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+
+        $phpCode = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+final class DummyFromString
+{
+    public function example(\DateTimeInterface|\DateTimeImmutable|null $date): void
+    {
+    }
+}
+PHP
+        );
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(
+            '\DateTimeInterface|\DateTimeImmutable|null',
+            $phpClasses['voku\tests\DummyFromString']->methods['example']->parameters['date']->type
+        );
+    }
+
+    public function testTypedClassConstantsFromAst(): void
+    {
+        if (PHP_VERSION_ID < 80300) {
+            static::markTestSkipped('only for PHP >= 8.3');
+        }
+
+        $phpCode = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+final class DummyTypedConstant
+{
+    public const string NAME = 'foo';
+}
+PHP
+        );
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame('string', $phpClasses['voku\tests\DummyTypedConstant']->constants['NAME']->type);
+    }
+
     /**
      * @param array $result
      *

@@ -21,6 +21,9 @@ class PHPAttribute
      */
     public array $arguments = [];
 
+    /**
+     * @param array<int|string, mixed> $arguments
+     */
     public function __construct(string $name, array $arguments = [])
     {
         $this->name = $name;

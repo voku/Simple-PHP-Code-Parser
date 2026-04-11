@@ -23,6 +23,11 @@ jobs:
             8.4
         ]
         composer: [basic]
+        # Test against both supported nikic/php-parser major versions.
+        # php-parser v4 requires phpunit ^9.6 because phpunit/php-code-coverage v11+
+        # has a hard dependency on php-parser v5; phpunit 9 uses php-code-coverage v9
+        # which is compatible with both.
+        parser-version: [v4, v5]
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -44,18 +49,23 @@ jobs:
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ steps.composer-cache.outputs.directory }}
-          key: ${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ matrix.php }}-composer-
+          # Include parser-version in the key to avoid cache poisoning between v4/v5 runs.
+          key: ${{ matrix.php }}-${{ matrix.parser-version }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ matrix.php }}-${{ matrix.parser-version }}-composer-
 
       - name: Install dependencies
         run: |
-          if [[ "${{ matrix.composer }}" == "lowest" ]]; then
+          if [[ "${{ matrix.parser-version }}" == "v4" ]]; then
+            # php-parser v4: pin phpunit to ^9.6 because phpunit 11's php-code-coverage requires php-parser v5.
+            # Use --with (temporary constraint) instead of listing packages positionally: the latter is a
+            # partial-update and requires a lock file, which libraries do not commit. --with does a full
+            # resolve with the extra constraint, so it works fine without a lock file.
+            composer update --prefer-dist --no-interaction --with nikic/php-parser:'^4.18' --with phpunit/phpunit:'^9.6'
+          elif [[ "${{ matrix.composer }}" == "lowest" ]]; then
             composer update --prefer-dist --no-interaction --prefer-lowest --prefer-stable
-          fi;
-
-          if [[ "${{ matrix.composer }}" == "basic" ]]; then
+          else
             composer update --prefer-dist --no-interaction
-          fi;
+          fi
 
           composer dump-autoload -o
 
@@ -65,7 +75,6 @@ jobs:
           php vendor/bin/phpunit -c phpunit.xml --coverage-filter=src --coverage-clover=build/logs/clover.xml
 
       - name: Run phpstan
-        continue-on-error: true
         if: ${{ matrix.php == '8.3' }}
         run: |
           php vendor/bin/phpstan analyse
@@ -86,6 +95,6 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: logs_composer-${{ matrix.composer }}_php-${{ matrix.php }}
+          name: logs_composer-${{ matrix.composer }}_parser-${{ matrix.parser-version }}_php-${{ matrix.php }}
           path: |
             build/logs

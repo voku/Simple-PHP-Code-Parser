@@ -8,6 +8,10 @@ abstract class BasePHPClass extends BasePHPElement
 {
     use PHPDocElement;
 
+    private const PHP_VERSION_8_2_0 = 80200;
+
+    private const PHP_VERSION_8_3_0 = 80300;
+
     /**
      * @var array<string, PHPMethod>
      */
@@ -43,4 +47,112 @@ abstract class BasePHPClass extends BasePHPElement
     public ?bool $is_instantiable = null;
 
     public ?bool $is_iterable = null;
+
+    /**
+     * Check if the parsed class-like node can be safely autoloaded on the
+     * current runtime without triggering fatal syntax errors from newer PHP features.
+     */
+    protected static function canAutoloadFromPhpNode(\PhpParser\Node $node): bool
+    {
+        if (\PHP_VERSION_ID < self::PHP_VERSION_8_2_0 && self::containsPHP82PlusSyntax($node)) {
+            return false;
+        }
+
+        if (\PHP_VERSION_ID < self::PHP_VERSION_8_3_0 && self::containsPHP83PlusSyntax($node)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Detect PHP 8.2-only syntax within a class-like AST such as readonly classes,
+     * DNF types, and standalone null/true/false types.
+     */
+    private static function containsPHP82PlusSyntax(\PhpParser\Node $node): bool
+    {
+        if (
+            $node instanceof \PhpParser\Node\Stmt\Class_
+            &&
+            $node->isReadonly()
+        ) {
+            return true;
+        }
+
+        if ($node instanceof \PhpParser\Node\UnionType) {
+            foreach ($node->types as $innerType) {
+                if ($innerType instanceof \PhpParser\Node\IntersectionType) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof \PhpParser\Node\Identifier) {
+            $typeName = \strtolower($node->name);
+
+            // Standalone null/true/false are represented as Identifier nodes too,
+            // so they are only PHP 8.2+ when they are not part of a union type.
+            if (
+                ($typeName === 'null' || $typeName === 'true' || $typeName === 'false')
+                &&
+                !($node->getAttribute('parent') instanceof \PhpParser\Node\UnionType)
+            ) {
+                return true;
+            }
+        }
+
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            $subNode = $node->{$subNodeName};
+
+            if ($subNode instanceof \PhpParser\Node && self::containsPHP82PlusSyntax($subNode)) {
+                return true;
+            }
+
+            if (!\is_array($subNode)) {
+                continue;
+            }
+
+            foreach ($subNode as $subNodeInner) {
+                if ($subNodeInner instanceof \PhpParser\Node && self::containsPHP82PlusSyntax($subNodeInner)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect PHP 8.3-only syntax within a class-like AST such as typed class constants.
+     */
+    private static function containsPHP83PlusSyntax(\PhpParser\Node $node): bool
+    {
+        if (
+            $node instanceof \PhpParser\Node\Stmt\ClassConst
+            &&
+            $node->type !== null
+        ) {
+            return true;
+        }
+
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            $subNode = $node->{$subNodeName};
+
+            if ($subNode instanceof \PhpParser\Node && self::containsPHP83PlusSyntax($subNode)) {
+                return true;
+            }
+
+            if (!\is_array($subNode)) {
+                continue;
+            }
+
+            foreach ($subNode as $subNodeInner) {
+                if ($subNodeInner instanceof \PhpParser\Node && self::containsPHP83PlusSyntax($subNodeInner)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }

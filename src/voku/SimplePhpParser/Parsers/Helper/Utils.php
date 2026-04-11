@@ -16,10 +16,10 @@ final class Utils
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
 
     /**
-     * @param array $arr
+     * @param array<mixed> $arr
      * @param bool  $group
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     public static function flattenArray(array $arr, bool $group): array
     {
@@ -29,9 +29,7 @@ final class Utils
     /**
      * @param \phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag
      *
-     * @return array
-     *
-     * @paalm-return array{parsedParamTagStr: string, variableName: null|string}
+     * @return array{parsedParamTagStr: string, variableName: null|string}
      */
     public static function splitTypeAndVariable(\phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag): array
     {
@@ -240,6 +238,84 @@ final class Utils
     }
 
     /**
+     * @param \PhpParser\Node|null $typeNode
+     *
+     * @return string|null
+     */
+    public static function typeNodeToString($typeNode): ?string
+    {
+        if ($typeNode === null) {
+            return null;
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\NullableType) {
+            $innerType = self::typeNodeToString($typeNode->type);
+
+            return $innerType !== null ? 'null|' . $innerType : 'null|mixed';
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\UnionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                if ($innerType instanceof \PhpParser\Node\IntersectionType) {
+                    $innerIntersection = self::typeNodeToString($innerType);
+                    $parts[] = $innerIntersection !== null ? '(' . $innerIntersection . ')' : 'mixed';
+
+                    continue;
+                }
+
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('|', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\IntersectionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('&', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Name) {
+            $typeString = $typeNode->toString();
+            if (
+                $typeString === 'self'
+                ||
+                $typeString === 'static'
+                ||
+                $typeString === 'parent'
+            ) {
+                return $typeString;
+            }
+
+            return '\\' . \ltrim($typeString, '\\');
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Identifier) {
+            return self::normalizePhpType($typeNode->name) ?? $typeNode->name;
+        }
+
+        if (\method_exists($typeNode, 'toString')) {
+            $typeString = $typeNode->toString();
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        if (\property_exists($typeNode, 'name') && $typeNode->name) {
+            $typeString = (string) $typeNode->name;
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        return null;
+    }
+
+    /**
      * @param \phpDocumentor\Reflection\Type|\phpDocumentor\Reflection\Type[]|null $type
      *
      * @return string
@@ -295,7 +371,7 @@ final class Utils
             return 'mixed';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\Scalar) {
+        if ($type instanceof \phpDocumentor\Reflection\PseudoTypes\Scalar) {
             return 'string|int|float|bool';
         }
 
@@ -347,8 +423,6 @@ final class Utils
         }
 
         $reflection = new \ReflectionFunction($functionName);
-        \assert($reflection instanceof \ReflectionFunction);
-
         $FUNCTION_REFLECTION_INSTANCE[$functionName] = $reflection;
 
         return $reflection;
@@ -356,6 +430,8 @@ final class Utils
 
     /**
      * @phpstan-param class-string $className
+     *
+     * @phpstan-return ReflectionClass<object>
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
     {
@@ -366,8 +442,6 @@ final class Utils
         }
 
         $reflection = new ReflectionClass($className);
-        \assert($reflection instanceof ReflectionClass);
-
         $CLASS_REFLECTION_INSTANCE[$className] = $reflection;
 
         return $reflection;
@@ -380,7 +454,7 @@ final class Utils
      *
      * @phpstan-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
      */
-    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactory
+    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactoryInterface
     {
         static $DOC_BLOCK_FACTORY_INSTANCE = null;
 
@@ -388,29 +462,9 @@ final class Utils
             return $DOC_BLOCK_FACTORY_INSTANCE;
         }
 
-        $fqsenResolver = new \phpDocumentor\Reflection\FqsenResolver();
-        $tagFactory = new \phpDocumentor\Reflection\DocBlock\StandardTagFactory($fqsenResolver);
-        $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
-        $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
+        $DOC_BLOCK_FACTORY_INSTANCE = \phpDocumentor\Reflection\DocBlockFactory::createInstance($additionalTags);
 
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($descriptionFactory);
-
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($typeResolver);
-
-        $docBlockFactory = new \phpDocumentor\Reflection\DocBlockFactory($descriptionFactory, $tagFactory);
-        foreach ($additionalTags as $tagName => $tagHandler) {
-            $docBlockFactory->registerTagHandler($tagName, $tagHandler);
-        }
-
-        $DOC_BLOCK_FACTORY_INSTANCE = $docBlockFactory;
-
-        return $docBlockFactory;
+        return $DOC_BLOCK_FACTORY_INSTANCE;
     }
 
     public static function modernPhpdocTokens(string $input): \PHPStan\PhpDocParser\Parser\TokenIterator
@@ -467,69 +521,6 @@ final class Utils
     }
 
     /**
-     * Convert a PhpParser type node to a string representation.
-     *
-     * Handles Identifier, Name, NullableType, UnionType, IntersectionType
-     * and nested DNF types like (A&B)|C.
-     *
-     * @param \PhpParser\Node\Identifier|\PhpParser\Node\Name|\PhpParser\Node\ComplexType|null $typeNode
-     *
-     * @return string|null
-     */
-    public static function typeNodeToString($typeNode): ?string
-    {
-        if ($typeNode === null) {
-            return null;
-        }
-
-        if ($typeNode instanceof \PhpParser\Node\NullableType) {
-            $inner = self::typeNodeToString($typeNode->type);
-
-            return $inner !== null ? 'null|' . $inner : 'null';
-        }
-
-        if ($typeNode instanceof \PhpParser\Node\UnionType) {
-            $parts = [];
-            foreach ($typeNode->types as $inner) {
-                if ($inner instanceof \PhpParser\Node\IntersectionType) {
-                    $subParts = [];
-                    foreach ($inner->types as $subType) {
-                        $subParts[] = self::typeNodeToString($subType) ?? 'mixed';
-                    }
-                    $parts[] = '(' . \implode('&', $subParts) . ')';
-                } else {
-                    $parts[] = self::typeNodeToString($inner) ?? 'mixed';
-                }
-            }
-
-            return \implode('|', $parts);
-        }
-
-        if ($typeNode instanceof \PhpParser\Node\IntersectionType) {
-            $parts = [];
-            foreach ($typeNode->types as $inner) {
-                $parts[] = self::typeNodeToString($inner) ?? 'mixed';
-            }
-
-            return \implode('&', $parts);
-        }
-
-        if ($typeNode instanceof \PhpParser\Node\Name) {
-            return '\\' . $typeNode->toString();
-        }
-
-        if (\method_exists($typeNode, 'toString')) {
-            return $typeNode->toString();
-        }
-
-        if (\property_exists($typeNode, 'name') && $typeNode->name) {
-            return $typeNode->name;
-        }
-
-        return null;
-    }
-
-    /**
      * Extract PHPAttribute instances from AST node attribute groups.
      *
      * @param \PhpParser\Node\AttributeGroup[] $attrGroups
@@ -578,16 +569,12 @@ final class Utils
     /**
      * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
      *
-     * @param \ReflectionClass|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     * @param \ReflectionClass<object>|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
      *
      * @return PHPAttribute[]
      */
     public static function extractAttributesFromReflection($reflection): array
     {
-        if (!\method_exists($reflection, 'getAttributes')) {
-            return [];
-        }
-
         $result = [];
         foreach ($reflection->getAttributes() as $attr) {
             $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());

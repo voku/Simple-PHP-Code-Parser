@@ -104,7 +104,7 @@ final class PHPTrait extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $clazz
+     * @param ReflectionClass<object> $clazz
      *
      * @return $this
      */

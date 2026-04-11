@@ -63,7 +63,9 @@ class PHPProperty extends BasePHPElement
 
         $this->is_static = $node->isStatic();
 
-        if (method_exists($node, 'isReadonly')) {
+        // Keep the guard for cross-version php-parser compatibility when readonly
+        // helpers are restored or backported differently in downstream installs.
+        if (\method_exists($node, 'isReadonly')) {
             $this->is_readonly = $node->isReadonly();
         }
 

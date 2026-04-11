@@ -45,8 +45,10 @@ class PHPClass extends BasePHPClass
 
         $this->is_abstract = $node->isAbstract();
 
-        if (method_exists($node, 'isReadOnly')) {
-            $this->is_readonly = $node->isReadOnly();
+        // Keep the guard for cross-version php-parser compatibility when readonly
+        // helpers are restored or backported differently in downstream installs.
+        if (\method_exists($node, 'isReadonly')) {
+            $this->is_readonly = $node->isReadonly();
         }
 
         $this->is_anonymous = $node->isAnonymous();
@@ -134,7 +136,7 @@ class PHPClass extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $clazz
+     * @param ReflectionClass<object> $clazz
      *
      * @return $this
      */
@@ -471,7 +473,7 @@ class PHPClass extends BasePHPClass
     private static function nodeUsesPHP82PlusSyntax(Class_ $node): bool
     {
         // readonly class is PHP 8.2+
-        if (\method_exists($node, 'isReadOnly') && $node->isReadOnly()) {
+        if ($node->isReadonly()) {
             return true;
         }
 
