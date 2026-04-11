@@ -17,19 +17,19 @@ jobs:
       fail-fast: false
       matrix:
         php: [
-            7.4,
-            8.0,
             8.1,
-            8.2
+            8.2,
+            8.3,
+            8.4
         ]
         composer: [basic]
     timeout-minutes: 10
     steps:
       - name: Checkout code
-        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@2.25.5
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2.37.0
         with:
           php-version: ${{ matrix.php }}
           coverage: xdebug
@@ -38,10 +38,10 @@ jobs:
 
       - name: Determine composer cache directory
         id: composer-cache
-        run: echo "::set-output name=directory::$(composer config cache-dir)"
+        run: echo "directory=$(composer config cache-dir)" >> "$GITHUB_OUTPUT"
 
       - name: Cache composer dependencies
-        uses: actions/cache@v3.3.1
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: ${{ steps.composer-cache.outputs.directory }}
           key: ${{ matrix.php }}-composer-${{ hashFiles('**/composer.lock') }}
@@ -49,10 +49,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [[ "${{ matrix.php }}" == "8.0" ]]; then
-            composer require phpstan/phpstan --no-update
-          fi;
-
           if [[ "${{ matrix.composer }}" == "lowest" ]]; then
             composer update --prefer-dist --no-interaction --prefer-lowest --prefer-stable
           fi;
@@ -66,11 +62,11 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p build/logs
-          php vendor/bin/phpunit -c phpunit.xml --coverage-clover=build/logs/clover.xml
+          php vendor/bin/phpunit -c phpunit.xml --coverage-filter=src --coverage-clover=build/logs/clover.xml
 
       - name: Run phpstan
         continue-on-error: true
-        if: ${{ matrix.php == '7.4' }}
+        if: ${{ matrix.php == '8.3' }}
         run: |
           php vendor/bin/phpstan analyse
 
@@ -82,13 +78,13 @@ jobs:
           php-coveralls --coverage_clover=build/logs/clover.xml -v
 
       - name: Upload coverage results to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
         with:
           files: build/logs/clover.xml
 
       - name: Archive logs artifacts
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: logs_composer-${{ matrix.composer }}_php-${{ matrix.php }}
           path: |

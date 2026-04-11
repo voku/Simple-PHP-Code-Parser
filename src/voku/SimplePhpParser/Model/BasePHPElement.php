@@ -55,7 +55,7 @@ abstract class BasePHPElement
             &&
             $parent->name instanceof Name
         ) {
-            $namespace = '\\' . \implode('\\', $parent->name->getParts()) . '\\';
+            $namespace = '\\' . $parent->name->toString() . '\\';
         } else {
             $namespace = '';
         }
@@ -81,10 +81,9 @@ abstract class BasePHPElement
             \property_exists($node, 'namespacedName')
         ) {
             if ($node->namespacedName) {
-                $fqn = \implode('\\', $node->namespacedName->getParts());
+                $fqn = $node->namespacedName->toString();
             } elseif (\property_exists($node, 'name') && $node->name) {
-                var_dump($node->name);
-                $fqn =  $node->name->name;
+                $fqn = $node->name instanceof Name ? $node->name->toString() : (string) $node->name;
             }
         }
 
@@ -104,6 +103,6 @@ abstract class BasePHPElement
              *
              * @see https://github.com/nikic/PHP-Parser/blob/master/UPGRADE-5.0.md#miscellaneous-changes
              */
-            : $node->getLine();
+            : $node->getLine(); // @phpstan-ignore-line getLine() was removed in PHP-Parser v5
     }
 }

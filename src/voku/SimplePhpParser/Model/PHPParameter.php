@@ -8,6 +8,7 @@ use PhpParser\Comment\Doc;
 use PhpParser\Node\FunctionLike;
 use PhpParser\Node\Param;
 use ReflectionParameter;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPParameter extends BasePHPElement
@@ -36,6 +37,13 @@ class PHPParameter extends BasePHPElement
     public ?bool $is_passed_by_ref = null;
 
     public ?bool $is_inheritdoc = null;
+
+    /**
+     * PHP 8.0+ attributes on this parameter.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
 
     /**
      * @param Param        $parameter
@@ -74,13 +82,9 @@ class PHPParameter extends BasePHPElement
 
         if ($parameter->type !== null) {
             if (!$this->type) {
-                if (\method_exists($parameter->type, 'getParts')) {
-                    $parts = $parameter->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
-                    }
-                } elseif (\property_exists($parameter->type, 'name')) {
-                    $this->type = $parameter->type->name;
+                $typeStr = Utils::typeNodeToString($parameter->type);
+                if ($typeStr !== null) {
+                    $this->type = $typeStr;
                 }
             }
 
@@ -106,6 +110,11 @@ class PHPParameter extends BasePHPElement
 
         $this->is_passed_by_ref = $parameter->byRef;
 
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($parameter->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+        }
+
         return $this;
     }
 
@@ -118,6 +127,19 @@ class PHPParameter extends BasePHPElement
     {
         $this->name = $parameter->getName();
 
+        $method = $parameter->getDeclaringFunction();
+        if (!$this->line) {
+            $lineTmp = $method->getStartLine();
+            if ($lineTmp !== false) {
+                $this->line = $lineTmp;
+            }
+        }
+
+        $fileTmp = $method->getFileName();
+        if ($fileTmp !== false) {
+            $this->file = $fileTmp;
+        }
+
         if ($parameter->isDefaultValueAvailable()) {
             try {
                 $this->defaultValue = $parameter->getDefaultValue();
@@ -128,8 +150,6 @@ class PHPParameter extends BasePHPElement
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
             }
         }
-
-        $method = $parameter->getDeclaringFunction();
 
         $docComment = $method->getDocComment();
         if ($docComment) {
@@ -182,6 +202,9 @@ class PHPParameter extends BasePHPElement
 
         $this->is_passed_by_ref = $parameter->isPassedByReference();
 
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($parameter);
+
         return $this;
     }
 
@@ -220,7 +243,7 @@ class PHPParameter extends BasePHPElement
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('param');
 
@@ -287,16 +310,16 @@ class PHPParameter extends BasePHPElement
                 }
             }
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
-            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            $this->addParseError($e);
         }
 
         try {
             $this->readPhpDocByTokens($docComment, $parameterName);
         } catch (\Exception $e) {
-            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
-            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            $this->addParseError($e);
         }
+
+        $this->reportBrokenParamTagWithoutType($docComment, $parameterName);
     }
 
     /**
@@ -334,5 +357,39 @@ class PHPParameter extends BasePHPElement
             }
             $this->typeFromPhpDocExtended = Utils::modernPhpdoc($paramContent);
         }
+    }
+
+    private function reportBrokenParamTagWithoutType(string $docComment, string $parameterName): void
+    {
+        if ($this->line === null) {
+            return;
+        }
+
+        if (!\preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/u', $parameterName)) {
+            return;
+        }
+
+        if (
+            !\preg_match(
+                '#@(param|psalm-param|phpstan-param)[ \t]+\$' . $parameterName . '(?=[ \t\r\n\*]|$)#u',
+                $docComment
+            )
+        ) {
+            return;
+        }
+
+        try {
+            // Re-parse the malformed tag payload to preserve the original parser
+            // error message even though the docblock library now falls back to mixed.
+            Utils::modernPhpdoc('$' . $parameterName);
+        } catch (\Exception $e) {
+            $this->addParseError($e);
+        }
+    }
+
+    private function addParseError(\Exception $e): void
+    {
+        $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+        $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
     }
 }

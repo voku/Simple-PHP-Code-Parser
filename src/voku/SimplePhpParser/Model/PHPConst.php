@@ -30,6 +30,18 @@ class PHPConst extends BasePHPElement
     public ?string $type = null;
 
     /**
+     * Type from the constant's native type declaration (PHP 8.3+).
+     */
+    public ?string $typeFromDeclaration = null;
+
+    /**
+     * PHP 8.0+ attributes on this constant.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Const_ $node
      * @param null   $dummy
      *
@@ -57,6 +69,19 @@ class PHPConst extends BasePHPElement
             }
 
             $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
+
+            // Typed class constants (PHP 8.3+)
+            if (\property_exists($parentNode, 'type') && $parentNode->type !== null) {
+                $typeDeclStr = Utils::typeNodeToString($parentNode->type);
+                if ($typeDeclStr !== null) {
+                    $this->typeFromDeclaration = $typeDeclStr;
+                }
+            }
+
+            // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+            if (empty($this->attributes) && !empty($parentNode->attrGroups)) {
+                $this->attributes = Utils::extractAttributesFromAstNode($parentNode->attrGroups);
+            }
         }
 
         $this->collectTags($node);
@@ -95,6 +120,17 @@ class PHPConst extends BasePHPElement
             $this->visibility = 'public';
         }
 
+        // Typed class constants (PHP 8.3+)
+        if (\method_exists($constant, 'getType')) {
+            $reflType = $constant->getType();
+            if ($reflType !== null) {
+                $this->typeFromDeclaration = (string) $reflType;
+            }
+        }
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($constant);
+
         return $this;
     }
 
@@ -108,7 +144,7 @@ class PHPConst extends BasePHPElement
             &&
             $parentParentNode->name instanceof Name
         ) {
-            $namespace = '\\' . \implode('\\', $parentParentNode->name->getParts()) . '\\';
+            $namespace = '\\' . $parentParentNode->name->toString() . '\\';
         } else {
             $namespace = '';
         }
