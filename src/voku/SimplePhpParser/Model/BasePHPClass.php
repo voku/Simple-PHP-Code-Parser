@@ -166,7 +166,7 @@ abstract class BasePHPClass extends BasePHPElement
      * Detect PHP 8.4-only syntax within a class-like AST such as property hooks
      * and asymmetric visibility modifiers.
      */
-    private static function containsPHP84PlusSyntax(\PhpParser\Node $node): bool
+    protected static function containsPHP84PlusSyntax(\PhpParser\Node $node): bool
     {
         // Property hooks (PHP 8.4+)
         if ($node instanceof \PhpParser\Node\Stmt\Property && !empty($node->hooks)) {

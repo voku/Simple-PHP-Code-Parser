@@ -2052,6 +2052,11 @@ PHP;
         static::assertSame('public', $class->properties['name']->access);
         static::assertSame('private', $class->properties['name']->access_set);
         static::assertSame('string', $class->properties['name']->type);
+        static::assertTrue($class->properties['name']->is_final);
+        static::assertArrayHasKey('get', $class->properties['name']->hooks);
+        static::assertArrayHasKey('set', $class->properties['name']->hooks);
+        static::assertSame('set', $class->properties['name']->hooks['set']['name']);
+        static::assertSame('string $value', $class->properties['name']->hooks['set']['params'][0]);
         static::assertSame(
             'voku\tests\DummyPromotedPropertyAttribute',
             $class->properties['name']->attributes[0]->name

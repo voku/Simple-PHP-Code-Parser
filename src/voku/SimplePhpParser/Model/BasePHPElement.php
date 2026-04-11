@@ -153,4 +153,9 @@ abstract class BasePHPElement
     {
         return ($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_READONLY) !== 0;
     }
+
+    protected static function hasFinalModifier(int $flags): bool
+    {
+        return ($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_FINAL) !== 0;
+    }
 }

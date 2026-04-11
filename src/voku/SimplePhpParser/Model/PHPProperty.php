@@ -99,43 +99,11 @@ class PHPProperty extends BasePHPElement
         }
 
         // PHP 8.4+ asymmetric visibility
-        if (\method_exists($node, 'isPublicSet') && $node->isPublicSet()) {
-            $this->access_set = 'public';
-        } elseif (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet()) {
-            $this->access_set = 'protected';
-        } elseif (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet()) {
-            $this->access_set = 'private';
-        }
+        $this->access_set = self::getAsymmetricSetVisibility($node);
 
         // PHP 8.4+ property hooks
         if (!empty($node->hooks)) {
-            foreach ($node->hooks as $hook) {
-                $hookName = $hook->name->toString();
-                $hookParams = [];
-                foreach ($hook->params as $param) {
-                    if ($param->var instanceof \PhpParser\Node\Expr\Error) {
-                        continue;
-                    }
-                    $paramName = \is_string($param->var->name) ? $param->var->name : '';
-                    if ($paramName === '') {
-                        continue;
-                    }
-                    $paramStr = '';
-                    if ($param->type !== null) {
-                        $typeStr = Utils::typeNodeToString($param->type);
-                        if ($typeStr !== null) {
-                            $paramStr .= $typeStr . ' ';
-                        }
-                    }
-                    $paramStr .= '$' . $paramName;
-                    $hookParams[] = $paramStr;
-                }
-                $this->hooks[$hookName] = [
-                    'name'     => $hookName,
-                    'is_final' => $hook->isFinal(),
-                    'params'   => $hookParams,
-                ];
-            }
+            $this->hooks = $this->extractHooksFromPhpParserNodes($node->hooks);
         }
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
@@ -165,11 +133,7 @@ class PHPProperty extends BasePHPElement
             }
 
             if ($node->type instanceof \PhpParser\Node\NullableType) {
-                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                    $this->type = 'null|' . $this->type;
-                } elseif (!$this->type) {
-                    $this->type = 'null|mixed';
-                }
+                $this->type = self::normalizeNullableTypeString($this->type);
             }
         }
 
@@ -222,7 +186,12 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->is_readonly = self::hasReadonlyModifier($parameter->flags);
+        $this->is_final = self::hasFinalModifier($parameter->flags);
         $this->access_set = self::getAsymmetricSetVisibility($parameter);
+
+        if (!empty($parameter->hooks)) {
+            $this->hooks = $this->extractHooksFromPhpParserNodes($parameter->hooks);
+        }
 
         if ($parameter->type !== null) {
             $typeStr = Utils::typeNodeToString($parameter->type);
@@ -231,11 +200,7 @@ class PHPProperty extends BasePHPElement
             }
 
             if ($parameter->type instanceof \PhpParser\Node\NullableType) {
-                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                    $this->type = 'null|' . $this->type;
-                } elseif (!$this->type) {
-                    $this->type = 'null|mixed';
-                }
+                $this->type = self::normalizeNullableTypeString($this->type);
             }
         }
 
@@ -299,32 +264,11 @@ class PHPProperty extends BasePHPElement
         }
 
         // PHP 8.4+ asymmetric visibility (via reflection)
-        if (\method_exists($property, 'isProtectedSet') && $property->isProtectedSet()) {
-            $this->access_set = 'protected';
-        } elseif (\method_exists($property, 'isPrivateSet') && $property->isPrivateSet()) {
-            $this->access_set = 'private';
-        }
+        $this->access_set = self::getAsymmetricSetVisibility($property);
 
         // PHP 8.4+ property hooks (via reflection)
         if (\method_exists($property, 'getHooks')) {
-            foreach ($property->getHooks() as $hook) {
-                $hookName = $hook->getName();
-                $hookParams = [];
-                foreach ($hook->getParameters() as $param) {
-                    $paramStr = '';
-                    $paramType = $param->getType();
-                    if ($paramType !== null) {
-                        $paramStr .= $paramType . ' ';
-                    }
-                    $paramStr .= '$' . $param->getName();
-                    $hookParams[] = $paramStr;
-                }
-                $this->hooks[$hookName] = [
-                    'name'     => $hookName,
-                    'is_final' => $hook->isFinal(),
-                    'params'   => $hookParams,
-                ];
-            }
+            $this->hooks = $this->extractHooksFromReflection($property->getHooks());
         }
 
         $docComment = $property->getDocComment();
@@ -353,11 +297,7 @@ class PHPProperty extends BasePHPElement
                 }
 
                 if ($type->allowsNull()) {
-                    if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                        $this->type = 'null|' . $this->type;
-                    } elseif (!$this->type) {
-                        $this->type = 'null|mixed';
-                    }
+                    $this->type = self::normalizeNullableTypeString($this->type);
                 }
             }
         }
@@ -372,6 +312,109 @@ class PHPProperty extends BasePHPElement
         $this->access = $access;
 
         return $this;
+    }
+
+    /**
+     * @param array<int, object> $hooks
+     *
+     * @return array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    private function extractHooksFromPhpParserNodes(array $hooks): array
+    {
+        $parsedHooks = [];
+
+        foreach ($hooks as $hook) {
+            $hookNameNode = $hook->name ?? null;
+            if (!$hookNameNode instanceof \PhpParser\Node\Identifier) {
+                continue;
+            }
+
+            $hookName = $hookNameNode->toString();
+            $hookParams = [];
+
+            foreach ($hook->params ?? [] as $param) {
+                if (!isset($param->var) || $param->var instanceof \PhpParser\Node\Expr\Error) {
+                    continue;
+                }
+
+                $paramName = \is_string($param->var->name ?? null) ? $param->var->name : '';
+                if ($paramName === '') {
+                    continue;
+                }
+
+                $paramStr = '';
+                if (($param->type ?? null) !== null) {
+                    $typeStr = Utils::typeNodeToString($param->type);
+                    if ($typeStr !== null) {
+                        $paramStr .= $typeStr . ' ';
+                    }
+                }
+
+                $paramStr .= '$' . $paramName;
+                $hookParams[] = $paramStr;
+            }
+
+            $parsedHooks[$hookName] = [
+                'name'     => $hookName,
+                'is_final' => \method_exists($hook, 'isFinal') ? $hook->isFinal() : false,
+                'params'   => $hookParams,
+            ];
+        }
+
+        return $parsedHooks;
+    }
+
+    /**
+     * @param array<int, object> $hooks
+     *
+     * @return array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    private function extractHooksFromReflection(array $hooks): array
+    {
+        $parsedHooks = [];
+
+        foreach ($hooks as $hook) {
+            if (!\method_exists($hook, 'getName') || !\method_exists($hook, 'getParameters')) {
+                continue;
+            }
+
+            $hookName = $hook->getName();
+            $hookParams = [];
+
+            foreach ($hook->getParameters() as $param) {
+                $paramStr = '';
+                $paramType = $param->getType();
+                if ($paramType !== null) {
+                    $paramStr .= $paramType . ' ';
+                }
+                $paramStr .= '$' . $param->getName();
+                $hookParams[] = $paramStr;
+            }
+
+            $parsedHooks[$hookName] = [
+                'name'     => $hookName,
+                'is_final' => \method_exists($hook, 'isFinal') ? $hook->isFinal() : false,
+                'params'   => $hookParams,
+            ];
+        }
+
+        return $parsedHooks;
+    }
+
+    private static function normalizeNullableTypeString(?string $type): string
+    {
+        if ($type === null || $type === '') {
+            return 'null|mixed';
+        }
+
+        $typeParts = \explode('|', $type);
+        if (\in_array('null', $typeParts, true)) {
+            return $type;
+        }
+
+        \array_unshift($typeParts, 'null');
+
+        return \implode('|', $typeParts);
     }
 
     /**

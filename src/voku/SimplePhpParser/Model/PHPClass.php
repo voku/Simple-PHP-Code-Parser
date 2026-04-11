@@ -65,7 +65,7 @@ class PHPClass extends BasePHPClass
         // Skip autoloading in those cases; AST data is still read from the node below.
         $canAutoload = (\PHP_VERSION_ID >= 80200 || !self::nodeUsesPHP82PlusSyntax($node))
             && (\PHP_VERSION_ID >= 80300 || !self::nodeUsesPHP83PlusSyntax($node))
-            && (\PHP_VERSION_ID >= 80400 || !self::nodeUsesPHP84PlusSyntax($node));
+            && (\PHP_VERSION_ID >= 80400 || !self::containsPHP84PlusSyntax($node));
         $classExists = false;
         if ($canAutoload) {
             try {
@@ -564,48 +564,6 @@ class PHPClass extends BasePHPClass
         return false;
     }
 
-    /**
-     * Returns true if the class node uses syntax that requires PHP 8.4+ and would
-     * cause an uncatchable E_COMPILE_ERROR when autoloaded on PHP < 8.4.
-     *
-     * Covers: property hooks and asymmetric visibility modifiers.
-     *
-     * @param Class_ $node
-     *
-     * @return bool
-     */
-    private static function nodeUsesPHP84PlusSyntax(Class_ $node): bool
-    {
-        foreach ($node->stmts as $stmt) {
-            // Property hooks are PHP 8.4+
-            if ($stmt instanceof \PhpParser\Node\Stmt\Property && !empty($stmt->hooks)) {
-                return true;
-            }
-
-            // Asymmetric visibility on properties is PHP 8.4+
-            if (
-                $stmt instanceof \PhpParser\Node\Stmt\Property
-                && self::getAsymmetricSetVisibility($stmt) !== ''
-            ) {
-                return true;
-            }
-
-            // Constructor with promoted properties that have hooks or asymmetric visibility
-            if ($stmt instanceof \PhpParser\Node\Stmt\ClassMethod) {
-                foreach ($stmt->params as $param) {
-                    if (!empty($param->hooks)) {
-                        return true;
-                    }
-                    if (self::getAsymmetricSetVisibility($param) !== '') {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
     private function addPromotedPropertiesFromConstructor(Class_ $node): void
     {
         foreach ($node->getMethods() as $method) {
@@ -661,8 +619,16 @@ class PHPClass extends BasePHPClass
             $existingProperty->is_readonly = $promotedProperty->is_readonly;
         }
 
+        if ($existingProperty->is_final === null && $promotedProperty->is_final !== null) {
+            $existingProperty->is_final = $promotedProperty->is_final;
+        }
+
         if ($existingProperty->access_set === '' && $promotedProperty->access_set !== '') {
             $existingProperty->access_set = $promotedProperty->access_set;
+        }
+
+        if ($existingProperty->hooks === [] && $promotedProperty->hooks !== []) {
+            $existingProperty->hooks = $promotedProperty->hooks;
         }
 
         if ($existingProperty->attributes === [] && $promotedProperty->attributes !== []) {
