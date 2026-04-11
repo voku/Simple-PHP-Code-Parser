@@ -1797,4 +1797,50 @@ PHP
         static::assertSame('MyCustomAttr', $class->methods['doSomething']->parameters['x']->attributes[0]->name);
         static::assertSame('param', $class->methods['doSomething']->parameters['x']->attributes[0]->arguments['value']);
     }
+
+    public function testPropertyHooksFromStringInput(): void
+    {
+        $code = (string) \file_get_contents(__DIR__ . '/DummyPropertyHooks.php');
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPropertyHooks'];
+
+        // -- Property hooks on $fullName --
+        static::assertArrayHasKey('fullName', $class->properties);
+        $fullName = $class->properties['fullName'];
+        static::assertSame('string', $fullName->type);
+        static::assertSame('public', $fullName->access);
+
+        // hooks should be extracted
+        static::assertArrayHasKey('get', $fullName->hooks);
+        static::assertArrayHasKey('set', $fullName->hooks);
+        static::assertSame('get', $fullName->hooks['get']['name']);
+        static::assertSame('set', $fullName->hooks['set']['name']);
+        // set hook has a parameter
+        static::assertNotEmpty($fullName->hooks['set']['params']);
+        static::assertStringContainsString('$value', $fullName->hooks['set']['params'][0]);
+
+        // -- Asymmetric visibility: public private(set) $email --
+        static::assertArrayHasKey('email', $class->properties);
+        $email = $class->properties['email'];
+        static::assertSame('public', $email->access);
+        static::assertSame('private', $email->access_set);
+        static::assertSame('string', $email->type);
+
+        // -- Asymmetric visibility: public protected(set) $age --
+        static::assertArrayHasKey('age', $class->properties);
+        $age = $class->properties['age'];
+        static::assertSame('public', $age->access);
+        static::assertSame('protected', $age->access_set);
+        static::assertSame('int', $age->type);
+
+        // -- Regular properties without hooks should have empty hooks --
+        static::assertArrayHasKey('first', $class->properties);
+        static::assertEmpty($class->properties['first']->hooks);
+        static::assertSame('', $class->properties['first']->access_set);
+    }
 }

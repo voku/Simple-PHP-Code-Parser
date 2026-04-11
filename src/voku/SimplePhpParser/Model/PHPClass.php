@@ -61,9 +61,11 @@ class PHPClass extends BasePHPClass
         // PHP < 8.2 raises an uncatchable E_COMPILE_ERROR for certain PHP 8.2+ syntax
         // (standalone true/false/null types, DNF types, readonly class). Similarly,
         // PHP < 8.3 raises an error for PHP 8.3+ syntax (typed class constants).
+        // PHP < 8.4 raises an error for PHP 8.4+ syntax (property hooks, asymmetric visibility).
         // Skip autoloading in those cases; AST data is still read from the node below.
         $canAutoload = (\PHP_VERSION_ID >= 80200 || !self::nodeUsesPHP82PlusSyntax($node))
-            && (\PHP_VERSION_ID >= 80300 || !self::nodeUsesPHP83PlusSyntax($node));
+            && (\PHP_VERSION_ID >= 80300 || !self::nodeUsesPHP83PlusSyntax($node))
+            && (\PHP_VERSION_ID >= 80400 || !self::nodeUsesPHP84PlusSyntax($node));
         $classExists = false;
         if ($canAutoload) {
             try {
@@ -555,6 +557,56 @@ class PHPClass extends BasePHPClass
         // Recurse into nullable type
         if ($typeNode instanceof \PhpParser\Node\NullableType) {
             return self::containsPHP82PlusType($typeNode->type);
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the class node uses syntax that requires PHP 8.4+ and would
+     * cause an uncatchable E_COMPILE_ERROR when autoloaded on PHP < 8.4.
+     *
+     * Covers: property hooks and asymmetric visibility modifiers.
+     *
+     * @param Class_ $node
+     *
+     * @return bool
+     */
+    private static function nodeUsesPHP84PlusSyntax(Class_ $node): bool
+    {
+        foreach ($node->stmts as $stmt) {
+            // Property hooks are PHP 8.4+
+            if ($stmt instanceof \PhpParser\Node\Stmt\Property && !empty($stmt->hooks)) {
+                return true;
+            }
+
+            // Asymmetric visibility on properties is PHP 8.4+
+            if (
+                $stmt instanceof \PhpParser\Node\Stmt\Property
+                && (
+                    (\method_exists($stmt, 'isPublicSet') && $stmt->isPublicSet())
+                    || (\method_exists($stmt, 'isProtectedSet') && $stmt->isProtectedSet())
+                    || (\method_exists($stmt, 'isPrivateSet') && $stmt->isPrivateSet())
+                )
+            ) {
+                return true;
+            }
+
+            // Constructor with promoted properties that have hooks or asymmetric visibility
+            if ($stmt instanceof \PhpParser\Node\Stmt\ClassMethod) {
+                foreach ($stmt->params as $param) {
+                    if (!empty($param->hooks)) {
+                        return true;
+                    }
+                    if (
+                        (\method_exists($param, 'isPublicSet') && $param->isPublicSet())
+                        || (\method_exists($param, 'isProtectedSet') && $param->isProtectedSet())
+                        || (\method_exists($param, 'isPrivateSet') && $param->isPrivateSet())
+                    ) {
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;

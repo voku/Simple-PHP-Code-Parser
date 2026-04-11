@@ -12,6 +12,8 @@ abstract class BasePHPClass extends BasePHPElement
 
     private const PHP_VERSION_8_3_0 = 80300;
 
+    private const PHP_VERSION_8_4_0 = 80400;
+
     /**
      * @var array<string, PHPMethod>
      */
@@ -59,6 +61,10 @@ abstract class BasePHPClass extends BasePHPElement
         }
 
         if (\PHP_VERSION_ID < self::PHP_VERSION_8_3_0 && self::containsPHP83PlusSyntax($node)) {
+            return false;
+        }
+
+        if (\PHP_VERSION_ID < self::PHP_VERSION_8_4_0 && self::containsPHP84PlusSyntax($node)) {
             return false;
         }
 
@@ -148,6 +154,65 @@ abstract class BasePHPClass extends BasePHPElement
 
             foreach ($subNode as $subNodeInner) {
                 if ($subNodeInner instanceof \PhpParser\Node && self::containsPHP83PlusSyntax($subNodeInner)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect PHP 8.4-only syntax within a class-like AST such as property hooks
+     * and asymmetric visibility modifiers.
+     */
+    private static function containsPHP84PlusSyntax(\PhpParser\Node $node): bool
+    {
+        // Property hooks (PHP 8.4+)
+        if ($node instanceof \PhpParser\Node\Stmt\Property && !empty($node->hooks)) {
+            return true;
+        }
+
+        // Asymmetric visibility on properties (PHP 8.4+)
+        if ($node instanceof \PhpParser\Node\Stmt\Property) {
+            if (
+                (\method_exists($node, 'isPublicSet') && $node->isPublicSet())
+                || (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet())
+                || (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet())
+            ) {
+                return true;
+            }
+        }
+
+        // Property hooks on promoted constructor parameters (PHP 8.4+)
+        if ($node instanceof \PhpParser\Node\Param && !empty($node->hooks)) {
+            return true;
+        }
+
+        // Asymmetric visibility on promoted constructor parameters (PHP 8.4+)
+        if ($node instanceof \PhpParser\Node\Param) {
+            if (
+                (\method_exists($node, 'isPublicSet') && $node->isPublicSet())
+                || (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet())
+                || (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet())
+            ) {
+                return true;
+            }
+        }
+
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            $subNode = $node->{$subNodeName};
+
+            if ($subNode instanceof \PhpParser\Node && self::containsPHP84PlusSyntax($subNode)) {
+                return true;
+            }
+
+            if (!\is_array($subNode)) {
+                continue;
+            }
+
+            foreach ($subNode as $subNodeInner) {
+                if ($subNodeInner instanceof \PhpParser\Node && self::containsPHP84PlusSyntax($subNodeInner)) {
                     return true;
                 }
             }

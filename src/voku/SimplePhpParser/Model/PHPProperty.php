@@ -43,6 +43,26 @@ class PHPProperty extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.4+ asymmetric visibility: the set-visibility when different from
+     * the main (get) visibility. One of 'public', 'protected', 'private', or ''.
+     *
+     * @phpstan-var ''|'private'|'protected'|'public'
+     */
+    public string $access_set = '';
+
+    public ?bool $is_abstract = null;
+
+    public ?bool $is_final = null;
+
+    /**
+     * PHP 8.4+ property hooks defined on this property.
+     * Keyed by hook name ('get', 'set').
+     *
+     * @var array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    public array $hooks = [];
+
+    /**
      * PHP 8.0+ attributes on this property.
      *
      * @var PHPAttribute[]
@@ -67,6 +87,47 @@ class PHPProperty extends BasePHPElement
         // helpers are restored or backported differently in downstream installs.
         if (\method_exists($node, 'isReadonly')) {
             $this->is_readonly = $node->isReadonly();
+        }
+
+        // PHP 8.4+ abstract / final properties
+        if (\method_exists($node, 'isAbstract')) {
+            $this->is_abstract = $node->isAbstract();
+        }
+        if (\method_exists($node, 'isFinal')) {
+            $this->is_final = $node->isFinal();
+        }
+
+        // PHP 8.4+ asymmetric visibility
+        if (\method_exists($node, 'isPublicSet') && $node->isPublicSet()) {
+            $this->access_set = 'public';
+        } elseif (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet()) {
+            $this->access_set = 'protected';
+        } elseif (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet()) {
+            $this->access_set = 'private';
+        }
+
+        // PHP 8.4+ property hooks
+        if (!empty($node->hooks)) {
+            foreach ($node->hooks as $hook) {
+                $hookName = $hook->name->toString();
+                $hookParams = [];
+                foreach ($hook->params as $param) {
+                    $paramStr = '';
+                    if ($param->type !== null) {
+                        $typeStr = Utils::typeNodeToString($param->type);
+                        if ($typeStr !== null) {
+                            $paramStr .= $typeStr . ' ';
+                        }
+                    }
+                    $paramStr .= '$' . (\is_string($param->var->name) ? $param->var->name : '');
+                    $hookParams[] = $paramStr;
+                }
+                $this->hooks[$hookName] = [
+                    'name'     => $hookName,
+                    'is_final' => $hook->isFinal(),
+                    'params'   => $hookParams,
+                ];
+            }
         }
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
@@ -159,6 +220,43 @@ class PHPProperty extends BasePHPElement
 
         if (method_exists($property, 'isReadOnly')) {
             $this->is_readonly = $property->isReadOnly();
+        }
+
+        // PHP 8.4+ abstract / final properties (via reflection)
+        if (\method_exists($property, 'isAbstract')) {
+            $this->is_abstract = $property->isAbstract();
+        }
+        if (\method_exists($property, 'isFinal')) {
+            $this->is_final = $property->isFinal();
+        }
+
+        // PHP 8.4+ asymmetric visibility (via reflection)
+        if (\method_exists($property, 'isProtectedSet') && $property->isProtectedSet()) {
+            $this->access_set = 'protected';
+        } elseif (\method_exists($property, 'isPrivateSet') && $property->isPrivateSet()) {
+            $this->access_set = 'private';
+        }
+
+        // PHP 8.4+ property hooks (via reflection)
+        if (\method_exists($property, 'getHooks')) {
+            foreach ($property->getHooks() as $hook) {
+                $hookName = $hook->getName();
+                $hookParams = [];
+                foreach ($hook->getParameters() as $param) {
+                    $paramStr = '';
+                    $paramType = $param->getType();
+                    if ($paramType !== null) {
+                        $paramStr .= $paramType . ' ';
+                    }
+                    $paramStr .= '$' . $param->getName();
+                    $hookParams[] = $paramStr;
+                }
+                $this->hooks[$hookName] = [
+                    'name'     => $hookName,
+                    'is_final' => $hook->isFinal(),
+                    'params'   => $hookParams,
+                ];
+            }
         }
 
         $docComment = $property->getDocComment();

@@ -28,7 +28,7 @@ final class PhpCodeParser
     /**
      * @internal
      */
-    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v7-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v8-';
 
     /**
      * @param string   $code
