@@ -21,6 +21,13 @@ class PHPFunction extends BasePHPElement
      */
     public array $parameters = [];
 
+    /**
+     * PHP 8.0+ attributes on this function.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
     public ?string $returnPhpDocRaw = null;
 
     public ?string $returnType = null;
@@ -49,6 +56,11 @@ class PHPFunction extends BasePHPElement
 
         $this->name = static::getFQN($node);
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         /** @noinspection NotOptimalIfConditionsInspection */
         if (\function_exists($this->name)) {
             $reflectionFunction = Utils::createFunctionReflectionInstance($this->name);
@@ -57,10 +69,9 @@ class PHPFunction extends BasePHPElement
 
         if ($node->returnType) {
             if (!$this->returnType) {
-                if (\method_exists($node->returnType, 'toString')) {
-                    $this->returnType = $node->returnType->toString();
-                } elseif (\property_exists($node->returnType, 'name') && $node->returnType->name) {
-                    $this->returnType = $node->returnType->name;
+                $returnTypeStr = Utils::typeNodeToString($node->returnType);
+                if ($returnTypeStr !== null) {
+                    $this->returnType = $returnTypeStr;
                 }
             }
 
@@ -76,7 +87,7 @@ class PHPFunction extends BasePHPElement
         $docComment = $node->getDocComment();
         if ($docComment) {
             try {
-                $phpDoc = Utils::createDocBlockInstance()->create($docComment->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
@@ -130,6 +141,9 @@ class PHPFunction extends BasePHPElement
     public function readObjectFromReflection($function): self
     {
         $this->name = $function->getName();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($function);
 
         if (!$this->line) {
             $lineTmp = $function->getStartLine();
@@ -229,7 +243,7 @@ class PHPFunction extends BasePHPElement
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedReturnTag = $phpDoc->getTagsByName('return');
 

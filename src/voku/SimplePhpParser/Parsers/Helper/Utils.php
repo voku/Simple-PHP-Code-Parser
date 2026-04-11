@@ -9,6 +9,7 @@ use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
+use voku\SimplePhpParser\Model\PHPAttribute;
 
 final class Utils
 {
@@ -112,7 +113,11 @@ final class Utils
                     &&
                     $node->value->name
                 ) {
-                    $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    if ($node->value->name instanceof \PhpParser\Node\Name) {
+                        $value = $node->value->name->toString();
+                    } else {
+                        $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
+                    }
                     return $value === 'null' ? null : $value;
                 }
             }
@@ -162,7 +167,8 @@ final class Utils
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
-            $parts = $node->name->getParts();
+            $nameStr = $node->name->toString();
+            $parts = explode('\\', $nameStr);
 
             $returnTmp = \strtolower($parts[0]);
             if ($returnTmp === 'true') {
@@ -175,7 +181,7 @@ final class Utils
                 return null;
             }
 
-            $constantNameTmp = '\\' . \implode('\\', $parts);
+            $constantNameTmp = '\\' . $nameStr;
             if (\defined($constantNameTmp)) {
                 return \constant($constantNameTmp);
             }
@@ -203,6 +209,7 @@ final class Utils
             case 'false':
             case 'null':
             case 'mixed':
+            case 'never':
                 return $type_string_lower;
         }
 
@@ -489,7 +496,8 @@ final class Utils
         static $LAXER = null;
 
         if ($LAXER === null) {
-            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer();
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer($config);
         }
 
         return new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
@@ -503,7 +511,8 @@ final class Utils
         static $TYPE_PARSER = null;
 
         if ($TYPE_PARSER === null) {
-            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser(new \PHPStan\PhpDocParser\Parser\ConstExprParser());
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser($config, new \PHPStan\PhpDocParser\Parser\ConstExprParser($config));
         }
 
         $tokens = self::modernPhpdocTokens($input);
@@ -521,59 +530,85 @@ final class Utils
     }
 
     /**
-     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb + modified (do not use all cores, we still want to work)
-     *
-     * returns number of cpu cores
-     * Copyleft 2018, license: WTFPL
+     * Returns number of cpu cores available for parallelisation.
      *
      * @return int<1, max>
      */
     public static function getCpuCores(): int
     {
-        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $str = \trim((string) \shell_exec('wmic cpu get NumberOfCores 2>&1'));
-            $matches = [];
-            if (!$str || !\preg_match('#(\d+)#', $str, $matches)) {
-                return 1;
-            }
-
-            $return = (int)round((int)$matches[1] / 2);
-            if ($return > 1) {
-                return $return;
-            }
-
-            return 1;
+        static $cores = null;
+        if ($cores === null) {
+            $cores = (new \Fidry\CpuCoreCounter\CpuCoreCounter())->getAvailableForParallelisation()->availableCpus;
         }
 
-        /** @noinspection PhpUsageOfSilenceOperatorInspection */
-        $ret = @\shell_exec('nproc');
-        if (\is_string($ret)) {
-            $ret = \trim($ret);
-            /** @noinspection PhpAssignmentInConditionInspection */
-            if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                $return = (int)round($tmp / 2);
-                if ($return > 1) {
-                    return $return;
+        return $cores;
+    }
+
+    /**
+     * Extract PHPAttribute instances from AST node attribute groups.
+     *
+     * @param \PhpParser\Node\AttributeGroup[] $attrGroups
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromAstNode(array $attrGroups): array
+    {
+        $result = [];
+        foreach ($attrGroups as $group) {
+            foreach ($group->attrs as $attr) {
+                // If NameResolver has already resolved the name to FullyQualified,
+                // use that; otherwise check resolvedName attribute, then fall back
+                if ($attr->name instanceof \PhpParser\Node\Name\FullyQualified) {
+                    $name = $attr->name->toString();
+                } else {
+                    $resolvedName = $attr->name->getAttribute('resolvedName');
+                    if ($resolvedName instanceof \PhpParser\Node\Name) {
+                        $name = $resolvedName->toString();
+                    } else {
+                        $name = $attr->name->toString();
+                    }
                 }
 
-                return 1;
-            }
-        }
+                $arguments = [];
+                foreach ($attr->args as $arg) {
+                    $argValue = self::getPhpParserValueFromNode($arg);
+                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                        $argValue = null;
+                    }
 
-        if (\is_readable('/proc/cpuinfo')) {
-            $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
-            $count = \substr_count($cpuinfo, 'processor');
-            if ($count > 0) {
-                $return = (int)round($count / 2);
-                if ($return > 1) {
-                    return $return;
+                    if ($arg->name !== null) {
+                        $arguments[$arg->name->name] = $argValue;
+                    } else {
+                        $arguments[] = $argValue;
+                    }
                 }
 
-                return 1;
+                $result[] = new PHPAttribute($name, $arguments);
             }
         }
 
-        return 1;
+        return $result;
+    }
+
+    /**
+     * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
+     *
+     * @param \ReflectionClass|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromReflection($reflection): array
+    {
+        if (!\method_exists($reflection, 'getAttributes')) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($reflection->getAttributes() as $attr) {
+            $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());
+        }
+
+        return $result;
     }
 
     private static function findParentClassDeclaringConstant(

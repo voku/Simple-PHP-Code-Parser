@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Property;
 use ReflectionProperty;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPProperty extends BasePHPElement
@@ -42,6 +43,13 @@ class PHPProperty extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.0+ attributes on this property.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Property    $node
      * @param string|null $classStr
      *
@@ -59,6 +67,11 @@ class PHPProperty extends BasePHPElement
             $this->is_readonly = $node->isReadonly();
         }
 
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         $this->prepareNode($node);
 
         $docComment = $node->getDocComment();
@@ -73,9 +86,19 @@ class PHPProperty extends BasePHPElement
         }
 
         if ($node->type !== null) {
-            $type = Utils::typeNodeToString($node->type);
-            if ($type !== null) {
-                $this->type = $type;
+            if (!$this->type) {
+                $typeStr = Utils::typeNodeToString($node->type);
+                if ($typeStr !== null) {
+                    $this->type = $typeStr;
+                }
+            }
+
+            if ($node->type instanceof \PhpParser\Node\NullableType) {
+                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
+                    $this->type = 'null|' . $this->type;
+                } elseif (!$this->type) {
+                    $this->type = 'null|mixed';
+                }
             }
         }
 
@@ -114,6 +137,9 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->is_static = $property->isStatic();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($property);
 
         if ($this->is_static) {
             try {
@@ -215,7 +241,7 @@ class PHPProperty extends BasePHPElement
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('var');
 

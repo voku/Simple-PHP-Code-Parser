@@ -47,7 +47,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
         $parsedParamTag = $withComplexReturnArray->parameters['parsedParamTag'];
         static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag', $parsedParamTag->type);
-        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag <p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeFromPhpDocMaybeWithComment);
+        static::assertSame('\phpDocumentor\Reflection\DocBlock\Tags\BaseTag $parsedParamTag ' . "\n" . '<p>this is a test-text [...] öäü !"§?</p>', $parsedParamTag->typeFromPhpDocMaybeWithComment);
     }
 
     public function testSimpleOneClassV3(): void
@@ -193,7 +193,7 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'int|float',
+            'float|int',
             $phpClasses[Dummy8::class]->methods['test_multi_param_type']->parameters['param1']->type
         );
 
@@ -406,7 +406,75 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         $phpFunctions = $phpCode->getFunctions();
 
         static::assertSame('route', $phpFunctions['route']->name);
-        static::assertSame(['export' => '@export (Router.route)', 'return' => '@return array[][]|false'], $phpFunctions['route']->tagNames);
+        static::assertSame(['export' => '@export (Router.route)', 'return' => '@return mixed[][][]|false'], $phpFunctions['route']->tagNames);
+    }
+
+    public function testMalformedParamPhpDocReportingVariants(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+class BrokenPhpDocVariantsParent
+{
+    /**
+     * @param $value
+     */
+    public function brokenParam($value): void
+    {
+    }
+
+    /**
+     * @psalm-param $value
+     */
+    public function brokenPsalmParam($value): void
+    {
+    }
+
+    /**
+     * @param mixed $value
+     */
+    public function validMixed($value): void
+    {
+    }
+
+    /**
+     * @param array{foo:int,bar:string} $value
+     */
+    public function validShape($value): void
+    {
+    }
+
+    /**
+     * @param int $valueSuffix
+     */
+    public function validDifferentParameterName($value): void
+    {
+    }
+}
+
+class BrokenPhpDocVariantsChild extends BrokenPhpDocVariantsParent
+{
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $parentMethodsInfo = $phpClasses['voku\tests\BrokenPhpDocVariantsParent']->getMethodsInfo();
+
+        static::assertStringContainsString(
+            'Unexpected token "$value", expected type at offset 0 on line 1',
+            $parentMethodsInfo['brokenParam']['error']
+        );
+        static::assertStringContainsString(
+            'Unexpected token "$value", expected type at offset 0 on line 1',
+            $parentMethodsInfo['brokenPsalmParam']['error']
+        );
+        static::assertSame('', $parentMethodsInfo['validMixed']['error']);
+        static::assertSame('', $parentMethodsInfo['validShape']['error']);
+        static::assertSame('', $parentMethodsInfo['validDifferentParameterName']['error']);
     }
 
     public function testGetFunctionsInfo(): void
@@ -503,14 +571,14 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     ],
                     'returnTypes' => [
                         'type'                           => 'array',
-                        'typeFromPhpDocMaybeWithComment' => 'array<int,int>',
-                        'typeFromPhpDoc'                 => 'array<int,int>',
+                        'typeFromPhpDocMaybeWithComment' => 'array<int, int>',
+                        'typeFromPhpDoc'                 => 'array<int, int>',
                         'typeFromPhpDocSimple'           => 'int[]',
                         'typeFromPhpDocExtended'         => 'array<int, int>',
                     ],
                     'paramsPhpDocRaw' => [
                     ],
-                    'returnPhpDocRaw' => 'array<int,int>',
+                    'returnPhpDocRaw' => 'array<int, int>',
                     'line'            => 51,
                     'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'           => '',
@@ -548,10 +616,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'paramsTypes'     => [
                         'parsedParamTag' => [
                             'type'                           => null,
-                            'typeFromPhpDocMaybeWithComment' => null,
-                            'typeFromPhpDoc'                 => null,
-                            'typeFromPhpDocSimple'           => null,
-                            'typeFromPhpDocExtended'         => null,
+                            'typeFromPhpDocMaybeWithComment' => 'mixed $parsedParamTag',
+                            'typeFromPhpDoc'                 => 'mixed',
+                            'typeFromPhpDocSimple'           => 'mixed',
+                            'typeFromPhpDocExtended'         => 'mixed',
                             'typeFromDefaultValue'           => null,
                         ],
                             ],
@@ -563,12 +631,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDocExtended'         => 'array{parsedParamTagStr: string, variableName: (null[]|string)}',
                         ],
                         'paramsPhpDocRaw' => [
-                            'parsedParamTag' => '$parsedParamTag',
+                            'parsedParamTag' => 'mixed $parsedParamTag',
                         ],
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error'           => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
+                        'error'           => 'parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated'   => false,
                         'is_static'       => true,
                         'is_meta'         => false,
@@ -857,14 +925,14 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     ],
                     'returnTypes' => [
                         'type'                           => 'array',
-                        'typeFromPhpDocMaybeWithComment' => 'array<int,int>',
-                        'typeFromPhpDoc'                 => 'array<int,int>',
+                        'typeFromPhpDocMaybeWithComment' => 'array<int, int>',
+                        'typeFromPhpDoc'                 => 'array<int, int>',
                         'typeFromPhpDocSimple'           => 'int[]',
                         'typeFromPhpDocExtended'         => 'array<int, int>',
                     ],
                     'paramsPhpDocRaw' => [
                     ],
-                    'returnPhpDocRaw' => 'array<int,int>',
+                    'returnPhpDocRaw' => 'array<int, int>',
                     'line'            => 51,
                     'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
                     'error'           => '',
@@ -879,10 +947,10 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                     'paramsTypes'     => [
                         'parsedParamTag' => [
                             'type'                           => null,
-                            'typeFromPhpDocMaybeWithComment' => null,
-                            'typeFromPhpDoc'                 => null,
-                            'typeFromPhpDocSimple'           => null,
-                            'typeFromPhpDocExtended'         => null,
+                            'typeFromPhpDocMaybeWithComment' => 'mixed $parsedParamTag',
+                            'typeFromPhpDoc'                 => 'mixed',
+                            'typeFromPhpDocSimple'           => 'mixed',
+                            'typeFromPhpDocExtended'         => 'mixed',
                             'typeFromDefaultValue'           => null,
                         ],
                             ],
@@ -894,13 +962,12 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
                             'typeFromPhpDocExtended'         => 'array{parsedParamTagStr: string, variableName: (null[]|string)}',
                         ],
                         'paramsPhpDocRaw' => [
-                            'parsedParamTag' => '$parsedParamTag',
+                            'parsedParamTag' => 'mixed $parsedParamTag',
                         ],
                         'returnPhpDocRaw' => 'array',
                         'line'            => 119,
                         'file'            => 'Simple-PHP-Code-Parser/tests/Dummy.php',
-                        'error' => 'parsedParamTag:? | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1
-parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
+                        'error' => 'parsedParamTag:119 | Unexpected token "$parsedParamTag", expected type at offset 0 on line 1',
                         'is_deprecated' => false,
                         'is_static'     => true,
                         'is_meta'       => false,
@@ -1233,5 +1300,438 @@ PHP
         }
 
         return $helper;
+    }
+
+    public function testEnumString(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyEnum.php');
+        $phpEnums = $phpCode->getEnums();
+
+        static::assertArrayHasKey(DummyEnum::class, $phpEnums);
+
+        $enum = $phpEnums[DummyEnum::class];
+
+        static::assertSame(DummyEnum::class, $enum->name);
+        static::assertSame('string', $enum->scalarType);
+
+        // Check cases
+        static::assertCount(4, $enum->cases);
+        static::assertSame('H', $enum->cases['Hearts']);
+        static::assertSame('D', $enum->cases['Diamonds']);
+        static::assertSame('C', $enum->cases['Clubs']);
+        static::assertSame('S', $enum->cases['Spades']);
+
+        // Check method
+        static::assertArrayHasKey('color', $enum->methods);
+        static::assertSame('string', $enum->methods['color']->returnType);
+    }
+
+    public function testEnumUnit(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyEnumUnit.php');
+        $phpEnums = $phpCode->getEnums();
+
+        static::assertArrayHasKey(DummyEnumUnit::class, $phpEnums);
+
+        $enum = $phpEnums[DummyEnumUnit::class];
+        static::assertSame(DummyEnumUnit::class, $enum->name);
+        static::assertNull($enum->scalarType);
+
+        // Unit enums have no backing values
+        static::assertCount(3, $enum->cases);
+        static::assertNull($enum->cases['Pending']);
+        static::assertNull($enum->cases['Active']);
+        static::assertNull($enum->cases['Closed']);
+    }
+
+    public function testEnumInt(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyEnumInt.php');
+        $phpEnums = $phpCode->getEnums();
+
+        static::assertArrayHasKey(DummyEnumInt::class, $phpEnums);
+
+        $enum = $phpEnums[DummyEnumInt::class];
+        static::assertSame(DummyEnumInt::class, $enum->name);
+        static::assertSame('int', $enum->scalarType);
+
+        static::assertCount(3, $enum->cases);
+        static::assertSame(1, $enum->cases['Low']);
+        static::assertSame(2, $enum->cases['Medium']);
+        static::assertSame(3, $enum->cases['High']);
+
+        // Check method
+        static::assertArrayHasKey('label', $enum->methods);
+        static::assertSame('string', $enum->methods['label']->returnType);
+    }
+
+    public function testEnumFromString(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $code = '<?php
+        enum Color: string {
+            case Red = \'red\';
+            case Blue = \'blue\';
+
+            public function label(): string {
+                return ucfirst($this->value);
+            }
+        }
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpEnums = $phpCode->getEnums();
+
+        static::assertCount(1, $phpEnums);
+        $enum = \array_values($phpEnums)[0];
+        static::assertSame('string', $enum->scalarType);
+        static::assertCount(2, $enum->cases);
+        static::assertSame('red', $enum->cases['Red']);
+        static::assertSame('blue', $enum->cases['Blue']);
+        static::assertArrayHasKey('label', $enum->methods);
+    }
+
+    public function testIntersectionTypes(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy14.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(Dummy14::class, $phpClasses);
+
+        $class = $phpClasses[Dummy14::class];
+
+        // On PHP < 8.2, Dummy14 cannot be autoloaded (it contains PHP 8.2+ syntax such as
+        // standalone `null` return type), so intersection types are sourced from the AST and
+        // carry a leading backslash on each class-name component (FQN format).
+        // On PHP >= 8.2, the class is reflected and reflection's __toString() omits the backslash.
+        $expectedIntersection = \PHP_VERSION_ID >= 80200
+            ? 'Countable&voku\tests\DummyInterface4'
+            : '\Countable&\voku\tests\DummyInterface4';
+
+        // Intersection type on property
+        static::assertSame($expectedIntersection, $class->properties['intersectionProp']->type);
+
+        // Intersection type on parameter
+        $method = $class->methods['getIntersection'];
+        static::assertSame($expectedIntersection, $method->parameters['input']->type);
+
+        // Intersection return type
+        static::assertSame($expectedIntersection, $method->returnType);
+    }
+
+    public function testNeverReturnType(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy14.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame('never', $phpClasses[Dummy14::class]->methods['neverReturn']->returnType);
+    }
+
+    public function testStandaloneTypes(): void
+    {
+        if (\PHP_VERSION_ID < 80200) {
+            static::markTestSkipped('only for PHP >= 8.2');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy14.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[Dummy14::class];
+
+        static::assertSame('true', $class->methods['returnTrue']->returnType);
+        static::assertSame('false', $class->methods['returnFalse']->returnType);
+        static::assertSame('null', $class->methods['returnNull']->returnType);
+    }
+
+    public function testDnfTypes(): void
+    {
+        if (\PHP_VERSION_ID < 80200) {
+            static::markTestSkipped('only for PHP >= 8.2');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy15.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(Dummy15::class, $phpClasses);
+
+        $class = $phpClasses[Dummy15::class];
+
+        // DNF type on property: (\Countable&\Traversable)|null
+        $propType = $class->properties['dnfProp']->type;
+        static::assertNotNull($propType);
+        static::assertStringContainsString('Countable', $propType);
+        static::assertStringContainsString('Traversable', $propType);
+        static::assertStringContainsString('|', $propType);
+        static::assertStringContainsString('&', $propType);
+
+        // DNF type on parameter
+        $paramType = $class->methods['getDnf']->parameters['input']->type;
+        static::assertNotNull($paramType);
+        static::assertStringContainsString('Countable', $paramType);
+        static::assertStringContainsString('Traversable', $paramType);
+
+        // DNF return type
+        $returnType = $class->methods['getDnf']->returnType;
+        static::assertNotNull($returnType);
+        static::assertStringContainsString('Countable', $returnType);
+        static::assertStringContainsString('Traversable', $returnType);
+    }
+
+    public function testTypedClassConstants(): void
+    {
+        if (\PHP_VERSION_ID < 80300) {
+            static::markTestSkipped('only for PHP >= 8.3');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy16.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(Dummy16::class, $phpClasses);
+
+        $class = $phpClasses[Dummy16::class];
+
+        static::assertSame('string', $class->constants['NAME']->typeFromDeclaration);
+        static::assertSame('dummy', $class->constants['NAME']->value);
+        static::assertSame('public', $class->constants['NAME']->visibility);
+
+        static::assertSame('int', $class->constants['VERSION']->typeFromDeclaration);
+        static::assertSame(1, $class->constants['VERSION']->value);
+
+        static::assertSame('float', $class->constants['RATIO']->typeFromDeclaration);
+        static::assertSame('protected', $class->constants['RATIO']->visibility);
+
+        static::assertSame('bool', $class->constants['ACTIVE']->typeFromDeclaration);
+        static::assertSame('private', $class->constants['ACTIVE']->visibility);
+    }
+
+    public function testTraitConstants(): void
+    {
+        if (\PHP_VERSION_ID < 80200) {
+            static::markTestSkipped('only for PHP >= 8.2');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyTrait2.php');
+        $phpTraits = $phpCode->getTraits();
+
+        static::assertArrayHasKey(DummyTrait2::class, $phpTraits);
+
+        $trait = $phpTraits[DummyTrait2::class];
+
+        static::assertArrayHasKey('TRAIT_CONST_A', $trait->constants);
+        static::assertSame('alpha', $trait->constants['TRAIT_CONST_A']->value);
+        static::assertSame('public', $trait->constants['TRAIT_CONST_A']->visibility);
+
+        static::assertArrayHasKey('TRAIT_CONST_B', $trait->constants);
+        static::assertSame(42, $trait->constants['TRAIT_CONST_B']->value);
+        static::assertSame('protected', $trait->constants['TRAIT_CONST_B']->visibility);
+
+        // Check trait method
+        static::assertArrayHasKey('traitMethod', $trait->methods);
+        static::assertSame('string', $trait->methods['traitMethod']->returnType);
+    }
+
+    public function testEnumDirectoryParsing(): void
+    {
+        if (\PHP_VERSION_ID < 80100) {
+            static::markTestSkipped('only for PHP >= 8.1');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__);
+        $phpEnums = $phpCode->getEnums();
+
+        // Should find all the enums we created
+        static::assertArrayHasKey(DummyEnum::class, $phpEnums);
+        static::assertArrayHasKey(DummyEnumUnit::class, $phpEnums);
+        static::assertArrayHasKey(DummyEnumInt::class, $phpEnums);
+    }
+
+    public function testAttributesOnClass(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyWithAttributes::class, $phpClasses);
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Class-level attributes
+        static::assertNotEmpty($class->attributes);
+        static::assertSame('voku\tests\DummyAttribute', $class->attributes[0]->name);
+        static::assertSame('TestClass', $class->attributes[0]->arguments['name']);
+        static::assertSame(1, $class->attributes[0]->arguments['priority']);
+    }
+
+    public function testAttributesOnProperty(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Property-level attributes
+        static::assertNotEmpty($class->properties['name']->attributes);
+        static::assertSame('voku\tests\DummyPropertyAttribute', $class->properties['name']->attributes[0]->name);
+        static::assertTrue($class->properties['name']->attributes[0]->arguments['required']);
+
+        // Property without required arg — default value
+        static::assertNotEmpty($class->properties['age']->attributes);
+        static::assertSame('voku\tests\DummyPropertyAttribute', $class->properties['age']->attributes[0]->name);
+    }
+
+    public function testAttributesOnMethod(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Method-level attributes
+        static::assertNotEmpty($class->methods['apiMethod']->attributes);
+        static::assertSame('voku\tests\DummyMethodAttribute', $class->methods['apiMethod']->attributes[0]->name);
+        static::assertSame('/api/test', $class->methods['apiMethod']->attributes[0]->arguments['route']);
+
+        // Method without attributes
+        static::assertEmpty($class->methods['plainMethod']->attributes);
+    }
+
+    public function testAttributesOnParameter(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyWithAttributes.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $class = $phpClasses[DummyWithAttributes::class];
+
+        // Parameter-level attributes
+        $param1 = $class->methods['apiMethod']->parameters['param1'];
+        static::assertNotEmpty($param1->attributes);
+        static::assertSame('voku\tests\DummyParameterAttribute', $param1->attributes[0]->name);
+        static::assertSame('query', $param1->attributes[0]->arguments['type']);
+
+        // Parameter without attributes
+        $param2 = $class->methods['apiMethod']->parameters['param2'];
+        static::assertEmpty($param2->attributes);
+    }
+
+    public function testOverrideAttribute(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyOverride.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyOverrideChild::class, $phpClasses);
+
+        $child = $phpClasses[DummyOverrideChild::class];
+
+        // greet has #[\Override]
+        static::assertTrue($child->methods['greet']->is_override);
+
+        // farewell does NOT have #[\Override]
+        static::assertNull($child->methods['farewell']->is_override);
+
+        // newMethod does NOT have #[\Override]
+        static::assertNull($child->methods['newMethod']->is_override);
+
+        // Also check the Override attribute is in the attributes array
+        static::assertNotEmpty($child->methods['greet']->attributes);
+        $foundOverride = false;
+        foreach ($child->methods['greet']->attributes as $attr) {
+            if ($attr->name === 'Override') {
+                $foundOverride = true;
+            }
+        }
+        static::assertTrue($foundOverride, '#[Override] should be in the attributes array');
+    }
+
+    public function testModernSyntaxParsing(): void
+    {
+        // Verify the parser doesn't choke on modern PHP 8.x syntax
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyModernSyntax.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey(DummyFirstClassCallable::class, $phpClasses);
+
+        $class = $phpClasses[DummyFirstClassCallable::class];
+
+        // first-class callable method has Closure return type
+        static::assertSame('\Closure', $class->methods['getCallable']->returnType);
+
+        // match expression method parses fine
+        static::assertSame('string', $class->methods['matchExample']->returnType);
+        static::assertSame('string', $class->methods['matchExample']->parameters['status']->type);
+
+        // named arguments example
+        static::assertSame('string', $class->methods['namedArgExample']->returnType);
+
+        // nullsafe operator example
+        static::assertSame('null|string', $class->methods['nullsafeExample']->returnType);
+    }
+
+    public function testAttributeFromStringInput(): void
+    {
+        $code = '
+        <?php
+        #[\Attribute]
+        class MyCustomAttr {
+            public function __construct(public string $value = "") {}
+        }
+
+        #[MyCustomAttr(value: "test")]
+        class TestTarget {
+            #[MyCustomAttr(value: "prop")]
+            public string $field = "";
+
+            #[MyCustomAttr(value: "method")]
+            public function doSomething(#[MyCustomAttr(value: "param")] int $x): void {}
+        }
+        ';
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('TestTarget', $phpClasses);
+
+        $class = $phpClasses['TestTarget'];
+
+        // Class-level attribute
+        static::assertNotEmpty($class->attributes);
+        static::assertSame('MyCustomAttr', $class->attributes[0]->name);
+        static::assertSame('test', $class->attributes[0]->arguments['value']);
+
+        // Property-level attribute
+        static::assertNotEmpty($class->properties['field']->attributes);
+        static::assertSame('MyCustomAttr', $class->properties['field']->attributes[0]->name);
+        static::assertSame('prop', $class->properties['field']->attributes[0]->arguments['value']);
+
+        // Method-level attribute
+        static::assertNotEmpty($class->methods['doSomething']->attributes);
+        static::assertSame('MyCustomAttr', $class->methods['doSomething']->attributes[0]->name);
+        static::assertSame('method', $class->methods['doSomething']->attributes[0]->arguments['value']);
+
+        // Parameter-level attribute
+        static::assertNotEmpty($class->methods['doSomething']->parameters['x']->attributes);
+        static::assertSame('MyCustomAttr', $class->methods['doSomething']->parameters['x']->attributes[0]->name);
+        static::assertSame('param', $class->methods['doSomething']->parameters['x']->attributes[0]->arguments['value']);
     }
 }

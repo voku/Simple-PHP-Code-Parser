@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers;
 
 use FilesystemIterator;
-use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
@@ -28,7 +27,7 @@ final class PhpCodeParser
     /**
      * @internal
      */
-    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v4-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v6-';
 
     /**
      * @param string   $code
@@ -80,16 +79,23 @@ final class PhpCodeParser
         array $pathExcludeRegex = [],
         array $fileExtensions = []
     ): ParserContainer {
-        foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath) && \is_file($projectPath)) {
-                require_once $projectPath;
-            } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
-                require_once $projectPath . '/vendor/autoload.php';
-            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                require_once $projectPath . '/../vendor/autoload.php';
+        // Push a disposable handler so restore_error_handler() below will only
+        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
+        // intact on the stack.
+        \set_error_handler(null);
+        try {
+            foreach ($autoloaderProjectPaths as $projectPath) {
+                if (\file_exists($projectPath) && \is_file($projectPath)) {
+                    require_once $projectPath;
+                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
+                    require_once $projectPath . '/vendor/autoload.php';
+                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                    require_once $projectPath . '/../vendor/autoload.php';
+                }
             }
+        } finally {
+            \restore_error_handler();
         }
-        \restore_error_handler();
 
         $phpCodes = self::getCode(
             $pathOrCode,
@@ -119,6 +125,7 @@ final class PhpCodeParser
                 $parserContainer->setTraits($response->getTraits());
                 $parserContainer->setClasses($response->getClasses());
                 $parserContainer->setInterfaces($response->getInterfaces());
+                $parserContainer->setEnums($response->getEnums());
                 $parserContainer->setConstants($response->getConstants());
                 $parserContainer->setFunctions($response->getFunctions());
             } elseif ($response instanceof ParserErrorHandler) {
@@ -200,20 +207,7 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ASTVisitor $visitor
     ) {
-        $parser = (new ParserFactory())->create(
-            ParserFactory::PREFER_PHP7,
-            new Emulative(
-                [
-                    'usedAttributes' => [
-                        'comments',
-                        'startLine',
-                        'endLine',
-                        'startTokenPos',
-                        'endTokenPos',
-                    ],
-                ]
-            )
-        );
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
 
         $errorHandler = new ParserErrorHandler();
 
@@ -231,16 +225,23 @@ final class PhpCodeParser
             return $errorHandler;
         }
 
-        $preparationTraverser = new NodeTraverser();
-        $preparationTraverser->addVisitor(new ParentConnector());
-        $preparationTraverser->addVisitor($nameResolver);
-        $preparationTraverser->traverse($parsedCode);
+        // Pass 1: set parent attributes and fully resolve all names in the AST.
+        // NameResolver modifies Name nodes in-place (converting them to FullyQualified),
+        // so by the time ASTVisitor runs in pass 2, every type-hint Name node already
+        // carries its fully-qualified form. This is necessary because ASTVisitor processes
+        // class members (properties, methods) eagerly inside enterNode(Class_), before
+        // the single-pass traverser would have had a chance to visit those child nodes.
+        $traverser1 = new NodeTraverser();
+        $traverser1->addVisitor(new ParentConnector());
+        $traverser1->addVisitor($nameResolver);
+        $traverser1->traverse($parsedCode);
 
         $visitor->fileName = $fileName;
 
-        $readerTraverser = new NodeTraverser();
-        $readerTraverser->addVisitor($visitor);
-        $readerTraverser->traverse($parsedCode);
+        // Pass 2: extract model objects from the already-resolved AST.
+        $traverser2 = new NodeTraverser();
+        $traverser2->addVisitor($visitor);
+        $traverser2->traverse($parsedCode);
 
         return $parserContainer;
     }
@@ -356,7 +357,7 @@ final class PhpCodeParser
                 assert(is_string($response['cacheKey']));
                 assert($response['fileName'] === null || is_string($response['fileName']));
 
-                $cache->setItem($response['cacheKey'], $response);
+                @$cache->setItem($response['cacheKey'], $response);
 
                 $phpCodes[$response['cacheKey']]['content'] = $response['content'];
                 $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];

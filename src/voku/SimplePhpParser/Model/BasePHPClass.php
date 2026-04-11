@@ -27,6 +27,13 @@ abstract class BasePHPClass extends BasePHPElement
      */
     public array $constants = [];
 
+    /**
+     * PHP 8.0+ attributes on this class/interface/trait/enum.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
     public ?bool $is_final = null;
 
     public ?bool $is_abstract = null;
