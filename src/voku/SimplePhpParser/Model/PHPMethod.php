@@ -31,8 +31,8 @@ class PHPMethod extends PHPFunction
     public ?string $parentName = null;
 
     /**
-     * @param \PhpParser\Node\Stmt\ClassMethod $node
-     * @param string|null                      $classStr
+     * @param \PhpParser\Node $node
+     * @param string|null     $classStr
      *
      * @phpstan-param null|class-string $classStr
      *
@@ -40,6 +40,8 @@ class PHPMethod extends PHPFunction
      */
     public function readObjectFromPhpNode($node, $classStr = null): PHPFunction
     {
+        \assert($node instanceof \PhpParser\Node\Stmt\ClassMethod);
+
         $this->prepareNode($node);
 
         $this->parentName = static::getFQN($node->getAttribute('parent'));
@@ -148,12 +150,14 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param \ReflectionMethod $method
+     * @param \ReflectionFunctionAbstract $method
      *
      * @return $this
      */
     public function readObjectFromReflection($method): PHPFunction
     {
+        \assert($method instanceof \ReflectionMethod);
+
         $this->name = $method->getName();
 
         if (!$this->line) {
@@ -186,7 +190,7 @@ class PHPMethod extends PHPFunction
 
         $returnType = $method->getReturnType();
         if ($returnType !== null) {
-            if (\method_exists($returnType, 'getName')) {
+            if ($returnType instanceof \ReflectionNamedType) {
                 $this->returnType = $returnType->getName();
             } else {
                 $this->returnType = $returnType . '';
