@@ -413,10 +413,15 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleDirectory(): void
     {
+        $pathExcludeRegex = ['/Dummy5|Dummy1[0|1|3]|Dummy8/'];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
         $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/',
             [],
-            ['/Dummy5|Dummy1[0|1|3]|Dummy8/']
+            $pathExcludeRegex
         );
 
         $phpClasses = $phpCode->getClasses();
@@ -1685,7 +1690,12 @@ PHP
             static::markTestSkipped('only for PHP >= 8.1');
         }
 
-        $phpCode = PhpCodeParser::getPhpFiles(__DIR__);
+        $pathExcludeRegex = [];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__, [], $pathExcludeRegex);
         $phpEnums = $phpCode->getEnums();
 
         // Should find all the enums we created
