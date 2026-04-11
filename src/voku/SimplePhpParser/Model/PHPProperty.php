@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\Param;
 use ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -190,6 +191,90 @@ class PHPProperty extends BasePHPElement
         }
 
         return $this;
+    }
+
+    /**
+     * @param Param        $parameter
+     * @param string|null  $classStr
+     *
+     * @phpstan-param class-string|null $classStr
+     *
+     * @return $this
+     */
+    public function readObjectFromPromotedParam(Param $parameter, ?string $classStr = null): self
+    {
+        $parameterVar = $parameter->var;
+        if (
+            !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
+            || !\is_string($parameterVar->name)
+        ) {
+            return $this;
+        }
+
+        $this->prepareNode($parameter);
+
+        $this->name = $parameterVar->name;
+        $this->is_static = false;
+
+        if ($parameter->isPrivate()) {
+            $this->access = 'private';
+        } elseif ($parameter->isProtected()) {
+            $this->access = 'protected';
+        } else {
+            $this->access = 'public';
+        }
+
+        $this->is_readonly = $parameter->isReadonly();
+        $this->access_set = self::getAsymmetricSetVisibilityFromParam($parameter);
+
+        if ($parameter->type !== null) {
+            $typeStr = Utils::typeNodeToString($parameter->type);
+            if ($typeStr !== null) {
+                $this->type = $typeStr;
+            }
+
+            if ($parameter->type instanceof \PhpParser\Node\NullableType) {
+                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
+                    $this->type = 'null|' . $this->type;
+                } elseif (!$this->type) {
+                    $this->type = 'null|mixed';
+                }
+            }
+        }
+
+        if ($parameter->default !== null) {
+            $defaultValue = Utils::getPhpParserValueFromNode($parameter->default, $classStr, $this->parserContainer);
+            if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                $this->defaultValue = $defaultValue;
+                $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+            }
+        }
+
+        if (!empty($parameter->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @phpstan-return ''|'private'|'protected'|'public'
+     */
+    private static function getAsymmetricSetVisibilityFromParam(object $parameter): string
+    {
+        if (\method_exists($parameter, 'isPublicSet') && $parameter->isPublicSet()) {
+            return 'public';
+        }
+
+        if (\method_exists($parameter, 'isProtectedSet') && $parameter->isProtectedSet()) {
+            return 'protected';
+        }
+
+        if (\method_exists($parameter, 'isPrivateSet') && $parameter->isPrivateSet()) {
+            return 'private';
+        }
+
+        return '';
     }
 
     /**

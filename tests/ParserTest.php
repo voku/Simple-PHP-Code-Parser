@@ -1997,4 +1997,73 @@ PHP;
         static::assertEmpty($class->properties['first']->hooks);
         static::assertSame('', $class->properties['first']->access_set);
     }
+
+    public function testPropertyHooksFromFileInput(): void
+    {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Property hooks require nikic/php-parser v5');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPropertyHooks.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPropertyHooks'];
+
+        static::assertArrayHasKey('fullName', $class->properties);
+        static::assertSame('public', $class->properties['fullName']->access);
+        static::assertSame('', $class->properties['fullName']->access_set);
+        static::assertArrayHasKey('get', $class->properties['fullName']->hooks);
+        static::assertArrayHasKey('set', $class->properties['fullName']->hooks);
+
+        static::assertSame('private', $class->properties['email']->access_set);
+        static::assertSame('protected', $class->properties['age']->access_set);
+    }
+
+    public function testPromotedPropertyFallbackFromFileInput(): void
+    {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Promoted asymmetric visibility requires nikic/php-parser v5');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPromotedPropertyHooks.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPromotedPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPromotedPropertyHooks'];
+
+        static::assertArrayHasKey('__construct', $class->methods);
+        static::assertArrayHasKey('name', $class->properties);
+        static::assertArrayHasKey('age', $class->properties);
+        static::assertArrayHasKey('id', $class->properties);
+
+        static::assertSame('public', $class->properties['name']->access);
+        static::assertSame('private', $class->properties['name']->access_set);
+        static::assertSame('string', $class->properties['name']->type);
+        static::assertSame(
+            'voku\tests\DummyPromotedPropertyAttribute',
+            $class->properties['name']->attributes[0]->name
+        );
+        static::assertSame('name', $class->properties['name']->attributes[0]->arguments['name']);
+
+        static::assertSame('public', $class->properties['age']->access);
+        static::assertSame('protected', $class->properties['age']->access_set);
+        static::assertSame(0, $class->properties['age']->defaultValue);
+        static::assertSame('int', $class->properties['age']->typeFromDefaultValue);
+
+        static::assertTrue($class->properties['id']->is_readonly);
+        static::assertSame('null|string', $class->properties['id']->type);
+        static::assertNull($class->properties['id']->defaultValue);
+        static::assertSame('null', $class->properties['id']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedPropertyAttribute',
+            $class->properties['id']->attributes[0]->name
+        );
+
+        static::assertArrayHasKey('name', $class->methods['__construct']->parameters);
+        static::assertArrayHasKey('age', $class->methods['__construct']->parameters);
+        static::assertArrayHasKey('id', $class->methods['__construct']->parameters);
+    }
 }

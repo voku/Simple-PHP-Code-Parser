@@ -124,6 +124,8 @@ class PHPClass extends BasePHPClass
             }
         }
 
+        $this->addPromotedPropertiesFromConstructor($node);
+
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
                 $interfaceFQN = $interfaceObject->toString();
@@ -583,11 +585,7 @@ class PHPClass extends BasePHPClass
             // Asymmetric visibility on properties is PHP 8.4+
             if (
                 $stmt instanceof \PhpParser\Node\Stmt\Property
-                && (
-                    (\method_exists($stmt, 'isPublicSet') && $stmt->isPublicSet())
-                    || (\method_exists($stmt, 'isProtectedSet') && $stmt->isProtectedSet())
-                    || (\method_exists($stmt, 'isPrivateSet') && $stmt->isPrivateSet())
-                )
+                && self::getAsymmetricSetVisibility($stmt) !== ''
             ) {
                 return true;
             }
@@ -598,11 +596,7 @@ class PHPClass extends BasePHPClass
                     if (!empty($param->hooks)) {
                         return true;
                     }
-                    if (
-                        (\method_exists($param, 'isPublicSet') && $param->isPublicSet())
-                        || (\method_exists($param, 'isProtectedSet') && $param->isProtectedSet())
-                        || (\method_exists($param, 'isPrivateSet') && $param->isPrivateSet())
-                    ) {
+                    if (self::getAsymmetricSetVisibility($param) !== '') {
                         return true;
                     }
                 }
@@ -610,5 +604,32 @@ class PHPClass extends BasePHPClass
         }
 
         return false;
+    }
+
+    private function addPromotedPropertiesFromConstructor(Class_ $node): void
+    {
+        foreach ($node->getMethods() as $method) {
+            if ($method->name->name !== '__construct') {
+                continue;
+            }
+
+            foreach ($method->params as $param) {
+                if (!$param->isPromoted()) {
+                    continue;
+                }
+
+                $parameterVar = $param->var;
+                if (
+                    !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
+                    || !\is_string($parameterVar->name)
+                    || isset($this->properties[$parameterVar->name])
+                ) {
+                    continue;
+                }
+
+                $this->properties[$parameterVar->name] = (new PHPProperty($this->parserContainer))
+                    ->readObjectFromPromotedParam($param, $this->name);
+            }
+        }
     }
 }

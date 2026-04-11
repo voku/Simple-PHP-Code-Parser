@@ -174,14 +174,11 @@ abstract class BasePHPClass extends BasePHPElement
         }
 
         // Asymmetric visibility on properties (PHP 8.4+)
-        if ($node instanceof \PhpParser\Node\Stmt\Property) {
-            if (
-                (\method_exists($node, 'isPublicSet') && $node->isPublicSet())
-                || (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet())
-                || (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet())
-            ) {
-                return true;
-            }
+        if (
+            $node instanceof \PhpParser\Node\Stmt\Property
+            && self::getAsymmetricSetVisibility($node) !== ''
+        ) {
+            return true;
         }
 
         // Property hooks on promoted constructor parameters (PHP 8.4+)
@@ -190,14 +187,11 @@ abstract class BasePHPClass extends BasePHPElement
         }
 
         // Asymmetric visibility on promoted constructor parameters (PHP 8.4+)
-        if ($node instanceof \PhpParser\Node\Param) {
-            if (
-                (\method_exists($node, 'isPublicSet') && $node->isPublicSet())
-                || (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet())
-                || (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet())
-            ) {
-                return true;
-            }
+        if (
+            $node instanceof \PhpParser\Node\Param
+            && self::getAsymmetricSetVisibility($node) !== ''
+        ) {
+            return true;
         }
 
         foreach ($node->getSubNodeNames() as $subNodeName) {
@@ -219,5 +213,25 @@ abstract class BasePHPClass extends BasePHPElement
         }
 
         return false;
+    }
+
+    /**
+     * @phpstan-return ''|'private'|'protected'|'public'
+     */
+    protected static function getAsymmetricSetVisibility(object $node): string
+    {
+        if (\method_exists($node, 'isPublicSet') && $node->isPublicSet()) {
+            return 'public';
+        }
+
+        if (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet()) {
+            return 'protected';
+        }
+
+        if (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet()) {
+            return 'private';
+        }
+
+        return '';
     }
 }
