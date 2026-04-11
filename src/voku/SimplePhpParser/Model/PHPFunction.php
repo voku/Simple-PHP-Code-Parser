@@ -301,14 +301,24 @@ class PHPFunction extends BasePHPElement
     {
         $tokens = Utils::modernPhpdocTokens($docComment);
 
+        // Track standard (@return) and extended (@phpstan-return / @psalm-return) content separately
+        // so that the more specific phpstan/psalm annotation always wins regardless of tag order.
         $returnContent = null;
+        $extendedReturnContent = null;
+        $currentTarget = null; // 'standard' | 'extended'
+
         foreach ($tokens->getTokens() as $token) {
             $content = $token[0];
 
-            if ($content === '@return' || $content === '@psalm-return' || $content === '@phpstan-return') {
-                // reset
+            if ($content === '@return') {
+                $currentTarget = 'standard';
                 $returnContent = '';
+                continue;
+            }
 
+            if ($content === '@psalm-return' || $content === '@phpstan-return') {
+                $currentTarget = 'extended';
+                $extendedReturnContent = '';
                 continue;
             }
 
@@ -317,17 +327,39 @@ class PHPFunction extends BasePHPElement
                 break;
             }
 
-            if ($returnContent !== null) {
+            if ($currentTarget === 'standard') {
                 $returnContent .= $content;
+            } elseif ($currentTarget === 'extended') {
+                $extendedReturnContent .= $content;
             }
         }
 
-        $returnContent = $returnContent ? \trim($returnContent) : null;
-        if ($returnContent) {
+        // Prefer @phpstan-return / @psalm-return over plain @return regardless of tag order.
+        $bestContent = null;
+        if ($extendedReturnContent !== null && \trim($extendedReturnContent) !== '') {
+            $bestContent = \trim($extendedReturnContent);
+        } elseif ($returnContent !== null && \trim($returnContent) !== '') {
+            $bestContent = \trim($returnContent);
+        }
+
+        if ($bestContent) {
             if (!$this->returnPhpDocRaw) {
-                $this->returnPhpDocRaw = $returnContent;
+                $this->returnPhpDocRaw = $bestContent;
             }
-            $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($returnContent);
+            try {
+                $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
+                $recoveredType = Utils::recoverBrokenPhpdocType($bestContent);
+                if ($recoveredType !== null) {
+                    $normalizedRecoveredType = Utils::normalizePhpType($recoveredType);
+                    $this->returnTypeFromPhpDoc = $this->returnTypeFromPhpDoc ?? $normalizedRecoveredType;
+                    $this->returnTypeFromPhpDocSimple = $this->returnTypeFromPhpDocSimple ?? $normalizedRecoveredType;
+                    $this->returnTypeFromPhpDocExtended = $recoveredType;
+                }
+
+                $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . $e->getMessage();
+                $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+            }
         }
     }
 }

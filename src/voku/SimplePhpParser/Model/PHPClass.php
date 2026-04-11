@@ -58,12 +58,9 @@ class PHPClass extends BasePHPClass
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
-        // PHP < 8.2 raises an uncatchable E_COMPILE_ERROR for certain PHP 8.2+ syntax
-        // (standalone true/false/null types, DNF types, readonly class). Similarly,
-        // PHP < 8.3 raises an error for PHP 8.3+ syntax (typed class constants).
-        // Skip autoloading in those cases; AST data is still read from the node below.
-        $canAutoload = (\PHP_VERSION_ID >= 80200 || !self::nodeUsesPHP82PlusSyntax($node))
-            && (\PHP_VERSION_ID >= 80300 || !self::nodeUsesPHP83PlusSyntax($node));
+        // Skip autoloading when the current runtime cannot safely compile newer syntax;
+        // AST data is still read from the node below.
+        $canAutoload = self::canAutoloadFromPhpNode($node);
         $classExists = false;
         if ($canAutoload) {
             try {
@@ -121,6 +118,8 @@ class PHPClass extends BasePHPClass
                 $this->methods[$methodNameTmp]->file = $this->file;
             }
         }
+
+        $this->addPromotedPropertiesFromConstructor($node);
 
         if (!empty($node->implements)) {
             foreach ($node->implements as $interfaceObject) {
@@ -462,101 +461,77 @@ class PHPClass extends BasePHPClass
         }
     }
 
-    /**
-     * Returns true if the class node uses syntax that requires PHP 8.2+ and would
-     * cause an uncatchable E_COMPILE_ERROR when autoloaded on PHP < 8.2.
-     *
-     * @param Class_ $node
-     *
-     * @return bool
-     */
-    private static function nodeUsesPHP82PlusSyntax(Class_ $node): bool
+    private function addPromotedPropertiesFromConstructor(Class_ $node): void
     {
-        // readonly class is PHP 8.2+
-        if ($node->isReadonly()) {
-            return true;
+        $method = $node->getMethod('__construct');
+        if ($method === null) {
+            return;
         }
 
-        foreach ($node->stmts as $stmt) {
-            if ($stmt instanceof \PhpParser\Node\Stmt\ClassMethod) {
-                if (self::containsPHP82PlusType($stmt->returnType)) {
-                    return true;
-                }
-                foreach ($stmt->params as $param) {
-                    if (self::containsPHP82PlusType($param->type)) {
-                        return true;
-                    }
-                }
-            } elseif ($stmt instanceof \PhpParser\Node\Stmt\Property) {
-                if (self::containsPHP82PlusType($stmt->type)) {
-                    return true;
-                }
+        foreach ($method->params as $parameter) {
+            if (!self::isPromotedParameter($parameter)) {
+                continue;
             }
-        }
 
-        return false;
+            $parameterVar = $parameter->var;
+            if (
+                !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
+                || !\is_string($parameterVar->name)
+            ) {
+                continue;
+            }
+
+            $promotedProperty = (new PHPProperty($this->parserContainer))
+                ->readObjectFromPromotedParam($parameter, $this->name);
+
+            $propertyName = $parameterVar->name;
+            $existingProperty = $this->properties[$propertyName] ?? null;
+            if ($existingProperty !== null) {
+                $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $parameter);
+
+                continue;
+            }
+
+            $this->properties[$propertyName] = $promotedProperty;
+        }
     }
 
-    /**
-     * Returns true if the class node uses syntax that requires PHP 8.3+ and would
-     * cause an uncatchable E_COMPILE_ERROR when autoloaded on PHP < 8.3.
-     *
-     * Covers: typed class constants (Stmt\ClassConst with a non-null type).
-     *
-     * @param Class_ $node
-     *
-     * @return bool
-     */
-    private static function nodeUsesPHP83PlusSyntax(Class_ $node): bool
-    {
-        foreach ($node->stmts as $stmt) {
-            // Typed class constants are PHP 8.3+
-            if ($stmt instanceof \PhpParser\Node\Stmt\ClassConst && $stmt->type !== null) {
-                return true;
-            }
+    private function mergePromotedPropertyData(
+        PHPProperty $existingProperty,
+        PHPProperty $promotedProperty,
+        \PhpParser\Node\Param $parameter
+    ): void {
+        if ($promotedProperty->access !== '') {
+            $existingProperty->access = $promotedProperty->access;
         }
 
-        return false;
-    }
-
-    /**
-     * Returns true if the given type node is a PHP 8.2+ type that causes an
-     * uncatchable E_COMPILE_ERROR when loaded on PHP < 8.2.
-     *
-     * Covers: standalone true/false/null types and DNF types (union of intersections).
-     *
-     * @param \PhpParser\Node|null $typeNode
-     *
-     * @return bool
-     */
-    private static function containsPHP82PlusType($typeNode): bool
-    {
-        if ($typeNode === null) {
-            return false;
+        if ($existingProperty->type === null && $promotedProperty->type !== null) {
+            $existingProperty->type = $promotedProperty->type;
         }
 
-        // Standalone true, false, null as the *sole* type (not in a nullable like ?string)
-        // are PHP 8.2+ only. PHP-Parser represents these as Identifier nodes (not Name).
-        // Nullable null (?null) is syntactically invalid; NullableType wraps the inner type.
-        if ($typeNode instanceof \PhpParser\Node\Identifier) {
-            $name = \strtolower($typeNode->name);
-            return $name === 'true' || $name === 'false' || $name === 'null';
+        if ($existingProperty->is_readonly === null && $promotedProperty->is_readonly !== null) {
+            $existingProperty->is_readonly = $promotedProperty->is_readonly;
         }
 
-        // DNF types: union type containing an intersection type (PHP 8.2+)
-        if ($typeNode instanceof \PhpParser\Node\UnionType) {
-            foreach ($typeNode->types as $t) {
-                if ($t instanceof \PhpParser\Node\IntersectionType || self::containsPHP82PlusType($t)) {
-                    return true;
-                }
-            }
+        if ($existingProperty->is_final === null && $promotedProperty->is_final !== null) {
+            $existingProperty->is_final = $promotedProperty->is_final;
         }
 
-        // Recurse into nullable type
-        if ($typeNode instanceof \PhpParser\Node\NullableType) {
-            return self::containsPHP82PlusType($typeNode->type);
+        if ($existingProperty->access_set === '' && $promotedProperty->access_set !== '') {
+            $existingProperty->access_set = $promotedProperty->access_set;
         }
 
-        return false;
+        if ($existingProperty->hooks === [] && $promotedProperty->hooks !== []) {
+            $existingProperty->hooks = $promotedProperty->hooks;
+        }
+
+        if ($existingProperty->attributes === [] && $promotedProperty->attributes !== []) {
+            $existingProperty->attributes = $promotedProperty->attributes;
+        }
+
+        if ($parameter->default !== null && $promotedProperty->typeFromDefaultValue !== null) {
+            $existingProperty->defaultValue = $promotedProperty->defaultValue;
+            $existingProperty->typeFromDefaultValue = $promotedProperty->typeFromDefaultValue;
+        }
     }
 }

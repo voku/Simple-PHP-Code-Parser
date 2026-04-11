@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Property;
+use PhpParser\Node\Param;
 use ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -43,6 +44,26 @@ class PHPProperty extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.4+ asymmetric visibility: the set-visibility when different from
+     * the main (get) visibility. One of 'public', 'protected', 'private', or ''.
+     *
+     * @phpstan-var ''|'private'|'protected'|'public'
+     */
+    public string $access_set = '';
+
+    public ?bool $is_abstract = null;
+
+    public ?bool $is_final = null;
+
+    /**
+     * PHP 8.4+ property hooks defined on this property.
+     * Keyed by hook name ('get', 'set').
+     *
+     * @var array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    public array $hooks = [];
+
+    /**
      * PHP 8.0+ attributes on this property.
      *
      * @var PHPAttribute[]
@@ -67,6 +88,22 @@ class PHPProperty extends BasePHPElement
         // helpers are restored or backported differently in downstream installs.
         if (\method_exists($node, 'isReadonly')) {
             $this->is_readonly = $node->isReadonly();
+        }
+
+        // PHP 8.4+ abstract / final properties
+        if (\method_exists($node, 'isAbstract')) {
+            $this->is_abstract = $node->isAbstract();
+        }
+        if (\method_exists($node, 'isFinal')) {
+            $this->is_final = $node->isFinal();
+        }
+
+        // PHP 8.4+ asymmetric visibility
+        $this->access_set = self::getAsymmetricSetVisibility($node);
+
+        // PHP 8.4+ property hooks
+        if (!empty($node->hooks)) {
+            $this->hooks = $this->extractHooksFromPhpParserNodes($node->hooks);
         }
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
@@ -96,11 +133,7 @@ class PHPProperty extends BasePHPElement
             }
 
             if ($node->type instanceof \PhpParser\Node\NullableType) {
-                if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                    $this->type = 'null|' . $this->type;
-                } elseif (!$this->type) {
-                    $this->type = 'null|mixed';
-                }
+                $this->type = self::normalizeNullableTypeString($this->type);
             }
         }
 
@@ -124,6 +157,67 @@ class PHPProperty extends BasePHPElement
         return $this;
     }
 
+    /**
+     * @param Param        $parameter
+     * @param string|null  $classStr
+     *
+     * @phpstan-param class-string|null $classStr
+     *
+     * @return $this
+     */
+    public function readObjectFromPromotedParam(Param $parameter, ?string $classStr = null): self
+    {
+        $parameterVar = $parameter->var;
+        if (
+            !($parameterVar instanceof \PhpParser\Node\Expr\Variable)
+            || !\is_string($parameterVar->name)
+        ) {
+            return $this;
+        }
+
+        $this->prepareNode($parameter);
+
+        $this->name = $parameterVar->name;
+        $this->is_static = false;
+
+        $this->access = self::getVisibilityFromModifierFlags($parameter->flags);
+        if ($this->access === '') {
+            $this->access = 'public';
+        }
+
+        $this->is_readonly = self::hasReadonlyModifier($parameter->flags);
+        $this->is_final = self::hasFinalModifier($parameter->flags);
+        $this->access_set = self::getAsymmetricSetVisibility($parameter);
+
+        if (!empty($parameter->hooks)) {
+            $this->hooks = $this->extractHooksFromPhpParserNodes($parameter->hooks);
+        }
+
+        if ($parameter->type !== null) {
+            $typeStr = Utils::typeNodeToString($parameter->type);
+            if ($typeStr !== null) {
+                $this->type = $typeStr;
+            }
+
+            if ($parameter->type instanceof \PhpParser\Node\NullableType) {
+                $this->type = self::normalizeNullableTypeString($this->type);
+            }
+        }
+
+        if ($parameter->default !== null) {
+            $defaultValue = Utils::getPhpParserValueFromNode($parameter->default, $classStr, $this->parserContainer);
+            if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                $this->defaultValue = $defaultValue;
+                $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
+            }
+        }
+
+        if (!empty($parameter->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+        }
+
+        return $this;
+    }
     /**
      * @param ReflectionProperty $property
      *
@@ -161,6 +255,22 @@ class PHPProperty extends BasePHPElement
             $this->is_readonly = $property->isReadOnly();
         }
 
+        // PHP 8.4+ abstract / final properties (via reflection)
+        if (\method_exists($property, 'isAbstract')) {
+            $this->is_abstract = $property->isAbstract();
+        }
+        if (\method_exists($property, 'isFinal')) {
+            $this->is_final = $property->isFinal();
+        }
+
+        // PHP 8.4+ asymmetric visibility (via reflection)
+        $this->access_set = self::getAsymmetricSetVisibility($property);
+
+        // PHP 8.4+ property hooks (via reflection)
+        if (\method_exists($property, 'getHooks')) {
+            $this->hooks = $this->extractHooksFromReflection($property->getHooks());
+        }
+
         $docComment = $property->getDocComment();
         if ($docComment) {
             if (\stripos($docComment, '@inheritdoc') !== false) {
@@ -187,11 +297,7 @@ class PHPProperty extends BasePHPElement
                 }
 
                 if ($type->allowsNull()) {
-                    if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
-                        $this->type = 'null|' . $this->type;
-                    } elseif (!$this->type) {
-                        $this->type = 'null|mixed';
-                    }
+                    $this->type = self::normalizeNullableTypeString($this->type);
                 }
             }
         }
@@ -206,6 +312,113 @@ class PHPProperty extends BasePHPElement
         $this->access = $access;
 
         return $this;
+    }
+
+    /**
+     * @param array<int, object> $hooks
+     *
+     * @return array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    private function extractHooksFromPhpParserNodes(array $hooks): array
+    {
+        $parsedHooks = [];
+
+        foreach ($hooks as $hook) {
+            $hookNameNode = $hook->name ?? null;
+            if (!$hookNameNode instanceof \PhpParser\Node\Identifier) {
+                continue;
+            }
+
+            $hookName = $hookNameNode->toString();
+            $hookParams = [];
+
+            foreach ($hook->params ?? [] as $param) {
+                if (!isset($param->var) || $param->var instanceof \PhpParser\Node\Expr\Error) {
+                    continue;
+                }
+
+                $paramName = \is_string($param->var->name ?? null) ? $param->var->name : '';
+                if ($paramName === '') {
+                    continue;
+                }
+
+                $paramStr = '';
+                if (($param->type ?? null) !== null) {
+                    $typeStr = Utils::typeNodeToString($param->type);
+                    if ($typeStr !== null) {
+                        $paramStr .= $typeStr . ' ';
+                    }
+                }
+
+                $paramStr .= '$' . $paramName;
+                $hookParams[] = $paramStr;
+            }
+
+            $parsedHooks[$hookName] = [
+                'name'     => $hookName,
+                'is_final' => \method_exists($hook, 'isFinal') ? $hook->isFinal() : false,
+                'params'   => $hookParams,
+            ];
+        }
+
+        return $parsedHooks;
+    }
+
+    /**
+     * @param array<int, object> $hooks
+     *
+     * @return array<string, array{name: string, is_final: bool, params: list<string>}>
+     */
+    private function extractHooksFromReflection(array $hooks): array
+    {
+        $parsedHooks = [];
+
+        foreach ($hooks as $hook) {
+            if (!\method_exists($hook, 'getName') || !\method_exists($hook, 'getParameters')) {
+                continue;
+            }
+
+            $hookName = $hook->getName();
+            $hookParams = [];
+
+            foreach ($hook->getParameters() as $param) {
+                $paramStr = '';
+                $paramType = $param->getType();
+                if ($paramType !== null) {
+                    $paramStr .= $paramType . ' ';
+                }
+                $paramStr .= '$' . $param->getName();
+                $hookParams[] = $paramStr;
+            }
+
+            $parsedHooks[$hookName] = [
+                'name'     => $hookName,
+                'is_final' => \method_exists($hook, 'isFinal') ? $hook->isFinal() : false,
+                'params'   => $hookParams,
+            ];
+        }
+
+        return $parsedHooks;
+    }
+
+    private static function normalizeNullableTypeString(?string $type): string
+    {
+        if ($type === null || $type === '') {
+            return 'null|mixed';
+        }
+
+        if ($type === 'null') {
+            return 'null|mixed';
+        }
+
+        $typeParts = \explode('|', $type);
+        if (\in_array('null', $typeParts, true)) {
+            return $type;
+        }
+
+        \array_unshift($typeParts, 'null');
+
+        return \implode('|', $typeParts);
     }
 
     /**
@@ -311,28 +524,47 @@ class PHPProperty extends BasePHPElement
     {
         $tokens = Utils::modernPhpdocTokens($docComment);
 
+        // Track standard (@var) and extended (@phpstan-var / @psalm-var) content separately
+        // so that the more specific phpstan/psalm annotation always wins regardless of tag order.
         $varContent = null;
+        $extendedVarContent = null;
+        $currentTarget = null; // 'standard' | 'extended'
+
         foreach ($tokens->getTokens() as $token) {
             $content = $token[0];
 
-            if ($content === '@var' || $content === '@psalm-var' || $content === '@phpstan-var') {
-                // reset
+            if ($content === '@var') {
+                $currentTarget = 'standard';
                 $varContent = '';
-
                 continue;
             }
 
-            if ($varContent !== null) {
+            if ($content === '@psalm-var' || $content === '@phpstan-var') {
+                $currentTarget = 'extended';
+                $extendedVarContent = '';
+                continue;
+            }
+
+            if ($currentTarget === 'standard') {
                 $varContent .= $content;
+            } elseif ($currentTarget === 'extended') {
+                $extendedVarContent .= $content;
             }
         }
 
-        $varContent = $varContent ? \trim($varContent) : null;
-        if ($varContent) {
+        // Prefer @phpstan-var / @psalm-var over plain @var regardless of tag order.
+        $bestContent = null;
+        if ($extendedVarContent !== null && \trim($extendedVarContent) !== '') {
+            $bestContent = \trim($extendedVarContent);
+        } elseif ($varContent !== null && \trim($varContent) !== '') {
+            $bestContent = \trim($varContent);
+        }
+
+        if ($bestContent) {
             if (!$this->phpDocRaw) {
-                $this->phpDocRaw = $varContent;
+                $this->phpDocRaw = $bestContent;
             }
-            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($varContent);
+            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
         }
     }
 }

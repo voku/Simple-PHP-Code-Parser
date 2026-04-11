@@ -14,6 +14,7 @@ use voku\SimplePhpParser\Model\PHPAttribute;
 final class Utils
 {
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
+    private const MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS = 32;
 
     /**
      * @param array<mixed> $arr
@@ -42,7 +43,7 @@ final class Utils
                 $variableName = $variableNameHelper['variableName'];
             }
             $parsedParamTagStr = \str_replace(
-                (string) $variableName,
+                '$' . (string) $variableName,
                 '',
                 $parsedParamTagStr
             );
@@ -484,6 +485,58 @@ final class Utils
      */
     public static function modernPhpdoc(string $input): string
     {
+        return self::parseModernPhpdocTokens(self::modernPhpdocTokens($input));
+    }
+
+    public static function recoverBrokenPhpdocType(string $input): ?string
+    {
+        $tokens = self::modernPhpdocTokens($input)->getTokens();
+        if ($tokens === []) {
+            return null;
+        }
+
+        $candidateTokens = [];
+        foreach ($tokens as $token) {
+            if ($token[0] !== '') {
+                $candidateTokens[] = $token;
+            }
+        }
+
+        if ($candidateTokens === []) {
+            return null;
+        }
+
+        $endToken = $tokens[\count($tokens) - 1];
+        $minCandidateCount = \max(1, \count($candidateTokens) - self::MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS + 1);
+
+        for ($i = \count($candidateTokens); $i >= $minCandidateCount; --$i) {
+            $candidate = \array_slice($candidateTokens, 0, $i);
+            if (\trim(\implode('', \array_column($candidate, 0))) === '') {
+                return null;
+            }
+
+            try {
+                return self::parseModernPhpdocTokens(
+                    new \PHPStan\PhpDocParser\Parser\TokenIterator(
+                        [
+                            ...$candidate,
+                            $endToken,
+                        ]
+                    )
+                );
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
+    private static function parseModernPhpdocTokens(\PHPStan\PhpDocParser\Parser\TokenIterator $tokens): string
+    {
         static $TYPE_PARSER = null;
 
         if ($TYPE_PARSER === null) {
@@ -491,8 +544,21 @@ final class Utils
             $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser($config, new \PHPStan\PhpDocParser\Parser\ConstExprParser($config));
         }
 
-        $tokens = self::modernPhpdocTokens($input);
         $typeNode = $TYPE_PARSER->parse($tokens);
+
+        $result = (string) $typeNode;
+
+        // PHPStan v2 wraps top-level union/intersection nodes in outer
+        // parentheses, e.g. "(int | string)".  Strip exactly one balanced
+        // pair of outer parens so we don't mangle DNF types such as
+        // "((Foo & Bar) | null)" → "(Foo & Bar)|null".
+        if (
+            \strlen($result) >= 2
+            && $result[0] === '('
+            && $result[\strlen($result) - 1] === ')'
+        ) {
+            $result = \substr($result, 1, -1);
+        }
 
         return \str_replace(
             [
@@ -501,7 +567,7 @@ final class Utils
             [
                 '|',
             ],
-            \trim((string) $typeNode, ')(')
+            $result
         );
     }
 

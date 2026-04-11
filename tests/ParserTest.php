@@ -203,20 +203,6 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
 
         static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
-            $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
-        );
-
-        static::assertSame(
-            'array{stdClass: \stdClass, numbers: int|float <foo/>',
-            $phpClasses[Dummy8::class]->methods['foo_broken']->returnPhpDocRaw
-        );
-
-        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->returnTypeFromPhpDocExtended);
-
-        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
-
-        static::assertSame(
             'callable(string): string',
             $phpClasses[Dummy8::class]->methods['withCallback']->parameters['callback']->typeFromPhpDocExtended
         );
@@ -230,6 +216,140 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
             'string',
             $phpClasses[Dummy8::class]->methods['withCallbackMulti']->returnTypeFromPhpDoc
         );
+    }
+
+    public function testBrokenParamPhpDocRawIsPreserved(): void
+    {
+        if (PHP_VERSION_ID < 80000) {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
+        $phpClass = $phpCode->getClasses()[Dummy8::class];
+        $fooBroken = $phpClass->methods['foo_broken'];
+        $lall = $fooBroken->parameters['lall'];
+
+        static::assertNull($lall->type);
+        static::assertNull($lall->typeFromPhpDocMaybeWithComment);
+        static::assertSame('array', $lall->typeFromPhpDoc);
+        static::assertSame('array', $lall->typeFromPhpDocSimple);
+        static::assertSame('array', $lall->typeFromPhpDocExtended);
+        static::assertNull($lall->typeFromDefaultValue);
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+            $lall->phpDocRaw
+        );
+
+        static::assertNull($fooBroken->returnType);
+        static::assertNull($fooBroken->returnTypeFromPhpDocMaybeWithComment);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDoc);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDocSimple);
+        static::assertSame('array', $fooBroken->returnTypeFromPhpDocExtended);
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: int|float <foo/>',
+            $fooBroken->returnPhpDocRaw
+        );
+
+        static::assertSame(
+            [
+                'fullDescription' => '',
+                'paramsTypes'     => [
+                    'lall' => [
+                        'type'                           => null,
+                        'typeFromPhpDocMaybeWithComment' => null,
+                        'typeFromPhpDoc'                 => 'array',
+                        'typeFromPhpDocSimple'           => 'array',
+                        'typeFromPhpDocExtended'         => 'array',
+                        'typeFromDefaultValue'           => null,
+                    ],
+                ],
+                'returnTypes' => [
+                    'type'                           => null,
+                    'typeFromPhpDocMaybeWithComment' => null,
+                    'typeFromPhpDoc'                 => 'array',
+                    'typeFromPhpDocSimple'           => 'array',
+                    'typeFromPhpDocExtended'         => 'array',
+                ],
+                'paramsPhpDocRaw' => [
+                    'lall' => 'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+                ],
+                'returnPhpDocRaw' => 'array{stdClass: \stdClass, numbers: int|float <foo/>',
+                'line'            => 62,
+                'file'            => 'Simple-PHP-Code-Parser/tests/Dummy8.php',
+                'error'           => 'foo_broken:62 | Unexpected token ":", expected \'}\' at offset 34 on line 1' . "\n"
+                    . 'lall:62 | Unexpected token "$lall", expected \'}\' at offset 46 on line 1' . "\n"
+                    . 'lall:62 | Unexpected token "", expected \'}\' at offset 45 on line 1',
+                'is_deprecated'   => false,
+                'is_static'       => false,
+                'is_meta'         => false,
+                'is_internal'     => false,
+                'is_removed'      => false,
+            ],
+            self::removeLocalPathForTheTest($phpClass->getMethodsInfo()['foo_broken'])
+        );
+
+        // -- getPropertiesInfo(): class-string<T> generic + typeFromDefaultValue ---------
+        // $foooooooo has @var class-string<Foooooooo> and a default of Foooooooo::class,
+        // so typeFromDefaultValue should be 'string' (gettype of a string constant) and
+        // typeFromPhpDocExtended should preserve the generic while typeFromPhpDocSimple
+        // collapses it to the base type.
+        $propsInfo = $phpClass->getPropertiesInfo();
+        static::assertArrayHasKey('foooooooo', $propsInfo);
+        static::assertSame('class-string<Foooooooo>', $propsInfo['foooooooo']['typeFromPhpDocExtended']);
+        static::assertSame('string', $propsInfo['foooooooo']['typeFromPhpDocSimple']);
+        static::assertSame('string', $propsInfo['foooooooo']['typeFromDefaultValue']);
+        static::assertNull($propsInfo['foooooooo']['type']); // no native type on the property
+
+        // -- list<int> return: typeFromPhpDocSimple collapses to int[] ------------------
+        $fooList = $phpClass->methods['foo_list'];
+        static::assertSame('list<int>', $fooList->returnTypeFromPhpDoc);
+        static::assertSame('int[]', $fooList->returnTypeFromPhpDocSimple);
+        static::assertSame('list<int>', $fooList->returnTypeFromPhpDocExtended);
+        static::assertSame('list<int>', $fooList->returnPhpDocRaw);
+
+        // -- Well-formed array shape (foo_mixed): union-inside-shape normalization ------
+        // typeFromPhpDocExtended should normalize int|float inside an array shape to
+        // (int|float); the raw phpDoc and typeFromPhpDoc preserve the original.
+        $fooMixed = $phpClass->methods['foo_mixed'];
+        $lallMixed = $fooMixed->parameters['lall'];
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float} $lall', $lallMixed->phpDocRaw);
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float}', $lallMixed->typeFromPhpDoc);
+        static::assertSame('array', $lallMixed->typeFromPhpDocSimple);
+        static::assertSame('array{stdClass: \stdClass, numbers: (int|float)}', $lallMixed->typeFromPhpDocExtended);
+        // return type mirrors the param shape
+        static::assertSame('array{stdClass: \stdClass, numbers: (int|float)}', $fooMixed->returnTypeFromPhpDocExtended);
+        static::assertSame('array', $fooMixed->returnTypeFromPhpDocSimple);
+        static::assertSame('array{stdClass: \stdClass, numbers: int|float}', $fooMixed->returnPhpDocRaw);
+
+        // -- Callable shape types (withCallback / withCallbackMulti) -------------------
+        // Verifies that callable(args): return type annotations are preserved as-is
+        // through typeFromPhpDocExtended and collapsed to 'callable' in typeFromPhpDocSimple.
+        $withCallback = $phpClass->methods['withCallback'];
+        $cbParam = $withCallback->parameters['callback'];
+        static::assertSame('callable(string): string', $cbParam->typeFromPhpDoc);
+        static::assertSame('callable', $cbParam->typeFromPhpDocSimple);
+        static::assertSame('callable(string): string', $cbParam->typeFromPhpDocExtended);
+        static::assertSame('callable(string): string $callback', $cbParam->phpDocRaw);
+
+        $withCallbackMulti = $phpClass->methods['withCallbackMulti'];
+        $cb1 = $withCallbackMulti->parameters['callback'];
+        $cb2 = $withCallbackMulti->parameters['callback2'];
+        static::assertSame('callable(string, int, string): string', $cb1->typeFromPhpDocExtended);
+        static::assertSame('callable', $cb1->typeFromPhpDocSimple);
+        static::assertSame('callable(): numeric', $cb2->typeFromPhpDocExtended);
+        static::assertSame('callable', $cb2->typeFromPhpDocSimple);
+
+        // -- Native union types vs. phpDoc union types (test_multi_param_type) ---------
+        // The AST type for int|float comes out as 'float|int' (alphabetical from
+        // php-parser), while @param says 'int|float'; similarly for bool|int return.
+        $multiParam = $phpClass->methods['test_multi_param_type'];
+        $param1 = $multiParam->parameters['param1'];
+        static::assertNotNull($param1->type);            // has a native type hint
+        static::assertSame('int|float', $param1->typeFromPhpDoc);
+        static::assertSame('int|float', $param1->typeFromPhpDocExtended);
+        static::assertNotNull($multiParam->returnType);  // has a native return type
+        static::assertSame('bool|int', $multiParam->returnTypeFromPhpDoc);
+        static::assertSame('bool|int', $multiParam->returnTypeFromPhpDocExtended);
     }
 
     public function testSimpleOneTrait(): void
@@ -293,10 +413,15 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
 
     public function testSimpleDirectory(): void
     {
+        $pathExcludeRegex = ['/Dummy5|Dummy1[0|1|3]|Dummy8/'];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
         $phpCode = PhpCodeParser::getPhpFiles(
             __DIR__ . '/',
             [],
-            ['/Dummy5|Dummy1[0|1|3]|Dummy8/']
+            $pathExcludeRegex
         );
 
         $phpClasses = $phpCode->getClasses();
@@ -472,6 +597,12 @@ PHP;
             'Unexpected token "$value", expected type at offset 0 on line 1',
             $parentMethodsInfo['brokenPsalmParam']['error']
         );
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDoc']);
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDocSimple']);
+        static::assertSame('mixed', $parentMethodsInfo['brokenParam']['paramsTypes']['value']['typeFromPhpDocExtended']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDoc']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDocSimple']);
+        static::assertNull($parentMethodsInfo['brokenPsalmParam']['paramsTypes']['value']['typeFromPhpDocExtended']);
         static::assertSame('', $parentMethodsInfo['validMixed']['error']);
         static::assertSame('', $parentMethodsInfo['validShape']['error']);
         static::assertSame('', $parentMethodsInfo['validDifferentParameterName']['error']);
@@ -715,7 +846,7 @@ PHP;
                             'typeFromPhpDocMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'                 => 'int[]|null',
                             'typeFromPhpDocSimple'           => 'int[]|null',
-                            'typeFromPhpDocExtended'         => 'int[]|null',
+                            'typeFromPhpDocExtended'         => '?list<int>',
                             'typeFromDefaultValue'           => 'array',
                         ],
                             ],
@@ -1046,7 +1177,7 @@ PHP;
                             'typeFromPhpDocMaybeWithComment' => 'int[]|null $useRandInt',
                             'typeFromPhpDoc'                 => 'int[]|null',
                             'typeFromPhpDocSimple'           => 'int[]|null',
-                            'typeFromPhpDocExtended'         => 'int[]|null',
+                            'typeFromPhpDocExtended'         => '?list<int>',
                             'typeFromDefaultValue'           => 'array',
                         ],
                             ],
@@ -1559,7 +1690,12 @@ PHP
             static::markTestSkipped('only for PHP >= 8.1');
         }
 
-        $phpCode = PhpCodeParser::getPhpFiles(__DIR__);
+        $pathExcludeRegex = [];
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            $pathExcludeRegex[] = '/DummyPropertyHooks|DummyPromotedPropertyHooks/';
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__, [], $pathExcludeRegex);
         $phpEnums = $phpCode->getEnums();
 
         // Should find all the enums we created
@@ -1733,5 +1869,442 @@ PHP
         static::assertNotEmpty($class->methods['doSomething']->parameters['x']->attributes);
         static::assertSame('MyCustomAttr', $class->methods['doSomething']->parameters['x']->attributes[0]->name);
         static::assertSame('param', $class->methods['doSomething']->parameters['x']->attributes[0]->arguments['value']);
+    }
+
+    public function testConstantAndFunctionAttributesFromStringInput(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+use Attribute;
+use voku\tests\ParserAttr as ParserAttributeAlias;
+
+#[Attribute(Attribute::TARGET_CLASS_CONSTANT | Attribute::TARGET_FUNCTION | Attribute::TARGET_PARAMETER)]
+class ParserAttr
+{
+    public function __construct(public string $name = '')
+    {
+    }
+}
+
+class AttributeTargets
+{
+    #[ParserAttributeAlias(name: 'const')]
+    public const FOO = 1;
+}
+
+#[ParserAttributeAlias(name: 'function')]
+function attribute_target(
+    #[ParserAttributeAlias(name: 'parameter')] string &$label,
+    int $count = 1,
+    string ...$ids
+): void {
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+        $phpFunctions = $phpCode->getFunctions();
+
+        static::assertArrayHasKey('voku\tests\AttributeTargets', $phpClasses);
+        static::assertArrayHasKey('voku\tests\attribute_target', $phpFunctions);
+
+        $class = $phpClasses['voku\tests\AttributeTargets'];
+        $function = $phpFunctions['voku\tests\attribute_target'];
+
+        static::assertNotEmpty($class->constants['FOO']->attributes);
+        static::assertSame('voku\tests\ParserAttr', $class->constants['FOO']->attributes[0]->name);
+        static::assertSame('const', $class->constants['FOO']->attributes[0]->arguments['name']);
+
+        static::assertNotEmpty($function->attributes);
+        static::assertSame('voku\tests\ParserAttr', $function->attributes[0]->name);
+        static::assertSame('function', $function->attributes[0]->arguments['name']);
+
+        static::assertNotEmpty($function->parameters['label']->attributes);
+        static::assertSame('voku\tests\ParserAttr', $function->parameters['label']->attributes[0]->name);
+        static::assertSame('parameter', $function->parameters['label']->attributes[0]->arguments['name']);
+    }
+
+    public function testStandaloneFunctionParameterMetadataFromStringInput(): void
+    {
+        $code = <<<'PHP'
+<?php
+
+namespace voku\tests;
+
+function parameter_metadata(string &$label, int $count = 1, ?string $optional = null, string ...$ids): void
+{
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpFunctions = $phpCode->getFunctions();
+
+        static::assertArrayHasKey('voku\tests\parameter_metadata', $phpFunctions);
+
+        $function = $phpFunctions['voku\tests\parameter_metadata'];
+
+        static::assertTrue($function->parameters['label']->is_passed_by_ref);
+        static::assertNull($function->parameters['label']->typeFromDefaultValue);
+
+        static::assertSame(1, $function->parameters['count']->defaultValue);
+        static::assertSame('int', $function->parameters['count']->typeFromDefaultValue);
+
+        static::assertSame('null', $function->parameters['optional']->typeFromDefaultValue);
+
+        static::assertTrue($function->parameters['ids']->is_vararg);
+        static::assertSame('string', $function->parameters['ids']->type);
+    }
+
+    public function testPropertyHooksFromStringInput(): void
+    {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Property hooks require nikic/php-parser v5');
+        }
+
+        $code = (string) \file_get_contents(__DIR__ . '/DummyPropertyHooks.php');
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPropertyHooks'];
+
+        // -- Property hooks on $fullName --
+        static::assertArrayHasKey('fullName', $class->properties);
+        $fullName = $class->properties['fullName'];
+        static::assertSame('string', $fullName->type);
+        static::assertSame('public', $fullName->access);
+
+        // hooks should be extracted
+        static::assertArrayHasKey('get', $fullName->hooks);
+        static::assertArrayHasKey('set', $fullName->hooks);
+        static::assertSame('get', $fullName->hooks['get']['name']);
+        static::assertSame('set', $fullName->hooks['set']['name']);
+        // set hook has a parameter
+        static::assertNotEmpty($fullName->hooks['set']['params']);
+        static::assertStringContainsString('$value', $fullName->hooks['set']['params'][0]);
+
+        // -- Asymmetric visibility: public private(set) $email --
+        static::assertArrayHasKey('email', $class->properties);
+        $email = $class->properties['email'];
+        static::assertSame('public', $email->access);
+        static::assertSame('private', $email->access_set);
+        static::assertSame('string', $email->type);
+
+        // -- Asymmetric visibility: public protected(set) $age --
+        static::assertArrayHasKey('age', $class->properties);
+        $age = $class->properties['age'];
+        static::assertSame('public', $age->access);
+        static::assertSame('protected', $age->access_set);
+        static::assertSame('int', $age->type);
+
+        // -- Regular properties without hooks should have empty hooks --
+        static::assertArrayHasKey('first', $class->properties);
+        static::assertEmpty($class->properties['first']->hooks);
+        static::assertSame('', $class->properties['first']->access_set);
+    }
+
+    public function testPropertyHooksFromFileInput(): void
+    {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Property hooks require nikic/php-parser v5');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPropertyHooks.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPropertyHooks'];
+
+        static::assertArrayHasKey('fullName', $class->properties);
+        static::assertSame('public', $class->properties['fullName']->access);
+        static::assertSame('', $class->properties['fullName']->access_set);
+        static::assertArrayHasKey('get', $class->properties['fullName']->hooks);
+        static::assertArrayHasKey('set', $class->properties['fullName']->hooks);
+
+        static::assertSame('private', $class->properties['email']->access_set);
+        static::assertSame('protected', $class->properties['age']->access_set);
+    }
+
+    public function testPromotedPropertyFallbackFromFileInput(): void
+    {
+        if (!\class_exists(\PhpParser\Node\PropertyHook::class)) {
+            static::markTestSkipped('Promoted asymmetric visibility requires nikic/php-parser v5');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPromotedPropertyHooks.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPromotedPropertyHooks', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPromotedPropertyHooks'];
+
+        static::assertArrayHasKey('__construct', $class->methods);
+        static::assertArrayHasKey('name', $class->properties);
+        static::assertArrayHasKey('age', $class->properties);
+        static::assertArrayHasKey('id', $class->properties);
+
+        static::assertSame('public', $class->properties['name']->access);
+        static::assertSame('private', $class->properties['name']->access_set);
+        static::assertSame('string', $class->properties['name']->type);
+        static::assertTrue($class->properties['name']->is_final);
+        static::assertArrayHasKey('get', $class->properties['name']->hooks);
+        static::assertArrayHasKey('set', $class->properties['name']->hooks);
+        static::assertSame('set', $class->properties['name']->hooks['set']['name']);
+        static::assertSame('string $value', $class->properties['name']->hooks['set']['params'][0]);
+        static::assertSame(
+            'voku\tests\DummyPromotedPropertyAttribute',
+            $class->properties['name']->attributes[0]->name
+        );
+        static::assertSame('name', $class->properties['name']->attributes[0]->arguments['name']);
+
+        static::assertSame('public', $class->properties['age']->access);
+        static::assertSame('protected', $class->properties['age']->access_set);
+        static::assertSame(0, $class->properties['age']->defaultValue);
+        static::assertSame('int', $class->properties['age']->typeFromDefaultValue);
+
+        static::assertTrue($class->properties['id']->is_readonly);
+        static::assertSame('null|string', $class->properties['id']->type);
+        static::assertNull($class->properties['id']->defaultValue);
+        static::assertSame('null', $class->properties['id']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedPropertyAttribute',
+            $class->properties['id']->attributes[0]->name
+        );
+
+        static::assertArrayHasKey('name', $class->methods['__construct']->parameters);
+        static::assertArrayHasKey('age', $class->methods['__construct']->parameters);
+        static::assertArrayHasKey('id', $class->methods['__construct']->parameters);
+    }
+
+    public function testPromotedPropertyDefaultsFromAutoloadedFileInput(): void
+    {
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPromotedPropertyDefaults.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('voku\tests\DummyPromotedPropertyDefaults', $phpClasses);
+
+        $class = $phpClasses['voku\tests\DummyPromotedPropertyDefaults'];
+
+        static::assertArrayHasKey('age', $class->properties);
+        static::assertSame(0, $class->properties['age']->defaultValue);
+        static::assertSame('int', $class->properties['age']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedDefaultAttribute',
+            $class->properties['age']->attributes[0]->name
+        );
+        static::assertSame('age', $class->properties['age']->attributes[0]->arguments['name']);
+
+        static::assertArrayHasKey('id', $class->properties);
+        static::assertTrue($class->properties['id']->is_readonly);
+        static::assertNull($class->properties['id']->defaultValue);
+        static::assertSame('null', $class->properties['id']->typeFromDefaultValue);
+        static::assertSame(
+            'voku\tests\DummyPromotedDefaultAttribute',
+            $class->properties['id']->attributes[0]->name
+        );
+        static::assertSame('id', $class->properties['id']->attributes[0]->arguments['name']);
+    }
+
+    public function testPromotedPropertyVisibilityOverridesPhpDocPropertyVisibility(): void
+    {
+        $code = <<<'PHP'
+<?php
+/**
+ * @property string $name
+ */
+class Foo
+{
+    public function __construct(
+        private string $name
+    ) {
+    }
+}
+PHP;
+
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertArrayHasKey('Foo', $phpClasses);
+        static::assertArrayHasKey('name', $phpClasses['Foo']->properties);
+        static::assertSame('private', $phpClasses['Foo']->properties['name']->access);
+        static::assertSame('string', $phpClasses['Foo']->properties['name']->type);
+        static::assertSame('string', $phpClasses['Foo']->properties['name']->typeFromPhpDoc);
+    }
+
+    public function testPhpstanParamAlwaysWinsOverPlainParam(): void
+    {
+        // @phpstan-param comes AFTER @param — historically only the first @param was picked up
+        // because the scanner broke at $value immediately; the extended annotation was never reached.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @param string $value
+     * @phpstan-param array{key: string} $value
+     */
+    public function bar($value): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['value'];
+        static::assertSame('array{key: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanParamWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-param comes BEFORE @param — scanner resets on @param and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-param array{key: string} $value
+     * @param string $value
+     */
+    public function bar($value): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['value'];
+        static::assertSame('array{key: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanReturnAlwaysWinsOverPlainReturn(): void
+    {
+        // @phpstan-return comes AFTER @return
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @return string
+     * @phpstan-return array{key: string}
+     */
+    public function bar() {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('array{key: string}', $method->returnTypeFromPhpDocExtended);
+    }
+
+    public function testPhpstanReturnWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-return comes BEFORE @return — scanner resets on @return and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-return array{key: string}
+     * @return string
+     */
+    public function bar() {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('array{key: string}', $method->returnTypeFromPhpDocExtended);
+    }
+
+    public function testPhpstanVarAlwaysWinsOverPlainVar(): void
+    {
+        // @phpstan-var comes AFTER @var
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @var string
+     * @phpstan-var array{key: string}
+     */
+    public $bar;
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $property = $phpClasses['Foo']->properties['bar'];
+        static::assertSame('array{key: string}', $property->typeFromPhpDocExtended);
+    }
+
+    public function testPhpstanVarWinsEvenWhenItComesFirst(): void
+    {
+        // @phpstan-var comes BEFORE @var — scanner resets on @var and forgets phpstan.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-var array{key: string}
+     * @var string
+     */
+    public $bar;
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $property = $phpClasses['Foo']->properties['bar'];
+        static::assertSame('array{key: string}', $property->typeFromPhpDocExtended);
+    }
+
+    public function testArrayShapeKeyMatchingVariableNameIsNotCorrupted(): void
+    {
+        // When an array-shape key has the same name as the parameter variable,
+        // splitTypeAndVariable must not strip the key from the type string.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @phpstan-param array{userId: int, name: string} $userId
+     */
+    public function bar($userId): void {}
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $param = $phpClasses['Foo']->methods['bar']->parameters['userId'];
+        static::assertSame('array{userId: int, name: string}', $param->typeFromPhpDocExtended);
+    }
+
+    public function testDnfPhpDocTypeIsNotCorrupted(): void
+    {
+        // DNF types like (Foo&Bar)|null must preserve inner parentheses
+        // after modernPhpdoc normalisation.
+        $code = <<<'PHP'
+<?php
+class Foo
+{
+    /**
+     * @param (Countable&Traversable)|null $input
+     * @return (Countable&Traversable)|null
+     */
+    public function bar($input) { return $input; }
+}
+PHP;
+        $phpCode = PhpCodeParser::getFromString($code);
+        $phpClasses = $phpCode->getClasses();
+
+        $method = $phpClasses['Foo']->methods['bar'];
+        static::assertSame('(Countable & Traversable)|null', $method->parameters['input']->typeFromPhpDocExtended);
+        static::assertSame('(Countable & Traversable)|null', $method->returnTypeFromPhpDocExtended);
     }
 }

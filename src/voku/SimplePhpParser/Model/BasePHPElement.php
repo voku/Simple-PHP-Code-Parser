@@ -103,4 +103,59 @@ abstract class BasePHPElement
             ? $node->getStartLine()
             : $node->getLine();
     }
+
+    /**
+     * @phpstan-return ''|'private'|'protected'|'public'
+     */
+    protected static function getAsymmetricSetVisibility(object $node): string
+    {
+        if (\method_exists($node, 'isPublicSet') && $node->isPublicSet()) {
+            return 'public';
+        }
+
+        if (\method_exists($node, 'isProtectedSet') && $node->isProtectedSet()) {
+            return 'protected';
+        }
+
+        if (\method_exists($node, 'isPrivateSet') && $node->isPrivateSet()) {
+            return 'private';
+        }
+
+        return '';
+    }
+
+    protected static function isPromotedParameter(\PhpParser\Node\Param $parameter): bool
+    {
+        return ($parameter->flags & \PhpParser\Node\Stmt\Class_::VISIBILITY_MODIFIER_MASK) !== 0;
+    }
+
+    /**
+     * @phpstan-return ''|'private'|'protected'|'public'
+     */
+    protected static function getVisibilityFromModifierFlags(int $flags): string
+    {
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PRIVATE) !== 0) {
+            return 'private';
+        }
+
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PROTECTED) !== 0) {
+            return 'protected';
+        }
+
+        if (($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_PUBLIC) !== 0) {
+            return 'public';
+        }
+
+        return '';
+    }
+
+    protected static function hasReadonlyModifier(int $flags): bool
+    {
+        return ($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_READONLY) !== 0;
+    }
+
+    protected static function hasFinalModifier(int $flags): bool
+    {
+        return ($flags & \PhpParser\Node\Stmt\Class_::MODIFIER_FINAL) !== 0;
+    }
 }
