@@ -14,6 +14,7 @@ use voku\SimplePhpParser\Model\PHPAttribute;
 final class Utils
 {
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
+    private const MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS = 32;
 
     /**
      * @param array<mixed> $arr
@@ -484,6 +485,53 @@ final class Utils
      */
     public static function modernPhpdoc(string $input): string
     {
+        return self::parseModernPhpdocTokens(self::modernPhpdocTokens($input));
+    }
+
+    public static function recoverBrokenPhpdocType(string $input): ?string
+    {
+        $tokens = self::modernPhpdocTokens($input)->getTokens();
+        $candidateTokens = [];
+        foreach ($tokens as $token) {
+            if ($token[0] !== '') {
+                $candidateTokens[] = $token;
+            }
+        }
+
+        if ($candidateTokens === []) {
+            return null;
+        }
+
+        $endToken = $tokens[\count($tokens) - 1] ?? ['', \PHPStan\PhpDocParser\Lexer\Lexer::TOKEN_END, 1];
+
+        for ($i = \count($candidateTokens), $attempts = 0; $i > 0 && $attempts < self::MAX_BROKEN_PHPDOC_RECOVERY_ATTEMPTS; --$i, ++$attempts) {
+            $candidate = \array_slice($candidateTokens, 0, $i);
+            if (\trim(\implode('', \array_column($candidate, 0))) === '') {
+                return null;
+            }
+
+            try {
+                return self::parseModernPhpdocTokens(
+                    new \PHPStan\PhpDocParser\Parser\TokenIterator(
+                        [
+                            ...$candidate,
+                            $endToken,
+                        ]
+                    )
+                );
+            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws \PHPStan\PhpDocParser\Parser\ParserException
+     */
+    private static function parseModernPhpdocTokens(\PHPStan\PhpDocParser\Parser\TokenIterator $tokens): string
+    {
         static $TYPE_PARSER = null;
 
         if ($TYPE_PARSER === null) {
@@ -491,7 +539,6 @@ final class Utils
             $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser($config, new \PHPStan\PhpDocParser\Parser\ConstExprParser($config));
         }
 
-        $tokens = self::modernPhpdocTokens($input);
         $typeNode = $TYPE_PARSER->parse($tokens);
 
         return \str_replace(
@@ -503,31 +550,6 @@ final class Utils
             ],
             \trim((string) $typeNode, ')(')
         );
-    }
-
-    public static function recoverBrokenPhpdocType(string $input): ?string
-    {
-        $parts = [];
-        foreach (self::modernPhpdocTokens($input)->getTokens() as $token) {
-            if (!empty($token[0])) {
-                $parts[] = $token[0];
-            }
-        }
-
-        for ($i = \count($parts); $i > 0; --$i) {
-            $candidate = \trim(\implode('', \array_slice($parts, 0, $i)));
-            if ($candidate === '') {
-                return null;
-            }
-
-            try {
-                return self::modernPhpdoc($candidate);
-            } catch (\PHPStan\PhpDocParser\Parser\ParserException $e) {
-                continue;
-            }
-        }
-
-        return null;
     }
 
     /**
