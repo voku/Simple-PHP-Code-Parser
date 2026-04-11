@@ -354,7 +354,7 @@ class PhpCodeParser
                 assert(is_string($response['cacheKey']));
                 assert($response['fileName'] === null || is_string($response['fileName']));
 
-                $cache->setItem($response['cacheKey'], $response);
+                @$cache->setItem($response['cacheKey'], $response);
 
                 $phpCodes[$response['cacheKey']]['content'] = $response['content'];
                 $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
