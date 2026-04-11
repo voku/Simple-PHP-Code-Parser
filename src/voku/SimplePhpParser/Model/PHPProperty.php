@@ -112,6 +112,13 @@ class PHPProperty extends BasePHPElement
                 $hookName = $hook->name->toString();
                 $hookParams = [];
                 foreach ($hook->params as $param) {
+                    if ($param->var instanceof \PhpParser\Node\Expr\Error) {
+                        continue;
+                    }
+                    $paramName = \is_string($param->var->name) ? $param->var->name : '';
+                    if ($paramName === '') {
+                        continue;
+                    }
                     $paramStr = '';
                     if ($param->type !== null) {
                         $typeStr = Utils::typeNodeToString($param->type);
@@ -119,7 +126,7 @@ class PHPProperty extends BasePHPElement
                             $paramStr .= $typeStr . ' ';
                         }
                     }
-                    $paramStr .= '$' . (\is_string($param->var->name) ? $param->var->name : '');
+                    $paramStr .= '$' . $paramName;
                     $hookParams[] = $paramStr;
                 }
                 $this->hooks[$hookName] = [
