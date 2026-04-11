@@ -1917,6 +1917,8 @@ PHP
         $property = $class->properties['dependencyClass'];
         $method = $class->methods['buildSnapshot'];
         $freeze = $class->methods['freeze'];
+        $shapeFromPhpDoc = 'array{status: string, retries: int|float}';
+        $shapeFromPhpDocExtended = 'array{status: string, retries: (int|float)}';
 
         static::assertSame('voku\tests\DummyCombinedClassAttribute', $class->attributes[0]->name);
         static::assertSame('combined', $class->attributes[0]->arguments['label']);
@@ -1931,15 +1933,15 @@ PHP
         static::assertSame('Build a payload snapshot.', $method->summary);
         static::assertSame('Collects native types, advanced phpDoc types and reflection metadata together.', $method->description);
         static::assertSame('array', $method->returnType);
-        static::assertSame('array{status: string, retries: int|float}', $method->returnTypeFromPhpDoc);
-        static::assertSame('array{status: string, retries: (int|float)}', $method->returnTypeFromPhpDocExtended);
+        static::assertSame($shapeFromPhpDoc, $method->returnTypeFromPhpDoc);
+        static::assertSame($shapeFromPhpDocExtended, $method->returnTypeFromPhpDocExtended);
         static::assertSame('voku\tests\DummyCombinedMethodAttribute', $method->attributes[0]->name);
         static::assertSame('method', $method->attributes[0]->arguments['label']);
 
         static::assertSame('array', $method->parameters['payload']->type);
-        static::assertSame('array{status: string, retries: int|float}', $method->parameters['payload']->typeFromPhpDoc);
+        static::assertSame($shapeFromPhpDoc, $method->parameters['payload']->typeFromPhpDoc);
         static::assertSame('array', $method->parameters['payload']->typeFromPhpDocSimple);
-        static::assertSame('array{status: string, retries: (int|float)}', $method->parameters['payload']->typeFromPhpDocExtended);
+        static::assertSame($shapeFromPhpDocExtended, $method->parameters['payload']->typeFromPhpDocExtended);
         static::assertSame('voku\tests\DummyCombinedParameterAttribute', $method->parameters['payload']->attributes[0]->name);
         static::assertSame('payload', $method->parameters['payload']->attributes[0]->arguments['label']);
 
