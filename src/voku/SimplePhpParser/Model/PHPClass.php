@@ -629,13 +629,15 @@ class PHPClass extends BasePHPClass
                 $promotedProperty = (new PHPProperty($this->parserContainer))
                     ->readObjectFromPromotedParam($param, $this->name);
 
-                if (isset($this->properties[$parameterVar->name])) {
-                    $this->mergePromotedPropertyData($this->properties[$parameterVar->name], $promotedProperty, $param);
+                $propertyName = $parameterVar->name;
+                $existingProperty = $this->properties[$propertyName] ?? null;
+                if ($existingProperty !== null) {
+                    $this->mergePromotedPropertyData($existingProperty, $promotedProperty, $param);
 
                     continue;
                 }
 
-                $this->properties[$parameterVar->name] = $promotedProperty;
+                $this->properties[$propertyName] = $promotedProperty;
             }
 
             break;
@@ -667,7 +669,7 @@ class PHPClass extends BasePHPClass
             $existingProperty->attributes = $promotedProperty->attributes;
         }
 
-        if ($parameter->default !== null) {
+        if ($parameter->default !== null && $promotedProperty->typeFromDefaultValue !== null) {
             $existingProperty->defaultValue = $promotedProperty->defaultValue;
             $existingProperty->typeFromDefaultValue = $promotedProperty->typeFromDefaultValue;
         }
