@@ -509,7 +509,7 @@ final class Utils
     {
         $parts = [];
         foreach (self::modernPhpdocTokens($input)->getTokens() as $token) {
-            if (($token[0] ?? '') !== '') {
+            if (!empty($token[0])) {
                 $parts[] = $token[0];
             }
         }
