@@ -630,6 +630,8 @@ class PHPClass extends BasePHPClass
                 $this->properties[$parameterVar->name] = (new PHPProperty($this->parserContainer))
                     ->readObjectFromPromotedParam($param, $this->name);
             }
+
+            break;
         }
     }
 }
