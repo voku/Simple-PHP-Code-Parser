@@ -232,6 +232,23 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function testBrokenParamPhpDocRawIsPreserved(): void
+    {
+        if (PHP_VERSION_ID < 80000) {
+            static::markTestSkipped('only for PHP >= 8.0');
+        }
+
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy8.php');
+        $phpClasses = $phpCode->getClasses();
+
+        static::assertSame(
+            'array{stdClass: \stdClass, numbers: int|float $lall <foo/>',
+            $phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->phpDocRaw
+        );
+
+        static::assertNull($phpClasses[Dummy8::class]->methods['foo_broken']->parameters['lall']->typeFromPhpDocExtended);
+    }
+
     public function testSimpleOneTrait(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyTrait.php');
