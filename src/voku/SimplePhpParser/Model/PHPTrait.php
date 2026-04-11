@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Trait_;
 use ReflectionClass;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 final class PHPTrait extends BasePHPClass
@@ -330,7 +331,7 @@ final class PHPTrait extends BasePHPClass
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedPropertyTags = $phpDoc->getTagsByName('property')
                                + $phpDoc->getTagsByName('property-read')

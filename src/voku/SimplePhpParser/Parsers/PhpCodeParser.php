@@ -27,7 +27,7 @@ final class PhpCodeParser
     /**
      * @internal
      */
-    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v5-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v6-';
 
     /**
      * @param string   $code
@@ -79,16 +79,23 @@ final class PhpCodeParser
         array $pathExcludeRegex = [],
         array $fileExtensions = []
     ): ParserContainer {
-        foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath) && \is_file($projectPath)) {
-                require_once $projectPath;
-            } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
-                require_once $projectPath . '/vendor/autoload.php';
-            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                require_once $projectPath . '/../vendor/autoload.php';
+        // Push a disposable handler so restore_error_handler() below will only
+        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
+        // intact on the stack.
+        \set_error_handler(null);
+        try {
+            foreach ($autoloaderProjectPaths as $projectPath) {
+                if (\file_exists($projectPath) && \is_file($projectPath)) {
+                    require_once $projectPath;
+                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
+                    require_once $projectPath . '/vendor/autoload.php';
+                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                    require_once $projectPath . '/../vendor/autoload.php';
+                }
             }
+        } finally {
+            \restore_error_handler();
         }
-        \restore_error_handler();
 
         $phpCodes = self::getCode(
             $pathOrCode,
@@ -350,7 +357,7 @@ final class PhpCodeParser
                 assert(is_string($response['cacheKey']));
                 assert($response['fileName'] === null || is_string($response['fileName']));
 
-                $cache->setItem($response['cacheKey'], $response);
+                @$cache->setItem($response['cacheKey'], $response);
 
                 $phpCodes[$response['cacheKey']]['content'] = $response['content'];
                 $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];

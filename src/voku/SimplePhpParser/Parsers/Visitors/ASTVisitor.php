@@ -93,7 +93,7 @@ final class ASTVisitor extends NodeVisitorAbstract
                 if (
                     $node->name instanceof Node\Name
                     &&
-                    $node->name->getParts()[0] === 'define'
+                    $node->name->toString() === 'define'
                 ) {
                     $constant = new PHPDefineConstant($this->parserContainer);
                     $constant = $constant->readObjectFromPhpNode($node);

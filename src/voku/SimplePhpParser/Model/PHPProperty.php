@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Property;
 use ReflectionProperty;
+use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 class PHPProperty extends BasePHPElement
@@ -240,7 +241,7 @@ class PHPProperty extends BasePHPElement
         }
 
         try {
-            $phpDoc = Utils::createDocBlockInstance()->create($docComment);
+            $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment);
 
             $parsedParamTags = $phpDoc->getTagsByName('var');
 
