@@ -1433,6 +1433,15 @@ PHP
         return $helper;
     }
 
+    private static function normalizeTypeForAssertion(?string $type): ?string
+    {
+        if ($type === null || !\str_starts_with($type, '\\')) {
+            return $type;
+        }
+
+        return \substr($type, 1);
+    }
+
     public function testEnumString(): void
     {
         if (\PHP_VERSION_ID < 80100) {
@@ -1849,6 +1858,7 @@ PHP
         static::assertSame('Build a payload snapshot.', $method->summary);
         static::assertSame('Collects native types, advanced phpDoc types and reflection metadata together.', $method->description);
         static::assertSame('array', $method->returnType);
+        static::assertSame('array{status: string, retries: int|float}', $method->returnTypeFromPhpDoc);
         static::assertSame('array{status: string, retries: (int|float)}', $method->returnTypeFromPhpDocExtended);
         static::assertSame('voku\tests\DummyCombinedMethodAttribute', $method->attributes[0]->name);
         static::assertSame('method', $method->attributes[0]->arguments['label']);
@@ -1868,8 +1878,8 @@ PHP
         static::assertTrue($method->parameters['withMeta']->defaultValue);
         static::assertSame('bool', $method->parameters['withMeta']->typeFromDefaultValue);
 
-        static::assertSame('DateTimeImmutable', \ltrim((string) $freeze->parameters['at']->type, '\\'));
-        static::assertSame('DateTimeImmutable', \ltrim((string) $freeze->returnType, '\\'));
+        static::assertSame('DateTimeImmutable', self::normalizeTypeForAssertion($freeze->parameters['at']->type));
+        static::assertSame('DateTimeImmutable', self::normalizeTypeForAssertion($freeze->returnType));
     }
 
     public function testAttributeFromStringInput(): void
