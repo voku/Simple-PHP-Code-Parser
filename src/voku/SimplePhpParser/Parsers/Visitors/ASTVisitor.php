@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Const_;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Stmt\Class_;
+use PhpParser\Node\Stmt\Enum_;
 use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Trait_;
@@ -15,11 +16,11 @@ use PhpParser\NodeVisitorAbstract;
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
+use voku\SimplePhpParser\Model\PHPEnum;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
-use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 final class ASTVisitor extends NodeVisitorAbstract
 {
@@ -44,9 +45,8 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param \PhpParser\Node $node
      *
-     * @return int|\PhpParser\Node|null
      */
-    public function enterNode(Node $node)
+    public function enterNode(Node $node): Node
     {
         switch (true) {
             case $node instanceof Function_:
@@ -70,10 +70,17 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $this->parserContainer->addConstant($constant);
                 } elseif (($phpCodeParentConstantName = $this->parserContainer->getClass($constant->parentName)) !== null) {
                     $phpCodeParentConstantName->constants[$constant->name] = $constant;
+                } elseif (($enum = $this->parserContainer->getEnum($constant->parentName)) !== null) {
+                    $enum->constants[$constant->name] = $constant;
                 } else {
                     $interface = $this->parserContainer->getInterface($constant->parentName);
                     if ($interface) {
                         $interface->constants[$constant->name] = $constant;
+                    } else {
+                        $trait = $this->parserContainer->getTrait($constant->parentName);
+                        if ($trait) {
+                            $trait->constants[$constant->name] = $constant;
+                        }
                     }
                 }
 
@@ -84,7 +91,7 @@ final class ASTVisitor extends NodeVisitorAbstract
                 if (
                     $node->name instanceof Node\Name
                     &&
-                    $node->name->getParts()[0] === 'define'
+                    $node->name->toString() === 'define'
                 ) {
                     $constant = new PHPDefineConstant($this->parserContainer);
                     $constant = $constant->readObjectFromPhpNode($node);
@@ -125,6 +132,17 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $class->file = $this->fileName;
                 }
                 $this->parserContainer->addClass($class);
+
+                break;
+
+            case $node instanceof Enum_:
+
+                $enum = new PHPEnum($this->parserContainer);
+                $enum = $enum->readObjectFromPhpNode($node);
+                if (!$enum->file) {
+                    $enum->file = $this->fileName;
+                }
+                $this->parserContainer->addEnum($enum);
 
                 break;
 
@@ -172,7 +190,7 @@ final class ASTVisitor extends NodeVisitorAbstract
     /**
      * @param \voku\SimplePhpParser\Model\PHPClass $class
      *
-     * @return array
+     * @return class-string[]
      */
     public function combineImplementedInterfaces($class): array
     {
@@ -184,19 +202,21 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             $phpCodeInterfaces = $this->parserContainer->getInterface($interface);
             if ($phpCodeInterfaces !== null) {
-                $interfaces[] = $phpCodeInterfaces->parentInterfaces;
+                foreach ($phpCodeInterfaces->parentInterfaces as $parentInterface) {
+                    $interfaces[] = $parentInterface;
+                }
             }
         }
 
-        if ($class->parentClass === null) {
-            return $interfaces;
+        if ($class->parentClass !== null) {
+            $parentClass = $this->parserContainer->getClass($class->parentClass);
+            if ($parentClass !== null) {
+                $interfaces = \array_merge($interfaces, $this->combineImplementedInterfaces($parentClass));
+            }
         }
 
-        $parentClass = $this->parserContainer->getClass($class->parentClass);
-        if ($parentClass !== null) {
-            $inherited = $this->combineImplementedInterfaces($parentClass);
-            $interfaces = Utils::flattenArray($inherited, false);
-        }
+        /** @var class-string[] $interfaces */
+        $interfaces = \array_values(\array_unique($interfaces));
 
         return $interfaces;
     }

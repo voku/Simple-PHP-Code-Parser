@@ -9,16 +9,17 @@ use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
+use voku\SimplePhpParser\Model\PHPAttribute;
 
 final class Utils
 {
     public const GET_PHP_PARSER_VALUE_FROM_NODE_HELPER = '!!!_SIMPLE_PHP_CODE_PARSER_HELPER_!!!';
 
     /**
-     * @param array $arr
+     * @param array<mixed> $arr
      * @param bool  $group
      *
-     * @return array
+     * @return array<int|string, mixed>
      */
     public static function flattenArray(array $arr, bool $group): array
     {
@@ -28,9 +29,7 @@ final class Utils
     /**
      * @param \phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag
      *
-     * @return array
-     *
-     * @paalm-return array{parsedParamTagStr: string, variableName: null|string}
+     * @return array{parsedParamTagStr: string, variableName: null|string}
      */
     public static function splitTypeAndVariable(\phpDocumentor\Reflection\DocBlock\Tag $parsedParamTag): array
     {
@@ -112,7 +111,11 @@ final class Utils
                     &&
                     $node->value->name
                 ) {
-                    $value = implode('\\', $node->value->name->getParts()) ?: $node->value->name->name;
+                    if ($node->value->name instanceof \PhpParser\Node\Name) {
+                        $value = $node->value->name->toString();
+                    } else {
+                        $value = \is_string($node->value->name) ? $node->value->name : (string) $node->value->name;
+                    }
                     return $value === 'null' ? null : $value;
                 }
             }
@@ -162,7 +165,8 @@ final class Utils
         }
 
         if ($node instanceof \PhpParser\Node\Expr\ConstFetch) {
-            $parts = $node->name->getParts();
+            $nameStr = $node->name->toString();
+            $parts = explode('\\', $nameStr);
 
             $returnTmp = \strtolower($parts[0]);
             if ($returnTmp === 'true') {
@@ -175,7 +179,7 @@ final class Utils
                 return null;
             }
 
-            $constantNameTmp = '\\' . \implode('\\', $parts);
+            $constantNameTmp = '\\' . $nameStr;
             if (\defined($constantNameTmp)) {
                 return \constant($constantNameTmp);
             }
@@ -203,6 +207,7 @@ final class Utils
             case 'false':
             case 'null':
             case 'mixed':
+            case 'never':
                 return $type_string_lower;
         }
 
@@ -230,6 +235,84 @@ final class Utils
         }
 
         return $type_string;
+    }
+
+    /**
+     * @param \PhpParser\Node|null $typeNode
+     *
+     * @return string|null
+     */
+    public static function typeNodeToString($typeNode): ?string
+    {
+        if ($typeNode === null) {
+            return null;
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\NullableType) {
+            $innerType = self::typeNodeToString($typeNode->type);
+
+            return $innerType !== null ? 'null|' . $innerType : 'null|mixed';
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\UnionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                if ($innerType instanceof \PhpParser\Node\IntersectionType) {
+                    $innerIntersection = self::typeNodeToString($innerType);
+                    $parts[] = $innerIntersection !== null ? '(' . $innerIntersection . ')' : 'mixed';
+
+                    continue;
+                }
+
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('|', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\IntersectionType) {
+            $parts = [];
+
+            foreach ($typeNode->types as $innerType) {
+                $parts[] = self::typeNodeToString($innerType) ?? 'mixed';
+            }
+
+            return \implode('&', $parts);
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Name) {
+            $typeString = $typeNode->toString();
+            if (
+                $typeString === 'self'
+                ||
+                $typeString === 'static'
+                ||
+                $typeString === 'parent'
+            ) {
+                return $typeString;
+            }
+
+            return '\\' . \ltrim($typeString, '\\');
+        }
+
+        if ($typeNode instanceof \PhpParser\Node\Identifier) {
+            return self::normalizePhpType($typeNode->name) ?? $typeNode->name;
+        }
+
+        if (\method_exists($typeNode, 'toString')) {
+            $typeString = $typeNode->toString();
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        if (\property_exists($typeNode, 'name') && $typeNode->name) {
+            $typeString = (string) $typeNode->name;
+
+            return self::normalizePhpType($typeString) ?? $typeString;
+        }
+
+        return null;
     }
 
     /**
@@ -288,7 +371,7 @@ final class Utils
             return 'mixed';
         }
 
-        if ($type instanceof \phpDocumentor\Reflection\Types\Scalar) {
+        if ($type instanceof \phpDocumentor\Reflection\PseudoTypes\Scalar) {
             return 'string|int|float|bool';
         }
 
@@ -340,8 +423,6 @@ final class Utils
         }
 
         $reflection = new \ReflectionFunction($functionName);
-        \assert($reflection instanceof \ReflectionFunction);
-
         $FUNCTION_REFLECTION_INSTANCE[$functionName] = $reflection;
 
         return $reflection;
@@ -349,6 +430,8 @@ final class Utils
 
     /**
      * @phpstan-param class-string $className
+     *
+     * @phpstan-return ReflectionClass<object>
      */
     public static function createClassReflectionInstance(string $className): ReflectionClass
     {
@@ -359,8 +442,6 @@ final class Utils
         }
 
         $reflection = new ReflectionClass($className);
-        \assert($reflection instanceof ReflectionClass);
-
         $CLASS_REFLECTION_INSTANCE[$className] = $reflection;
 
         return $reflection;
@@ -373,7 +454,7 @@ final class Utils
      *
      * @phpstan-param array<string, class-string<\phpDocumentor\Reflection\DocBlock\Tag>> $additionalTags
      */
-    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactory
+    public static function createDocBlockInstance(array $additionalTags = []): \phpDocumentor\Reflection\DocBlockFactoryInterface
     {
         static $DOC_BLOCK_FACTORY_INSTANCE = null;
 
@@ -381,29 +462,9 @@ final class Utils
             return $DOC_BLOCK_FACTORY_INSTANCE;
         }
 
-        $fqsenResolver = new \phpDocumentor\Reflection\FqsenResolver();
-        $tagFactory = new \phpDocumentor\Reflection\DocBlock\StandardTagFactory($fqsenResolver);
-        $descriptionFactory = new \phpDocumentor\Reflection\DocBlock\DescriptionFactory($tagFactory);
-        $typeResolver = new \phpDocumentor\Reflection\TypeResolver($fqsenResolver);
+        $DOC_BLOCK_FACTORY_INSTANCE = \phpDocumentor\Reflection\DocBlockFactory::createInstance($additionalTags);
 
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($descriptionFactory);
-
-        /**
-         * @psalm-suppress InvalidArgument - false-positive from "ReflectionDocBlock" + PHP >= 7.2
-         */
-        $tagFactory->addService($typeResolver);
-
-        $docBlockFactory = new \phpDocumentor\Reflection\DocBlockFactory($descriptionFactory, $tagFactory);
-        foreach ($additionalTags as $tagName => $tagHandler) {
-            $docBlockFactory->registerTagHandler($tagName, $tagHandler);
-        }
-
-        $DOC_BLOCK_FACTORY_INSTANCE = $docBlockFactory;
-
-        return $docBlockFactory;
+        return $DOC_BLOCK_FACTORY_INSTANCE;
     }
 
     public static function modernPhpdocTokens(string $input): \PHPStan\PhpDocParser\Parser\TokenIterator
@@ -411,7 +472,8 @@ final class Utils
         static $LAXER = null;
 
         if ($LAXER === null) {
-            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer();
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $LAXER = new \PHPStan\PhpDocParser\Lexer\Lexer($config);
         }
 
         return new \PHPStan\PhpDocParser\Parser\TokenIterator($LAXER->tokenize($input));
@@ -425,7 +487,8 @@ final class Utils
         static $TYPE_PARSER = null;
 
         if ($TYPE_PARSER === null) {
-            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser(new \PHPStan\PhpDocParser\Parser\ConstExprParser());
+            $config = new \PHPStan\PhpDocParser\ParserConfig([]);
+            $TYPE_PARSER = new \PHPStan\PhpDocParser\Parser\TypeParser($config, new \PHPStan\PhpDocParser\Parser\ConstExprParser($config));
         }
 
         $tokens = self::modernPhpdocTokens($input);
@@ -443,59 +506,81 @@ final class Utils
     }
 
     /**
-     * @see https://gist.github.com/divinity76/01ef9ca99c111565a72d3a8a6e42f7fb + modified (do not use all cores, we still want to work)
-     *
-     * returns number of cpu cores
-     * Copyleft 2018, license: WTFPL
+     * Returns number of cpu cores available for parallelisation.
      *
      * @return int<1, max>
      */
     public static function getCpuCores(): int
     {
-        if (\defined('PHP_WINDOWS_VERSION_MAJOR')) {
-            $str = \trim((string) \shell_exec('wmic cpu get NumberOfCores 2>&1'));
-            $matches = [];
-            if (!$str || !\preg_match('#(\d+)#', $str, $matches)) {
-                return 1;
-            }
-
-            $return = (int)round((int)$matches[1] / 2);
-            if ($return > 1) {
-                return $return;
-            }
-
-            return 1;
+        static $cores = null;
+        if ($cores === null) {
+            $cores = (new \Fidry\CpuCoreCounter\CpuCoreCounter())->getAvailableForParallelisation()->availableCpus;
         }
 
-        /** @noinspection PhpUsageOfSilenceOperatorInspection */
-        $ret = @\shell_exec('nproc');
-        if (\is_string($ret)) {
-            $ret = \trim($ret);
-            /** @noinspection PhpAssignmentInConditionInspection */
-            if ($ret && ($tmp = \filter_var($ret, \FILTER_VALIDATE_INT)) !== false) {
-                $return = (int)round($tmp / 2);
-                if ($return > 1) {
-                    return $return;
+        return $cores;
+    }
+
+    /**
+     * Extract PHPAttribute instances from AST node attribute groups.
+     *
+     * @param \PhpParser\Node\AttributeGroup[] $attrGroups
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromAstNode(array $attrGroups): array
+    {
+        $result = [];
+        foreach ($attrGroups as $group) {
+            foreach ($group->attrs as $attr) {
+                // If NameResolver has already resolved the name to FullyQualified,
+                // use that; otherwise check resolvedName attribute, then fall back
+                if ($attr->name instanceof \PhpParser\Node\Name\FullyQualified) {
+                    $name = $attr->name->toString();
+                } else {
+                    $resolvedName = $attr->name->getAttribute('resolvedName');
+                    if ($resolvedName instanceof \PhpParser\Node\Name) {
+                        $name = $resolvedName->toString();
+                    } else {
+                        $name = $attr->name->toString();
+                    }
                 }
 
-                return 1;
-            }
-        }
+                $arguments = [];
+                foreach ($attr->args as $arg) {
+                    $argValue = self::getPhpParserValueFromNode($arg);
+                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                        $argValue = null;
+                    }
 
-        if (\is_readable('/proc/cpuinfo')) {
-            $cpuinfo = (string) \file_get_contents('/proc/cpuinfo');
-            $count = \substr_count($cpuinfo, 'processor');
-            if ($count > 0) {
-                $return = (int)round($count / 2);
-                if ($return > 1) {
-                    return $return;
+                    if ($arg->name !== null) {
+                        $arguments[$arg->name->name] = $argValue;
+                    } else {
+                        $arguments[] = $argValue;
+                    }
                 }
 
-                return 1;
+                $result[] = new PHPAttribute($name, $arguments);
             }
         }
 
-        return 1;
+        return $result;
+    }
+
+    /**
+     * Extract PHPAttribute instances from a Reflection object that supports getAttributes().
+     *
+     * @param \ReflectionClass<object>|\ReflectionMethod|\ReflectionProperty|\ReflectionClassConstant|\ReflectionParameter|\ReflectionFunction $reflection
+     *
+     * @return PHPAttribute[]
+     */
+    public static function extractAttributesFromReflection($reflection): array
+    {
+        $result = [];
+        foreach ($reflection->getAttributes() as $attr) {
+            $result[] = new PHPAttribute($attr->getName(), $attr->getArguments());
+        }
+
+        return $result;
     }
 
     private static function findParentClassDeclaringConstant(

@@ -43,6 +43,13 @@ class PHPProperty extends BasePHPElement
     public ?bool $is_inheritdoc = null;
 
     /**
+     * PHP 8.0+ attributes on this property.
+     *
+     * @var PHPAttribute[]
+     */
+    public array $attributes = [];
+
+    /**
      * @param Property    $node
      * @param string|null $classStr
      *
@@ -56,8 +63,15 @@ class PHPProperty extends BasePHPElement
 
         $this->is_static = $node->isStatic();
 
-        if (method_exists($node, 'isReadonly')) {
+        // Keep the guard for cross-version php-parser compatibility when readonly
+        // helpers are restored or backported differently in downstream installs.
+        if (\method_exists($node, 'isReadonly')) {
             $this->is_readonly = $node->isReadonly();
+        }
+
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
         $this->prepareNode($node);
@@ -75,13 +89,9 @@ class PHPProperty extends BasePHPElement
 
         if ($node->type !== null) {
             if (!$this->type) {
-                if (\method_exists($node->type, 'getParts')) {
-                    $parts = $node->type->getParts();
-                    if (!empty($parts)) {
-                        $this->type = '\\' . \implode('\\', $parts);
-                    }
-                } elseif (\property_exists($node->type, 'name') && $node->type->name) {
-                    $this->type = $node->type->name;
+                $typeStr = Utils::typeNodeToString($node->type);
+                if ($typeStr !== null) {
+                    $this->type = $typeStr;
                 }
             }
 
@@ -129,6 +139,9 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->is_static = $property->isStatic();
+
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($property);
 
         if ($this->is_static) {
             try {

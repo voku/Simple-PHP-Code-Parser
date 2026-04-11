@@ -10,13 +10,15 @@ use voku\SimplePhpParser\Parsers\Helper\Utils;
 class PHPDefineConstant extends PHPConst
 {
     /**
-     * @param FuncCall $node
-     * @param null     $dummy
+     * @param \PhpParser\Node $node
+     * @param null            $dummy
      *
      * @return $this
      */
     public function readObjectFromPhpNode($node, $dummy = null): PHPConst
     {
+        \assert($node instanceof FuncCall);
+
         $this->prepareNode($node);
 
         if (
@@ -37,7 +39,7 @@ class PHPDefineConstant extends PHPConst
 
         $this->name = $constName;
 
-        /* @phpstan-ignore-next-line */
+        // @phpstan-ignore argument.type
         $this->value = Utils::getPhpParserValueFromNode($node->args[1]);
 
         $this->type = Utils::normalizePhpType(\gettype($this->value));

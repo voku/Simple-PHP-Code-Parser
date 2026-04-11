@@ -21,13 +21,18 @@ class PHPMethod extends PHPFunction
     public ?bool $is_inheritdoc = null;
 
     /**
+     * Whether the method has the #[\Override] attribute.
+     */
+    public ?bool $is_override = null;
+
+    /**
      * @phpstan-var null|class-string
      */
     public ?string $parentName = null;
 
     /**
-     * @param \PhpParser\Node\Stmt\ClassMethod $node
-     * @param string|null                      $classStr
+     * @param \PhpParser\Node $node
+     * @param string|null     $classStr
      *
      * @phpstan-param null|class-string $classStr
      *
@@ -35,6 +40,8 @@ class PHPMethod extends PHPFunction
      */
     public function readObjectFromPhpNode($node, $classStr = null): PHPFunction
     {
+        \assert($node instanceof \PhpParser\Node\Stmt\ClassMethod);
+
         $this->prepareNode($node);
 
         $this->parentName = static::getFQN($node->getAttribute('parent'));
@@ -61,10 +68,9 @@ class PHPMethod extends PHPFunction
 
         if ($node->returnType) {
             if (!$this->returnType) {
-                if (\method_exists($node->returnType, 'toString')) {
-                    $this->returnType = $node->returnType->toString();
-                } elseif (\property_exists($node->returnType, 'name') && $node->returnType->name) {
-                    $this->returnType = $node->returnType->name;
+                $returnTypeStr = Utils::typeNodeToString($node->returnType);
+                if ($returnTypeStr !== null) {
+                    $this->returnType = $returnTypeStr;
                 }
             }
 
@@ -93,6 +99,22 @@ class PHPMethod extends PHPFunction
         $this->is_final = $node->isFinal();
 
         $this->is_static = $node->isStatic();
+
+        // Extract PHP 8.0+ attributes (only if not already populated by reflection)
+        if (empty($this->attributes) && !empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
+        // Detect #[\Override] (PHP 8.3+)
+        if ($this->is_override === null) {
+            foreach ($this->attributes as $attr) {
+                if ($attr->name === 'Override') {
+                    $this->is_override = true;
+
+                    break;
+                }
+            }
+        }
 
         if ($node->isPrivate()) {
             $this->access = 'private';
@@ -128,12 +150,14 @@ class PHPMethod extends PHPFunction
     }
 
     /**
-     * @param \ReflectionMethod $method
+     * @param \ReflectionFunctionAbstract $method
      *
      * @return $this
      */
     public function readObjectFromReflection($method): PHPFunction
     {
+        \assert($method instanceof \ReflectionMethod);
+
         $this->name = $method->getName();
 
         if (!$this->line) {
@@ -152,9 +176,21 @@ class PHPMethod extends PHPFunction
 
         $this->is_final = $method->isFinal();
 
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($method);
+
+        // Detect #[\Override] (PHP 8.3+)
+        foreach ($this->attributes as $attr) {
+            if ($attr->name === 'Override') {
+                $this->is_override = true;
+
+                break;
+            }
+        }
+
         $returnType = $method->getReturnType();
         if ($returnType !== null) {
-            if (\method_exists($returnType, 'getName')) {
+            if ($returnType instanceof \ReflectionNamedType) {
                 $this->returnType = $returnType->getName();
             } else {
                 $this->returnType = $returnType . '';

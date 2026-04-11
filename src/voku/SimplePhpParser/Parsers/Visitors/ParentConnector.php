@@ -37,9 +37,8 @@ final class ParentConnector extends NodeVisitorAbstract
     /**
      * @param \PhpParser\Node $node
      *
-     * @return int|\PhpParser\Node|null
      */
-    public function enterNode(Node $node)
+    public function enterNode(Node $node): Node
     {
         $stackCount = \count($this->stack);
         if ($stackCount > 0) {

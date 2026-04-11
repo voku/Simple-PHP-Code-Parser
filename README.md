@@ -10,13 +10,15 @@
 
 You can simply scan a string, a file or a full directory and you can see a simple data structure from your php code.
 - Classes (**PHPClass**)
-- Properties (**PHPProperties**)
+- Properties (**PHPProperty**)
 - Constants (**PHPConst**)
 - Methods (**PHPMethod**)
 - Interfaces (**PHPInterface**)
 - Traits (**PHPTrait**)
+- Enums (**PHPEnum**)
 - Functions (**PHPFunction**)
 - Parameter (**PHPParameter**)
+- Attributes (**PHPAttribute**)
 
 This code is forked from [JetBrains/phpstorm-stubs](https://github.com/JetBrains/phpstorm-stubs/tree/master/tests) but you can't use the classes from "phpstorm-stubs" directly, 
 because they are in a test namespace and the autoloader is "autoload-dev", so here is a extended version.
@@ -27,6 +29,31 @@ We will use:
 - [phpDocumentor](https://github.com/phpDocumentor/)
 - [PHPStan/phpdoc-parser](https://github.com/phpstan/phpdoc-parser)
 
+### Requirements
+
+- PHP >= 8.1
+
+### Supported PHP Features
+
+| Feature | PHP Version | Supported |
+|---|---|---|
+| Attributes (class, method, property, parameter, constant) | 8.0+ | ✅ |
+| Constructor property promotion | 8.0+ | ✅ |
+| Union types | 8.0+ | ✅ |
+| Named arguments | 8.0+ | ✅ |
+| Match expressions | 8.0+ | ✅ |
+| Nullsafe operator | 8.0+ | ✅ |
+| Enums (unit, string-backed, int-backed) | 8.1+ | ✅ |
+| Readonly properties | 8.1+ | ✅ |
+| Intersection types | 8.1+ | ✅ |
+| `never` return type | 8.1+ | ✅ |
+| First-class callable syntax | 8.1+ | ✅ |
+| Readonly classes | 8.2+ | ✅ |
+| DNF types | 8.2+ | ✅ |
+| Standalone `true`, `false`, `null` types | 8.2+ | ✅ |
+| Trait constants | 8.2+ | ✅ |
+| Typed class constants | 8.3+ | ✅ |
+| `#[\Override]` attribute detection | 8.3+ | ✅ |
 
 ### Install via "composer require"
 
@@ -96,19 +123,42 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
 
+Access enums:
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpEnums = $phpCode->getEnums();
+// PHPEnum objects with scalarType, cases, methods, constants, attributes
+````
+
+Access attributes:
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpClasses = $phpCode->getClasses();
+$class = $phpClasses['MyClass'];
+
+// Class-level attributes
+foreach ($class->attributes as $attr) {
+    echo $attr->name;          // e.g. "MyAttribute"
+    print_r($attr->arguments); // constructor arguments (array)
+}
+
+// Method/property/parameter attributes work the same way
+foreach ($class->methods['myMethod']->attributes as $attr) { ... }
+foreach ($class->properties['myProp']->attributes as $attr) { ... }
+foreach ($class->methods['myMethod']->parameters['param']->attributes as $attr) { ... }
+````
+
 
 ### Support
 
-For support and donations please visit [Github](https://github.com/voku/simple_html_dom/) | [Issues](https://github.com/voku/simple_html_dom/issues) | [PayPal](https://paypal.me/moelleken) | [Patreon](https://www.patreon.com/voku).
+For support and donations please visit [GitHub](https://github.com/voku/Simple-PHP-Code-Parser/) | [Issues](https://github.com/voku/Simple-PHP-Code-Parser/issues) | [PayPal](https://paypal.me/moelleken) | [Patreon](https://www.patreon.com/voku).
 
-For status updates and release announcements please visit [Releases](https://github.com/voku/simple_html_dom/releases) | [Twitter](https://twitter.com/suckup_de) | [Patreon](https://www.patreon.com/voku/posts).
+For status updates and release announcements please visit [Releases](https://github.com/voku/Simple-PHP-Code-Parser/releases) | [Patreon](https://www.patreon.com/voku/posts).
 
 For professional support please contact [me](https://about.me/voku).
 
 ### Thanks
 
-- Thanks to [GitHub](https://github.com) (Microsoft) for hosting the code and a good infrastructure including Issues-Managment, etc.
+- Thanks to [GitHub](https://github.com) (Microsoft) for hosting the code and a good infrastructure including Issues-Management, etc.
 - Thanks to [IntelliJ](https://www.jetbrains.com) as they make the best IDEs for PHP and they gave me an open source license for PhpStorm!
-- Thanks to [Travis CI](https://travis-ci.com/) for being the most awesome, easiest continous integration tool out there!
-- Thanks to [StyleCI](https://styleci.io/) for the simple but powerfull code style check.
 - Thanks to [PHPStan](https://github.com/phpstan/phpstan) && [Psalm](https://github.com/vimeo/psalm) for really great Static analysis tools and for discover bugs in the code!

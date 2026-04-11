@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
+use voku\SimplePhpParser\Model\PHPEnum;
 use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPTrait;
@@ -46,6 +47,13 @@ class ParserContainer
      * @phpstan-var array<string, PHPInterface>
      */
     private array $interfaces = [];
+
+    /**
+     * @var \voku\SimplePhpParser\Model\PHPEnum[]
+     *
+     * @phpstan-var array<string, PHPEnum>
+     */
+    private array $enums = [];
 
     /**
      * @var string[]
@@ -320,5 +328,38 @@ class ParserContainer
     public function addInterface(PHPInterface $interface): void
     {
         $this->interfaces[$interface->name ?: \md5(\serialize($interface))] = $interface;
+    }
+
+    /**
+     * @param string $name
+     *
+     * @return \voku\SimplePhpParser\Model\PHPEnum|null
+     */
+    public function getEnum(string $name): ?PHPEnum
+    {
+        return $this->enums[$name] ?? null;
+    }
+
+    /**
+     * @return \voku\SimplePhpParser\Model\PHPEnum[]
+     */
+    public function getEnums(): array
+    {
+        return $this->enums;
+    }
+
+    public function addEnum(PHPEnum $enum): void
+    {
+        $this->enums[$enum->name ?: \md5(\serialize($enum))] = $enum;
+    }
+
+    /**
+     * @param array<string, \voku\SimplePhpParser\Model\PHPEnum> $enums
+     */
+    public function setEnums(array $enums): void
+    {
+        foreach ($enums as $name => $enum) {
+            $this->enums[$name] = $enum;
+        }
     }
 }

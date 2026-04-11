@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Parsers;
 
 use FilesystemIterator;
-use PhpParser\Lexer\Emulative;
 use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\NameResolver;
 use PhpParser\ParserFactory;
 use React\Filesystem\Node\FileInterface;
+use React\Filesystem\Node\NodeInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
@@ -28,7 +28,7 @@ final class PhpCodeParser
     /**
      * @internal
      */
-    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v4-';
+    private const CACHE_KEY_HELPER = 'simple-php-code-parser-v6-';
 
     /**
      * @param string   $code
@@ -80,16 +80,23 @@ final class PhpCodeParser
         array $pathExcludeRegex = [],
         array $fileExtensions = []
     ): ParserContainer {
-        foreach ($autoloaderProjectPaths as $projectPath) {
-            if (\file_exists($projectPath) && \is_file($projectPath)) {
-                require_once $projectPath;
-            } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
-                require_once $projectPath . '/vendor/autoload.php';
-            } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                require_once $projectPath . '/../vendor/autoload.php';
+        // Push a disposable handler so restore_error_handler() below will only
+        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
+        // intact on the stack.
+        \set_error_handler(null);
+        try {
+            foreach ($autoloaderProjectPaths as $projectPath) {
+                if (\file_exists($projectPath) && \is_file($projectPath)) {
+                    require_once $projectPath;
+                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
+                    require_once $projectPath . '/vendor/autoload.php';
+                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                    require_once $projectPath . '/../vendor/autoload.php';
+                }
             }
+        } finally {
+            \restore_error_handler();
         }
-        \restore_error_handler();
 
         $phpCodes = self::getCode(
             $pathOrCode,
@@ -119,6 +126,7 @@ final class PhpCodeParser
                 $parserContainer->setTraits($response->getTraits());
                 $parserContainer->setClasses($response->getClasses());
                 $parserContainer->setInterfaces($response->getInterfaces());
+                $parserContainer->setEnums($response->getEnums());
                 $parserContainer->setConstants($response->getConstants());
                 $parserContainer->setFunctions($response->getFunctions());
             } elseif ($response instanceof ParserErrorHandler) {
@@ -200,20 +208,7 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ASTVisitor $visitor
     ) {
-        $parser = (new ParserFactory())->create(
-            ParserFactory::PREFER_PHP7,
-            new Emulative(
-                [
-                    'usedAttributes' => [
-                        'comments',
-                        'startLine',
-                        'endLine',
-                        'startTokenPos',
-                        'endTokenPos',
-                    ],
-                ]
-            )
-        );
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
 
         $errorHandler = new ParserErrorHandler();
 
@@ -231,13 +226,23 @@ final class PhpCodeParser
             return $errorHandler;
         }
 
+        // Pass 1: set parent attributes and fully resolve all names in the AST.
+        // NameResolver modifies Name nodes in-place (converting them to FullyQualified),
+        // so by the time ASTVisitor runs in pass 2, every type-hint Name node already
+        // carries its fully-qualified form. This is necessary because ASTVisitor processes
+        // class members (properties, methods) eagerly inside enterNode(Class_), before
+        // the single-pass traverser would have had a chance to visit those child nodes.
+        $traverser1 = new NodeTraverser();
+        $traverser1->addVisitor(new ParentConnector());
+        $traverser1->addVisitor($nameResolver);
+        $traverser1->traverse($parsedCode);
+
         $visitor->fileName = $fileName;
 
-        $traverser = new NodeTraverser();
-        $traverser->addVisitor(new ParentConnector());
-        $traverser->addVisitor($nameResolver);
-        $traverser->addVisitor($visitor);
-        $traverser->traverse($parsedCode);
+        // Pass 2: extract model objects from the already-resolved AST.
+        $traverser2 = new NodeTraverser();
+        $traverser2->addVisitor($visitor);
+        $traverser2->traverse($parsedCode);
 
         return $parserContainer;
     }
@@ -260,7 +265,7 @@ final class PhpCodeParser
         $phpCodes = [];
         /** @var SplFileInfo[] $phpFileIterators */
         $phpFileIterators = [];
-        /** @var \React\Promise\PromiseInterface[] $phpFilePromises */
+        /** @var list<\React\Promise\PromiseInterface<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}>> $phpFilePromises */
         $phpFilePromises = [];
 
         // fallback
@@ -330,9 +335,13 @@ final class PhpCodeParser
 
             foreach ($phpFileArrayChunk as $cacheKey => $path) {
                 $phpFilePromises[] = $filesystem->detect($path)->then(
-                    function (FileInterface $file) use ($path, $cacheKey) {
+                    static function (NodeInterface $node) use ($path, $cacheKey): array {
+                        if (!$node instanceof FileInterface) {
+                            throw new \RuntimeException('Expected a file node for: ' . $path);
+                        }
+
                         return [
-                            'content'  => $file->getContents()->then(static function (string $contents) {
+                            'content'  => $node->getContents()->then(static function (string $contents): string {
                                 return $contents;
                             }),
                             'fileName' => $path,
@@ -345,6 +354,7 @@ final class PhpCodeParser
                 );
             }
 
+            /** @var list<array{content: \React\Promise\PromiseInterface<string>, fileName: string, cacheKey: string}> $phpFilePromiseResponses */
             $phpFilePromiseResponses = await(all($phpFilePromises));
             foreach ($phpFilePromiseResponses as $response) {
                 $response['content'] = await($response['content']);
@@ -353,7 +363,7 @@ final class PhpCodeParser
                 assert(is_string($response['cacheKey']));
                 assert($response['fileName'] === null || is_string($response['fileName']));
 
-                $cache->setItem($response['cacheKey'], $response);
+                @$cache->setItem($response['cacheKey'], $response);
 
                 $phpCodes[$response['cacheKey']]['content'] = $response['content'];
                 $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
@@ -405,20 +415,9 @@ final class PhpCodeParser
             }
 
             $parentMethod = $classes[$class->parentClass]->properties[$property->name];
-
-            foreach ($property as $key => &$value) {
-                if (
-                    $value === null
-                    &&
-                    $parentMethod->{$key} !== null
-                    &&
-                    \stripos($key, 'type') !== false
-                ) {
-                    $value = $parentMethod->{$key};
-                }
-            }
+            self::mergeMissingTypeFields($property, $parentMethod);
         }
-        unset($property, $value); /* @phpstan-ignore-line ? */
+        unset($property);
 
         foreach ($class->methods as &$method) {
             if (!$method->is_inheritdoc) {
@@ -448,55 +447,8 @@ final class PhpCodeParser
 
                 $interfaceMethod = $interfaces[$interfaceStr]->methods[$method->name];
 
-                foreach ($method as $key => &$value) {
-                    if (
-                        $value === null
-                        &&
-                        $interfaceMethod->{$key} !== null
-                        &&
-                        \stripos($key, 'type') !== false
-                    ) {
-                        $value = $interfaceMethod->{$key};
-                    }
-
-                    if ($key === 'parameters') {
-                        $parameterCounter = 0;
-                        foreach ($value as &$parameter) {
-                            ++$parameterCounter;
-
-                            \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
-
-                            $interfaceMethodParameter = null;
-                            $parameterCounterInterface = 0;
-                            foreach ($interfaceMethod->parameters as $parameterInterface) {
-                                ++$parameterCounterInterface;
-
-                                if ($parameterCounterInterface === $parameterCounter) {
-                                    $interfaceMethodParameter = $parameterInterface;
-                                }
-                            }
-
-                            if (!$interfaceMethodParameter) {
-                                continue;
-                            }
-
-                            foreach ($parameter as $keyInner => &$valueInner) {
-                                if (
-                                    $valueInner === null
-                                    &&
-                                    $interfaceMethodParameter->{$keyInner} !== null
-                                    &&
-                                    \stripos($keyInner, 'type') !== false
-                                ) {
-                                    $valueInner = $interfaceMethodParameter->{$keyInner};
-                                }
-                            }
-                            unset($valueInner); /* @phpstan-ignore-line ? */
-                        }
-                        unset($parameter);
-                    }
-                }
-                unset($value); /* @phpstan-ignore-line ? */
+                self::mergeMissingTypeFields($method, $interfaceMethod);
+                $method->parameters = self::mergeMissingParameterTypeFields($method->parameters, $interfaceMethod->parameters);
             }
 
             if (!isset($classes[$class->parentClass])) {
@@ -509,52 +461,47 @@ final class PhpCodeParser
 
             $parentMethod = $classes[$class->parentClass]->methods[$method->name];
 
-            foreach ($method as $key => &$value) {
-                if (
-                    $value === null
-                    &&
-                    $parentMethod->{$key} !== null
-                    &&
-                    \stripos($key, 'type') !== false
-                ) {
-                    $value = $parentMethod->{$key};
-                }
+            self::mergeMissingTypeFields($method, $parentMethod);
+            $method->parameters = self::mergeMissingParameterTypeFields($method->parameters, $parentMethod->parameters);
+        }
+    }
 
-                if ($key === 'parameters') {
-                    $parameterCounter = 0;
-                    foreach ($value as &$parameter) {
-                        ++$parameterCounter;
+    private static function mergeMissingTypeFields(object $target, object $source): void
+    {
+        foreach (\array_keys(\get_object_vars($target)) as $key) {
+            if (\stripos($key, 'type') === false) {
+                continue;
+            }
 
-                        \assert($parameter instanceof \voku\SimplePhpParser\Model\PHPParameter);
-
-                        $parentMethodParameter = null;
-                        $parameterCounterParent = 0;
-                        foreach ($parentMethod->parameters as $parameterParent) {
-                            ++$parameterCounterParent;
-
-                            if ($parameterCounterParent === $parameterCounter) {
-                                $parentMethodParameter = $parameterParent;
-                            }
-                        }
-
-                        if (!$parentMethodParameter) {
-                            continue;
-                        }
-
-                        foreach ($parameter as $keyInner => &$valueInner) {
-                            if (
-                                $valueInner === null
-                                &&
-                                $parentMethodParameter->{$keyInner} !== null
-                                &&
-                                \stripos($keyInner, 'type') !== false
-                            ) {
-                                $valueInner = $parentMethodParameter->{$keyInner};
-                            }
-                        }
-                    }
-                }
+            if ($target->{$key} === null && $source->{$key} !== null) {
+                $target->{$key} = $source->{$key};
             }
         }
+    }
+
+    /**
+     * @param array<string, \voku\SimplePhpParser\Model\PHPParameter> $targetParameters
+     * @param array<string, \voku\SimplePhpParser\Model\PHPParameter> $sourceParameters
+     *
+     * @return array<string, \voku\SimplePhpParser\Model\PHPParameter>
+     */
+    private static function mergeMissingParameterTypeFields(array $targetParameters, array $sourceParameters): array
+    {
+        $sourceParameters = \array_values($sourceParameters);
+
+        $position = 0;
+        foreach ($targetParameters as $parameterName => $parameter) {
+            $sourceParameter = $sourceParameters[$position] ?? null;
+            ++$position;
+
+            if ($sourceParameter === null) {
+                continue;
+            }
+
+            self::mergeMissingTypeFields($parameter, $sourceParameter);
+            $targetParameters[$parameterName] = $parameter;
+        }
+
+        return $targetParameters;
     }
 }

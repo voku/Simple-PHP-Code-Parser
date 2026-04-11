@@ -34,13 +34,20 @@ class PHPInterface extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        // Extract PHP 8.0+ attributes
+        if (!empty($node->attrGroups)) {
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+        }
+
         $interfaceExists = false;
-        try {
-            if (\interface_exists($this->name, true)) {
-                $interfaceExists = true;
+        if (self::canAutoloadFromPhpNode($node)) {
+            try {
+                if (\interface_exists($this->name, true)) {
+                    $interfaceExists = true;
+                }
+            } catch (\Throwable $e) {
+                // nothing
             }
-        } catch (\Exception $e) {
-            // nothing
         }
         if ($interfaceExists) {
             $reflectionInterface = Utils::createClassReflectionInstance($this->name);
@@ -65,7 +72,7 @@ class PHPInterface extends BasePHPClass
 
         if (!empty($node->extends)) {
             /** @var class-string $interfaceExtended */
-            $interfaceExtended = \implode('\\', $node->extends[0]->getParts());
+            $interfaceExtended = $node->extends[0]->toString();
             $this->parentInterfaces[] = $interfaceExtended;
         }
 
@@ -73,7 +80,7 @@ class PHPInterface extends BasePHPClass
     }
 
     /**
-     * @param ReflectionClass $interface
+     * @param ReflectionClass<object> $interface
      *
      * @return $this
      */
@@ -105,6 +112,9 @@ class PHPInterface extends BasePHPClass
 
         $this->is_iterable = $interface->isIterable();
 
+        // Extract PHP 8.0+ attributes
+        $this->attributes = Utils::extractAttributesFromReflection($interface);
+
         foreach ($interface->getMethods() as $method) {
             $this->methods[$method->getName()] = (new PHPMethod($this->parserContainer))->readObjectFromReflection($method);
         }
@@ -123,7 +133,7 @@ class PHPInterface extends BasePHPClass
                 ) {
                     $interfaceExists = true;
                 }
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 // nothing
             }
             if ($interfaceExists) {
