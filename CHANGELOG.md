@@ -1,5 +1,14 @@
 # Changelog
 
+### 0.21.0 (2026-04-21)
+
+- BREAKING: runtime support now requires PHP >= 8.1 (instead of PHP >= 7.4), while the parser still analyzes older PHP source syntax from PHP 5.3 through PHP 8.5
+- add broad PHP 8.x syntax and metadata support, including enums, attributes, typed constants, readonly / promoted properties, `#[\Override]`, and property hooks with asymmetric visibility
+- improve phpdoc parsing and recovery for malformed docs, modern type syntax, inherited annotations, and raw `@param` / `@return` preservation
+- modernize parser compatibility and dependencies: support `nikic/php-parser` v4.18 and v5, update phpDocumentor / phpdoc-parser / phpunit / phpstan dependencies, and replace React-based file reads
+- improve autoloading and reflection safety for version-specific syntax and better file read error reporting
+- add extensive regression coverage plus feature validation for analyzable PHP source syntax from PHP 5.3 through PHP 8.5
+
 ### 0.20.1 (2023-08-11)
 
 - use "phpstan/phpdoc-parser" for more phpdocs
