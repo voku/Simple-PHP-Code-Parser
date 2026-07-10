@@ -18,6 +18,8 @@ class PHPMethod extends PHPFunction
 
     public ?bool $is_final = null;
 
+    public ?bool $is_abstract = null;
+
     public ?bool $is_inheritdoc = null;
 
     /**
@@ -48,10 +50,12 @@ class PHPMethod extends PHPFunction
 
         $this->name = $node->name->name;
 
+        $this->is_returned_by_ref = $node->byRef;
+
         $docComment = $node->getDocComment();
         if ($docComment) {
             try {
-                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText());
+                $phpDoc = DocFactoryProvider::getDocFactory()->create($docComment->getText(), self::getPhpDocContext($node));
                 $this->summary = $phpDoc->getSummary();
                 $this->description = (string) $phpDoc->getDescription();
             } catch (\Exception $e) {
@@ -93,10 +97,12 @@ class PHPMethod extends PHPFunction
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docComment);
+            $this->readPhpDoc($docComment, self::getPhpDocContext($node));
         }
 
         $this->is_final = $node->isFinal();
+
+        $this->is_abstract = $node->isAbstract();
 
         $this->is_static = $node->isStatic();
 
@@ -160,10 +166,19 @@ class PHPMethod extends PHPFunction
 
         $this->name = $method->getName();
 
+        $this->is_returned_by_ref = $method->returnsReference();
+
         if (!$this->line) {
             $lineTmp = $method->getStartLine();
             if ($lineTmp !== false) {
                 $this->line = $lineTmp;
+            }
+        }
+
+        if ($this->endLine === null) {
+            $endLineTmp = $method->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
             }
         }
 
@@ -175,6 +190,8 @@ class PHPMethod extends PHPFunction
         $this->is_static = $method->isStatic();
 
         $this->is_final = $method->isFinal();
+
+        $this->is_abstract = $method->isAbstract();
 
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($method);

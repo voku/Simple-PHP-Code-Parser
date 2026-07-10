@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.22.0 (2026-07-10)
+
+- add source-range info to every model element: `endLine`, `startFilePos`, `endFilePos` (byte offsets), enabling precise `sed`/byte-range reads of a single declaration without loading the whole file
+- add `PHPFileInfo` + `PhpCodeParser::getFileInfoFromFile()` for a lightweight per-file summary (namespaces, imports, declares)
+- add `PhpCodeParser::getAstFromFile()` / `getAstFromString()` to expose the names-resolved php-parser AST directly for syntax outside the compact Model API
+- add import-aware, resolved phpdoc types via `PhpDocContextConnector`: `typeFromPhpDocResolved` / `returnTypeFromPhpDocResolved` resolve aliased class names (e.g. `use Vendor\Payload as Message;`) without touching legacy rendered fields
+- add `$traitUses` / `$traitAdaptations` (aliasing, `insteadof`) to class-like models; interfaces now retain all declared parent interfaces
+- add `$throws` (from `@throws`), `is_returned_by_ref`, and (for methods) `is_abstract` to function/method models; add `is_promoted` to parameters
+- add `PHPEnumCase` + `$caseDetails` on `PHPEnum` for source-aware, attribute-aware enum cases, alongside the existing legacy `$cases` value map
+- fix: only the first property in a multi-property declaration (e.g. `public $a, $b;`) was parsed; all properties in the group are now read
+- add extensive regression coverage for the above
+
 ### 0.21.0 (2026-04-21)
 
 - BREAKING: runtime support now requires PHP >= 8.1 (instead of PHP >= 7.4), while the parser still analyzes older PHP source syntax from PHP 5.3 through PHP 8.5

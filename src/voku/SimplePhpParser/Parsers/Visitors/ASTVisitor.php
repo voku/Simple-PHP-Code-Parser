@@ -13,6 +13,8 @@ use PhpParser\Node\Stmt\Function_;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Trait_;
 use PhpParser\NodeVisitorAbstract;
+use voku\SimplePhpParser\Model\BasePHPClass;
+use voku\SimplePhpParser\Model\BasePHPElement;
 use voku\SimplePhpParser\Model\PHPClass;
 use voku\SimplePhpParser\Model\PHPConst;
 use voku\SimplePhpParser\Model\PHPDefineConstant;
@@ -51,10 +53,10 @@ final class ASTVisitor extends NodeVisitorAbstract
         switch (true) {
             case $node instanceof Function_:
 
-                $function = (new PHPFunction($this->parserContainer))->readObjectFromPhpNode($node);
-                if (!$function->file) {
-                    $function->file = $this->fileName;
-                }
+                $function = new PHPFunction($this->parserContainer);
+                $function->file = $this->fileName;
+                $function = $function->readObjectFromPhpNode($node);
+                $this->propagateFileName($function);
                 $this->parserContainer->addFunction($function);
 
                 break;
@@ -62,10 +64,9 @@ final class ASTVisitor extends NodeVisitorAbstract
             case $node instanceof Const_:
 
                 $constant = new PHPConst($this->parserContainer);
+                $constant->file = $this->fileName;
                 $constant = $constant->readObjectFromPhpNode($node);
-                if (!$constant->file) {
-                    $constant->file = $this->fileName;
-                }
+                $this->propagateFileName($constant);
                 if ($constant->parentName === null) {
                     $this->parserContainer->addConstant($constant);
                 } elseif (($phpCodeParentConstantName = $this->parserContainer->getClass($constant->parentName)) !== null) {
@@ -94,10 +95,9 @@ final class ASTVisitor extends NodeVisitorAbstract
                     $node->name->toString() === 'define'
                 ) {
                     $constant = new PHPDefineConstant($this->parserContainer);
+                    $constant->file = $this->fileName;
                     $constant = $constant->readObjectFromPhpNode($node);
-                    if (!$constant->file) {
-                        $constant->file = $this->fileName;
-                    }
+                    $this->propagateFileName($constant);
                     $this->parserContainer->addConstant($constant);
                 }
 
@@ -105,10 +105,10 @@ final class ASTVisitor extends NodeVisitorAbstract
 
             case $node instanceof Interface_:
 
-                $interface = (new PHPInterface($this->parserContainer))->readObjectFromPhpNode($node);
-                if (!$interface->file) {
-                    $interface->file = $this->fileName;
-                }
+                $interface = new PHPInterface($this->parserContainer);
+                $interface->file = $this->fileName;
+                $interface = $interface->readObjectFromPhpNode($node);
+                $this->propagateFileName($interface);
                 $this->parserContainer->addInterface($interface);
 
                 break;
@@ -116,10 +116,9 @@ final class ASTVisitor extends NodeVisitorAbstract
             case $node instanceof Trait_:
 
                 $trait = new PHPTrait($this->parserContainer);
+                $trait->file = $this->fileName;
                 $trait = $trait->readObjectFromPhpNode($node);
-                if (!$trait->file) {
-                    $trait->file = $this->fileName;
-                }
+                $this->propagateFileName($trait);
                 $this->parserContainer->addTrait($trait);
 
                 break;
@@ -127,10 +126,9 @@ final class ASTVisitor extends NodeVisitorAbstract
             case $node instanceof Class_:
 
                 $class = new PHPClass($this->parserContainer);
+                $class->file = $this->fileName;
                 $class = $class->readObjectFromPhpNode($node);
-                if (!$class->file) {
-                    $class->file = $this->fileName;
-                }
+                $this->propagateFileName($class);
                 $this->parserContainer->addClass($class);
 
                 break;
@@ -138,10 +136,9 @@ final class ASTVisitor extends NodeVisitorAbstract
             case $node instanceof Enum_:
 
                 $enum = new PHPEnum($this->parserContainer);
+                $enum->file = $this->fileName;
                 $enum = $enum->readObjectFromPhpNode($node);
-                if (!$enum->file) {
-                    $enum->file = $this->fileName;
-                }
+                $this->propagateFileName($enum);
                 $this->parserContainer->addEnum($enum);
 
                 break;
@@ -155,6 +152,35 @@ final class ASTVisitor extends NodeVisitorAbstract
         }
 
         return $node;
+    }
+
+    private function propagateFileName(BasePHPElement $element): void
+    {
+        if ($element->file === null) {
+            $element->file = $this->fileName;
+        }
+
+        if ($element instanceof PHPFunction) {
+            foreach ($element->parameters as $parameter) {
+                $this->propagateFileName($parameter);
+            }
+        }
+
+        if (!$element instanceof BasePHPClass) {
+            return;
+        }
+
+        foreach ($element->properties as $property) {
+            $this->propagateFileName($property);
+        }
+
+        foreach ($element->constants as $constant) {
+            $this->propagateFileName($constant);
+        }
+
+        foreach ($element->methods as $method) {
+            $this->propagateFileName($method);
+        }
     }
 
     /**

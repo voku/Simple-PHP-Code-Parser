@@ -6,6 +6,7 @@ namespace voku\SimplePhpParser\Model;
 
 use phpDocumentor\Reflection\DocBlock\Tags\Generic;
 use phpDocumentor\Reflection\DocBlock\Tags\Return_;
+use phpDocumentor\Reflection\DocBlock\Tags\Throws;
 use PhpParser\Comment\Doc;
 use PhpParser\Node\Stmt\Function_;
 use ReflectionFunction;
@@ -28,11 +29,28 @@ class PHPFunction extends BasePHPElement
      */
     public array $attributes = [];
 
+    /**
+     * Whether this function or method returns by reference.
+     */
+    public ?bool $is_returned_by_ref = null;
+
+    /**
+     * Exception types documented with @throws, in source order.
+     *
+     * @var string[]
+     */
+    public array $throws = [];
+
     public ?string $returnPhpDocRaw = null;
 
     public ?string $returnType = null;
 
     public ?string $returnTypeFromPhpDoc = null;
+
+    /**
+     * Import-aware equivalent of $returnTypeFromPhpDoc for AST-backed models.
+     */
+    public ?string $returnTypeFromPhpDocResolved = null;
 
     public ?string $returnTypeFromPhpDocSimple = null;
 
@@ -55,6 +73,8 @@ class PHPFunction extends BasePHPElement
         $this->prepareNode($node);
 
         $this->name = static::getFQN($node);
+
+        $this->is_returned_by_ref = $node->byRef;
 
         // Extract PHP 8.0+ attributes
         if (!empty($node->attrGroups)) {
@@ -127,7 +147,7 @@ class PHPFunction extends BasePHPElement
 
         $docComment = $node->getDocComment();
         if ($docComment) {
-            $this->readPhpDoc($docComment);
+            $this->readPhpDoc($docComment, self::getPhpDocContext($node));
         }
 
         return $this;
@@ -142,6 +162,8 @@ class PHPFunction extends BasePHPElement
     {
         $this->name = $function->getName();
 
+        $this->is_returned_by_ref = $function->returnsReference();
+
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($function);
 
@@ -149,6 +171,13 @@ class PHPFunction extends BasePHPElement
             $lineTmp = $function->getStartLine();
             if ($lineTmp !== false) {
                 $this->line = $lineTmp;
+            }
+        }
+
+        if ($this->endLine === null) {
+            $endLineTmp = $function->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
             }
         }
 
@@ -231,7 +260,7 @@ class PHPFunction extends BasePHPElement
     /**
      * @param Doc|string $doc
      */
-    protected function readPhpDoc($doc): void
+    protected function readPhpDoc($doc, ?\phpDocumentor\Reflection\Types\Context $context = null): void
     {
         if ($doc instanceof Doc) {
             $docComment = $doc->getText();
@@ -255,7 +284,6 @@ class PHPFunction extends BasePHPElement
                     $this->returnTypeFromPhpDocMaybeWithComment = \trim((string) $parsedReturnTagReturn);
 
                     $type = $parsedReturnTagReturn->getType();
-
                     $this->returnTypeFromPhpDoc = Utils::normalizePhpType(\ltrim((string) $type, '\\'));
 
                     $typeTmp = Utils::parseDocTypeObject($type);
@@ -276,6 +304,7 @@ class PHPFunction extends BasePHPElement
 
                 $this->returnTypeFromPhpDocExtended = Utils::modernPhpdoc($parsedReturnTagReturn);
             }
+
         } catch (\Exception $e) {
             $tmpErrorMessage = \sprintf(
                 '%s:%s | %s',
@@ -283,6 +312,23 @@ class PHPFunction extends BasePHPElement
                 $this->line ?? '?',
                 \print_r($e->getMessage(), true)
             );
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
+
+        try {
+            $resolvedPhpDoc = DocFactoryProvider::getDocFactory()->create($docComment, $context);
+            $resolvedReturnTags = $resolvedPhpDoc->getTagsByName('return');
+            if (isset($resolvedReturnTags[0]) && $resolvedReturnTags[0] instanceof Return_) {
+                $this->returnTypeFromPhpDocResolved = (string)$resolvedReturnTags[0]->getType();
+            }
+
+            foreach ($resolvedPhpDoc->getTagsByName('throws') as $throwsTag) {
+                if ($throwsTag instanceof Throws) {
+                    $this->throws[] = Utils::normalizePhpType(\ltrim((string)$throwsTag->getType(), '\\')) ?? (string)$throwsTag->getType();
+                }
+            }
+        } catch (\Exception $e) {
+            $tmpErrorMessage = \sprintf('%s:%s | %s', $this->name, $this->line ?? '?', \print_r($e->getMessage(), true));
             $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
         }
 

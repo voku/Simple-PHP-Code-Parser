@@ -27,6 +27,8 @@ class PHPConst extends BasePHPElement
 
     public ?string $visibility = null;
 
+    public ?bool $is_final = null;
+
     public ?string $type = null;
 
     /**
@@ -69,6 +71,8 @@ class PHPConst extends BasePHPElement
             } else {
                 $this->visibility = 'public';
             }
+
+            $this->is_final = $parentNode->isFinal();
 
             $this->parentName = self::getFQN($parentNode->getAttribute('parent'));
 
@@ -124,6 +128,10 @@ class PHPConst extends BasePHPElement
             $this->visibility = 'protected';
         } else {
             $this->visibility = 'public';
+        }
+
+        if (\method_exists($constant, 'isFinal')) {
+            $this->is_final = $constant->isFinal();
         }
 
         // Typed class constants (PHP 8.3+)

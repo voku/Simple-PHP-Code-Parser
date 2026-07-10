@@ -158,6 +158,64 @@ $methodInfo = $phpClasses[MyService::class]->getMethodsInfo();
 $propertyInfo = $phpClasses[MyService::class]->getPropertiesInfo();
 ```
 
+### Source navigation and complete syntax access
+
+Every parsed model element exposes its inclusive source range. This lets an
+indexer store a compact symbol map and later read exactly one declaration with
+`sed` (or a byte-range read), instead of sending a whole file to a coding
+agent.
+
+```php
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src/MyService.php');
+$method = $phpCode->getClasses()[MyService::class]->methods['handle'];
+
+// 1-based, inclusive line range for: sed -n "{$method->line},{$method->endLine}p" …
+echo $method->line;
+echo $method->endLine;
+
+// 0-based, inclusive byte range in the parsed source file.
+echo $method->startFilePos;
+echo $method->endFilePos;
+```
+
+Class-like models also expose directly composed traits as fully-qualified
+names in `$traitUses`, plus alias and `insteadof` rules in
+`$traitAdaptations`. Interfaces retain every declared parent interface.
+
+For syntax that deliberately remains outside the compact Model API, use the
+same names-resolved php-parser AST that builds it:
+
+```php
+$ast = \voku\SimplePhpParser\Parsers\PhpCodeParser::getAstFromFile(__DIR__ . '/src/MyService.php');
+// or: PhpCodeParser::getAstFromString($source);
+```
+
+The returned nodes have source-location attributes and `parent` references.
+Resolvable names are fully-qualified; their original aliases remain available
+through php-parser's `originalName` node attribute. Parent references make the
+AST cyclic, so it should be inspected rather than serialized directly.
+
+For an even smaller file-header summary, use `PHPFileInfo`:
+
+```php
+$fileInfo = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFileInfoFromFile(__DIR__ . '/src/MyService.php');
+
+// Each namespace scope contains imports (class/function/const aliases) and
+// declare values such as strict_types, with their source lines.
+foreach ($fileInfo->namespaces as $namespace) {
+    var_dump($namespace['name'], $namespace['imports'], $namespace['declares']);
+}
+```
+
+Import-aware PHPDoc fields preserve the old rendered fields and add precise
+`typeFromPhpDocResolved` / `returnTypeFromPhpDocResolved` values. Thus
+`use Vendor\Payload as Message;` can resolve `@param Message $message` to
+`\Vendor\Payload` without changing legacy output. Function and method models
+also expose documented exception types in `$throws`, `is_returned_by_ref`, and
+(for methods) `is_abstract`; parameters expose `is_promoted`. `PHPEnum` keeps
+its legacy `$cases` value map and additionally exposes source-aware,
+attribute-aware case objects in `$caseDetails`.
+
 The library is meant to be the simple integration layer that other tools can call instead of wiring together `nikic/php-parser`, `phpstan/phpdoc-parser`, `phpDocumentor`, and native reflection themselves. The test suite validates analyzable PHP source from PHP 5.3 through PHP 8.5, including legacy syntax generations and modern type declarations / metadata such as attributes, enums, readonly constructs, typed constants, and property hooks.
 
 Access enums:

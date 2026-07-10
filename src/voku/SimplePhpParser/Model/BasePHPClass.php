@@ -36,6 +36,34 @@ abstract class BasePHPClass extends BasePHPElement
      */
     public array $attributes = [];
 
+    /**
+     * Traits composed directly by this class-like declaration, keyed by their
+     * fully-qualified names.
+     *
+     * @var array<string, string>
+     *
+     * @phpstan-var array<class-string, class-string>
+     */
+    public array $traitUses = [];
+
+    /**
+     * Trait conflict-resolution and alias rules in source order.
+     *
+     * An alias rule has type "alias" and may omit trait when PHP's shorthand
+     * syntax is used. A precedence rule has type "precedence" and lists the
+     * traits replaced by the selected method.
+     *
+     * @var list<array{
+     *     type: 'alias'|'precedence',
+     *     trait: class-string|null,
+     *     method: string,
+     *     alias?: string|null,
+     *     visibility?: ''|'private'|'protected'|'public',
+     *     insteadOf?: list<class-string>
+     * }>
+     */
+    public array $traitAdaptations = [];
+
     public ?bool $is_final = null;
 
     public ?bool $is_abstract = null;
@@ -69,6 +97,73 @@ abstract class BasePHPClass extends BasePHPElement
         }
 
         return true;
+    }
+
+    protected function collectTraitUsesFromPhpNode(\PhpParser\Node $node): void
+    {
+        foreach ($node->stmts ?? [] as $statement) {
+            if (!$statement instanceof \PhpParser\Node\Stmt\TraitUse) {
+                continue;
+            }
+
+            foreach ($statement->traits as $trait) {
+                $traitName = $trait->toString();
+                /** @var class-string $traitName */
+                $traitName = $traitName;
+                $this->traitUses[$traitName] = $traitName;
+            }
+
+            foreach ($statement->adaptations as $adaptation) {
+                $traitName = $adaptation->trait?->toString();
+                if ($traitName !== null) {
+                    /** @var class-string $traitName */
+                    $traitName = $traitName;
+                }
+
+                if ($adaptation instanceof \PhpParser\Node\Stmt\TraitUseAdaptation\Alias) {
+                    $this->traitAdaptations[] = [
+                        'type'       => 'alias',
+                        'trait'      => $traitName,
+                        'method'     => $adaptation->method->toString(),
+                        'alias'      => $adaptation->newName?->toString(),
+                        'visibility' => self::getVisibilityFromModifierFlags($adaptation->newModifier ?? 0),
+                    ];
+
+                    continue;
+                }
+
+                if (!$adaptation instanceof \PhpParser\Node\Stmt\TraitUseAdaptation\Precedence) {
+                    continue;
+                }
+
+                $insteadOf = [];
+                foreach ($adaptation->insteadof as $replacedTrait) {
+                    $replacedTraitName = $replacedTrait->toString();
+                    /** @var class-string $replacedTraitName */
+                    $replacedTraitName = $replacedTraitName;
+                    $insteadOf[] = $replacedTraitName;
+                }
+
+                $this->traitAdaptations[] = [
+                    'type'      => 'precedence',
+                    'trait'     => $traitName,
+                    'method'    => $adaptation->method->toString(),
+                    'insteadOf' => $insteadOf,
+                ];
+            }
+        }
+    }
+
+    /**
+     * @param \ReflectionClass<object> $class
+     */
+    protected function collectTraitUsesFromReflection(\ReflectionClass $class): void
+    {
+        foreach ($class->getTraitNames() as $traitName) {
+            /** @var class-string $traitName */
+            $traitName = $traitName;
+            $this->traitUses[$traitName] = $traitName;
+        }
     }
 
     /**

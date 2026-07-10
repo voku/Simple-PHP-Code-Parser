@@ -25,6 +25,312 @@ final class ParserTest extends \PHPUnit\Framework\TestCase
         static::assertSame('bool', $phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['useRandInt']->type);
     }
 
+    public function testExposesSourceRangesTraitUsesAndResolvedAst(): void
+    {
+        $source = <<<'PHP'
+<?php
+
+namespace SourceMap;
+
+use Vendor\Shared\One as First;
+
+interface Contract extends FirstContract, \Vendor\Two\SecondContract
+{
+    public function execute(): void;
+}
+
+final class Service
+{
+    use First, \Vendor\Shared\Second {
+        First::run insteadof \Vendor\Shared\Second;
+        First::other as protected aliased;
+    }
+
+    public function run(
+        string $first,
+        int $second,
+    ): void {
+        echo $first;
+    }
+}
+
+function helper(): void
+{
+}
+PHP;
+
+        $container = PhpCodeParser::getPhpFiles($source);
+        $class = $container->getClasses()['SourceMap\Service'];
+        $method = $class->methods['run'];
+        $parameter = $method->parameters['second'];
+        $function = $container->getFunctions()['SourceMap\helper'];
+
+        static::assertSame(12, $class->line);
+        static::assertSame(25, $class->endLine);
+        static::assertNotNull($class->startFilePos);
+        static::assertNotNull($class->endFilePos);
+        static::assertGreaterThan($class->startFilePos, $class->endFilePos);
+        static::assertStringEndsWith("\n}", \substr($source, $class->startFilePos, $class->endFilePos - $class->startFilePos + 1));
+
+        static::assertSame(19, $method->line);
+        static::assertSame(24, $method->endLine);
+        static::assertSame(21, $parameter->line);
+        static::assertSame(21, $parameter->endLine);
+        static::assertSame(27, $function->line);
+        static::assertSame(29, $function->endLine);
+
+        static::assertSame(
+            [
+                'Vendor\Shared\One'    => 'Vendor\Shared\One',
+                'Vendor\Shared\Second' => 'Vendor\Shared\Second',
+            ],
+            $class->traitUses
+        );
+        static::assertSame(
+            [
+                [
+                    'type'      => 'precedence',
+                    'trait'     => 'Vendor\Shared\One',
+                    'method'    => 'run',
+                    'insteadOf' => ['Vendor\Shared\Second'],
+                ],
+                [
+                    'type'       => 'alias',
+                    'trait'      => 'Vendor\Shared\One',
+                    'method'     => 'other',
+                    'alias'      => 'aliased',
+                    'visibility' => 'protected',
+                ],
+            ],
+            $class->traitAdaptations
+        );
+        static::assertSame(
+            ['SourceMap\FirstContract', 'Vendor\Two\SecondContract'],
+            $container->getInterfaces()['SourceMap\Contract']->parentInterfaces
+        );
+
+        $ast = PhpCodeParser::getAstFromString($source);
+        static::assertCount(1, $ast);
+        static::assertInstanceOf(\PhpParser\Node\Stmt\Namespace_::class, $ast[0]);
+
+        $classNode = null;
+        foreach ($ast[0]->stmts as $statement) {
+            if ($statement instanceof \PhpParser\Node\Stmt\Class_) {
+                $classNode = $statement;
+
+                break;
+            }
+        }
+
+        static::assertInstanceOf(\PhpParser\Node\Stmt\Class_::class, $classNode);
+        static::assertInstanceOf(\PhpParser\Node\Stmt\TraitUse::class, $classNode->stmts[0]);
+        static::assertSame('Vendor\Shared\One', $classNode->stmts[0]->traits[0]->toString());
+    }
+
+    public function testExtractsEveryPropertyFromGroupedDeclarations(): void
+    {
+        $source = <<<'PHP'
+<?php
+namespace GroupedProperties;
+
+final class Example
+{
+    public int $first = 1, $second = 2;
+}
+
+trait ExampleTrait
+{
+    private static string $alpha = 'a', $beta = 'b';
+}
+PHP;
+
+        $container = PhpCodeParser::getPhpFiles($source);
+        $classProperties = $container->getClasses()['GroupedProperties\Example']->properties;
+        $traitProperties = $container->getTraits()['GroupedProperties\ExampleTrait']->properties;
+
+        static::assertSame(['first', 'second'], \array_keys($classProperties));
+        static::assertSame(1, $classProperties['first']->defaultValue);
+        static::assertSame(2, $classProperties['second']->defaultValue);
+        static::assertSame(6, $classProperties['first']->line);
+        static::assertSame(6, $classProperties['second']->line);
+        static::assertSame(6, $classProperties['first']->endLine);
+        static::assertSame(6, $classProperties['second']->endLine);
+
+        static::assertSame(['alpha', 'beta'], \array_keys($traitProperties));
+        static::assertSame('a', $traitProperties['alpha']->defaultValue);
+        static::assertSame('b', $traitProperties['beta']->defaultValue);
+
+        $propertyReader = new \ReflectionMethod(\voku\SimplePhpParser\Model\PHPProperty::class, 'readObjectFromPhpNode');
+        static::assertSame('object', $propertyReader->getParameters()[2]->getType()?->getName());
+    }
+
+    public function testPropagatesFileToAstOnlyMembers(): void
+    {
+        $file = \sys_get_temp_dir() . '/simple-php-code-parser-' . \bin2hex(\random_bytes(6)) . '.php';
+        \file_put_contents($file, <<<'PHP'
+<?php
+namespace SourceFile;
+
+final class Example
+{
+    public string $property = 'value';
+
+    public function method(int $parameter): void
+    {
+    }
+}
+PHP);
+
+        try {
+            $container = PhpCodeParser::getPhpFiles($file);
+            $class = $container->getClasses()['SourceFile\Example'];
+            $parsedFile = \realpath($file);
+
+            static::assertIsString($parsedFile);
+            static::assertSame($parsedFile, $class->file);
+            static::assertSame($parsedFile, $class->properties['property']->file);
+            static::assertSame($parsedFile, $class->methods['method']->file);
+            static::assertSame($parsedFile, $class->methods['method']->parameters['parameter']->file);
+        } finally {
+            \unlink($file);
+        }
+    }
+
+    public function testUsesTheSemicolonLineForMultilineBodylessMethods(): void
+    {
+        $source = <<<'PHP'
+<?php
+namespace Bodyless;
+
+interface Contract
+{
+    public function dispatch(
+        string $subject,
+        int $priority,
+    ): void;
+}
+
+abstract class Handler
+{
+    abstract protected function handle(
+        string $subject,
+    ): int;
+}
+PHP;
+
+        $container = PhpCodeParser::getPhpFiles($source);
+        $interfaceMethod = $container->getInterfaces()['Bodyless\Contract']->methods['dispatch'];
+        $abstractMethod = $container->getClasses()['Bodyless\Handler']->methods['handle'];
+
+        static::assertSame(6, $interfaceMethod->line);
+        static::assertSame(9, $interfaceMethod->endLine);
+        static::assertSame(8, $interfaceMethod->parameters['priority']->line);
+        static::assertSame(8, $interfaceMethod->parameters['priority']->endLine);
+        static::assertSame(14, $abstractMethod->line);
+        static::assertSame(16, $abstractMethod->endLine);
+    }
+
+    public function testExposesFileMetadataAndResolvesPhpDocImports(): void
+    {
+        $source = <<<'PHP'
+<?php
+declare(strict_types=1);
+
+namespace Metadata;
+
+use Vendor\Contracts\Payload as Message;
+use Vendor\Group\{One, Two as Renamed};
+use function Vendor\helpers\format as format_message;
+use const Vendor\VERSION;
+
+final class Handler
+{
+    /** @var list<Message> */
+    public array $history = [];
+
+    /**
+     * @param Message $message
+     * @return list<Message>
+     * @throws Message when formatting fails
+     */
+    public function handle(Message $message): array
+    {
+        return [$message];
+    }
+}
+PHP;
+
+        $container = PhpCodeParser::getPhpFiles($source);
+        $class = $container->getClasses()['Metadata\Handler'];
+        $method = $class->methods['handle'];
+
+        static::assertSame('list<\Vendor\Contracts\Payload>', $class->properties['history']->typeFromPhpDocResolved);
+        static::assertSame('\Vendor\Contracts\Payload', $method->parameters['message']->typeFromPhpDocResolved);
+        static::assertSame('list<\Vendor\Contracts\Payload>', $method->returnTypeFromPhpDocResolved);
+        static::assertSame(['Vendor\Contracts\Payload'], $method->throws);
+
+        $fileInfo = PhpCodeParser::getFileInfoFromString($source);
+        static::assertCount(2, $fileInfo->namespaces);
+        static::assertSame(['strict_types' => 1], $fileInfo->namespaces[0]['declares']);
+        static::assertSame('Metadata', $fileInfo->namespaces[1]['name']);
+        static::assertSame(
+            [
+                ['name' => 'Vendor\Contracts\Payload', 'alias' => 'Message', 'kind' => 'class', 'line' => 6, 'endLine' => 6],
+                ['name' => 'Vendor\Group\One', 'alias' => 'One', 'kind' => 'class', 'line' => 7, 'endLine' => 7],
+                ['name' => 'Vendor\Group\Two', 'alias' => 'Renamed', 'kind' => 'class', 'line' => 7, 'endLine' => 7],
+                ['name' => 'Vendor\helpers\format', 'alias' => 'format_message', 'kind' => 'function', 'line' => 8, 'endLine' => 8],
+                ['name' => 'Vendor\VERSION', 'alias' => 'VERSION', 'kind' => 'const', 'line' => 9, 'endLine' => 9],
+            ],
+            $fileInfo->namespaces[1]['imports']
+        );
+    }
+
+    public function testExposesCompactDeclarationAndEnumCaseMetadata(): void
+    {
+        $source = <<<'PHP'
+<?php
+namespace Semantics;
+
+#[\Attribute]
+final class Marker
+{
+}
+
+enum State: string
+{
+    #[Marker]
+    case Ready = 'ready';
+}
+
+abstract class Handler
+{
+    final public const FLAG = 'flag';
+
+    abstract public function &handle(public string $message): string;
+}
+
+function &makeHandler(): Handler
+{
+    throw new \LogicException();
+}
+PHP;
+
+        $container = PhpCodeParser::getPhpFiles($source);
+        $handler = $container->getClasses()['Semantics\Handler'];
+        $method = $handler->methods['handle'];
+        $function = $container->getFunctions()['Semantics\makeHandler'];
+        $case = $container->getEnums()['Semantics\State']->caseDetails['Ready'];
+
+        static::assertTrue($handler->constants['FLAG']->is_final);
+        static::assertTrue($method->is_abstract);
+        static::assertTrue($method->is_returned_by_ref);
+        static::assertTrue($method->parameters['message']->is_promoted);
+        static::assertTrue($function->is_returned_by_ref);
+        static::assertSame('ready', $case->value);
+        static::assertSame(11, $case->line);
+        static::assertSame(['Semantics\Marker'], \array_column($case->attributes, 'name'));
+    }
+
     public function testSimpleOneClassV2(): void
     {
         $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy3.php');

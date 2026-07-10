@@ -78,6 +78,8 @@ class PHPClass extends BasePHPClass
 
         $this->collectTags($node);
 
+        $this->collectTraitUsesFromPhpNode($node);
+
         if (!empty($node->extends)) {
             $classExtended = $node->extends->toString();
             /** @noinspection PhpSillyAssignmentInspection - hack for phpstan */
@@ -92,16 +94,18 @@ class PHPClass extends BasePHPClass
         }
 
         foreach ($node->getProperties() as $property) {
-            $propertyNameTmp = $this->getConstantFQN($property, $property->props[0]->name->name);
+            foreach ($property->props as $propertyItem) {
+                $propertyNameTmp = $this->getConstantFQN($property, $propertyItem->name->name);
 
-            if (isset($this->properties[$propertyNameTmp])) {
-                $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name);
-            } else {
-                $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
-            }
+                if (isset($this->properties[$propertyNameTmp])) {
+                    $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name, $propertyItem);
+                } else {
+                    $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name, $propertyItem);
+                }
 
-            if ($this->is_readonly) {
-                $this->properties[$propertyNameTmp]->is_readonly = true;
+                if ($this->is_readonly) {
+                    $this->properties[$propertyNameTmp]->is_readonly = true;
+                }
             }
         }
 
@@ -150,6 +154,13 @@ class PHPClass extends BasePHPClass
             }
         }
 
+        if ($this->endLine === null) {
+            $endLineTmp = $clazz->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
+            }
+        }
+
         $file = $clazz->getFileName();
         if ($file) {
             $this->file = $file;
@@ -170,6 +181,8 @@ class PHPClass extends BasePHPClass
         $this->is_instantiable = $clazz->isInstantiable();
 
         $this->is_iterable = $clazz->isIterable();
+
+        $this->collectTraitUsesFromReflection($clazz);
 
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($clazz);

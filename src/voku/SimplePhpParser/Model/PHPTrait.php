@@ -54,18 +54,22 @@ final class PHPTrait extends BasePHPClass
 
         $this->collectTags($node);
 
+        $this->collectTraitUsesFromPhpNode($node);
+
         $docComment = $node->getDocComment();
         if ($docComment) {
             $this->readPhpDocProperties($docComment);
         }
 
         foreach ($node->getProperties() as $property) {
-            $propertyNameTmp = $this->getConstantFQN($property, $property->props[0]->name->name);
+            foreach ($property->props as $propertyItem) {
+                $propertyNameTmp = $this->getConstantFQN($property, $propertyItem->name->name);
 
-            if (isset($this->properties[$propertyNameTmp])) {
-                $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name);
-            } else {
-                $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name);
+                if (isset($this->properties[$propertyNameTmp])) {
+                    $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name, $propertyItem);
+                } else {
+                    $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name, $propertyItem);
+                }
             }
         }
 
@@ -123,6 +127,13 @@ final class PHPTrait extends BasePHPClass
             }
         }
 
+        if ($this->endLine === null) {
+            $endLineTmp = $clazz->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
+            }
+        }
+
         $file = $clazz->getFileName();
         if ($file) {
             $this->file = $file;
@@ -139,6 +150,8 @@ final class PHPTrait extends BasePHPClass
         $this->is_instantiable = $clazz->isInstantiable();
 
         $this->is_iterable = $clazz->isIterable();
+
+        $this->collectTraitUsesFromReflection($clazz);
 
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($clazz);

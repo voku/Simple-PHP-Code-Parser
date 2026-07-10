@@ -26,6 +26,11 @@ class PHPParameter extends BasePHPElement
 
     public ?string $typeFromPhpDoc = null;
 
+    /**
+     * Import-aware equivalent of $typeFromPhpDoc for AST-backed models.
+     */
+    public ?string $typeFromPhpDocResolved = null;
+
     public ?string $typeFromPhpDocSimple = null;
 
     public ?string $typeFromPhpDocExtended = null;
@@ -35,6 +40,8 @@ class PHPParameter extends BasePHPElement
     public ?bool $is_vararg = null;
 
     public ?bool $is_passed_by_ref = null;
+
+    public ?bool $is_promoted = null;
 
     public ?bool $is_inheritdoc = null;
 
@@ -65,9 +72,9 @@ class PHPParameter extends BasePHPElement
 
         $this->name = \is_string($parameterVar->name) ? $parameterVar->name : '';
 
-        if ($node) {
-            $this->prepareNode($node);
+        $this->prepareNode($parameter);
 
+        if ($node) {
             $docComment = $node->getDocComment();
             if ($docComment) {
                 $docCommentText = $docComment->getText();
@@ -76,7 +83,7 @@ class PHPParameter extends BasePHPElement
                     $this->is_inheritdoc = true;
                 }
 
-                $this->readPhpDoc($docComment, $this->name);
+                $this->readPhpDoc($docComment, $this->name, self::getPhpDocContext($node));
             }
         }
 
@@ -109,6 +116,8 @@ class PHPParameter extends BasePHPElement
         $this->is_vararg = $parameter->variadic;
 
         $this->is_passed_by_ref = $parameter->byRef;
+
+        $this->is_promoted = self::isPromotedParameter($parameter);
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
         if (empty($this->attributes) && !empty($parameter->attrGroups)) {
@@ -202,6 +211,10 @@ class PHPParameter extends BasePHPElement
 
         $this->is_passed_by_ref = $parameter->isPassedByReference();
 
+        if (\method_exists($parameter, 'isPromoted')) {
+            $this->is_promoted = $parameter->isPromoted();
+        }
+
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($parameter);
 
@@ -231,7 +244,7 @@ class PHPParameter extends BasePHPElement
     /**
      * @param Doc|string $doc
      */
-    private function readPhpDoc($doc, string $parameterName): void
+    private function readPhpDoc($doc, string $parameterName, ?\phpDocumentor\Reflection\Types\Context $context = null): void
     {
         if ($doc instanceof Doc) {
             $docComment = $doc->getText();
@@ -256,7 +269,6 @@ class PHPParameter extends BasePHPElement
                         }
 
                         $type = $parsedParamTag->getType();
-
                         $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
                         $typeFromPhpDocMaybeWithCommentTmp = \trim((string) $parsedParamTag);
@@ -307,6 +319,22 @@ class PHPParameter extends BasePHPElement
                     }
 
                     $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->addParseError($e);
+        }
+
+        try {
+            $resolvedPhpDoc = DocFactoryProvider::getDocFactory()->create($docComment, $context);
+            foreach ($resolvedPhpDoc->getTagsByName('param') as $resolvedParamTag) {
+                if (
+                    $resolvedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Param
+                    && \strtoupper($parameterName) === \strtoupper((string)$resolvedParamTag->getVariableName())
+                ) {
+                    $this->typeFromPhpDocResolved = (string)$resolvedParamTag->getType();
+
+                    break;
                 }
             }
         } catch (\Exception $e) {

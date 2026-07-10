@@ -21,6 +21,31 @@ abstract class BasePHPElement
 
     public ?int $line = null;
 
+    /**
+     * Last line covered by this element, inclusive.
+     *
+     * This is populated from php-parser AST nodes. Reflection-backed models
+     * populate it when the corresponding reflection API exposes an end line.
+     */
+    public ?int $endLine = null;
+
+    /**
+     * Zero-based byte offset of the first character covered by this element.
+     *
+     * The value is null when the active php-parser lexer does not expose file
+     * offsets or when the element was created from reflection.
+     */
+    public ?int $startFilePos = null;
+
+    /**
+     * Zero-based byte offset of the last character covered by this element,
+     * inclusive.
+     *
+     * The value is null when the active php-parser lexer does not expose file
+     * offsets or when the element was created from reflection.
+     */
+    public ?int $endFilePos = null;
+
     public ?string $file = null;
 
     public ?int $pos = null;
@@ -102,6 +127,34 @@ abstract class BasePHPElement
         $this->line = \method_exists($node, 'getStartLine')
             ? $node->getStartLine()
             : $node->getLine();
+
+        $this->endLine = self::nodePosition($node, 'getEndLine');
+        $this->startFilePos = self::nodePosition($node, 'getStartFilePos');
+        $this->endFilePos = self::nodePosition($node, 'getEndFilePos');
+
+        // "pos" predates the explicit source-range properties and was never
+        // populated. Keep it as a backwards-compatible alias for consumers
+        // that already use it as a source position.
+        $this->pos = $this->startFilePos;
+    }
+
+    private static function nodePosition(Node $node, string $method): ?int
+    {
+        if (!\method_exists($node, $method)) {
+            return null;
+        }
+
+        /** @var mixed $position */
+        $position = $node->{$method}();
+
+        return \is_int($position) && $position >= 0 ? $position : null;
+    }
+
+    protected static function getPhpDocContext(Node $node): ?\phpDocumentor\Reflection\Types\Context
+    {
+        $context = $node->getAttribute('phpDocContext');
+
+        return $context instanceof \phpDocumentor\Reflection\Types\Context ? $context : null;
     }
 
     /**

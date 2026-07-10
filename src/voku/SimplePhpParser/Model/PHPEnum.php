@@ -37,6 +37,14 @@ class PHPEnum extends BasePHPClass
     public array $cases = [];
 
     /**
+     * Rich enum-case models keyed by case name. The legacy $cases map remains
+     * available for consumers that only need the backing value.
+     *
+     * @var array<string, PHPEnumCase>
+     */
+    public array $caseDetails = [];
+
+    /**
      * @param Enum_ $node
      * @param null  $dummy
      *
@@ -72,18 +80,17 @@ class PHPEnum extends BasePHPClass
 
         $this->collectTags($node);
 
+        $this->collectTraitUsesFromPhpNode($node);
+
         // Extract enum cases from AST
         foreach ($node->stmts as $stmt) {
             if ($stmt instanceof EnumCase) {
                 $caseName = $stmt->name->name;
-                $caseValue = null;
-                if ($stmt->expr !== null) {
-                    $caseValue = Utils::getPhpParserValueFromNode($stmt->expr);
-                    if ($caseValue === Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-                        $caseValue = null;
-                    }
-                }
-                $this->cases[$caseName] = $caseValue;
+                $case = new PHPEnumCase($this->parserContainer);
+                $case->file = $this->file;
+                $case = $case->readObjectFromPhpNode($stmt);
+                $this->caseDetails[$caseName] = $case;
+                $this->cases[$caseName] = $case->value;
             }
         }
 
@@ -146,12 +153,21 @@ class PHPEnum extends BasePHPClass
             }
         }
 
+        if ($this->endLine === null) {
+            $endLineTmp = $clazz->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
+            }
+        }
+
         $file = $clazz->getFileName();
         if ($file) {
             $this->file = $file;
         }
 
         $this->is_final = $clazz->isFinal();
+
+        $this->collectTraitUsesFromReflection($clazz);
 
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($clazz);
@@ -164,11 +180,9 @@ class PHPEnum extends BasePHPClass
 
             foreach ($clazz->getCases() as $case) {
                 $caseName = $case->getName();
-                $caseValue = null;
-                if ($clazz->isBacked() && \method_exists($case, 'getBackingValue')) {
-                    $caseValue = $case->getBackingValue();
-                }
-                $this->cases[$caseName] = $caseValue;
+                $caseDetail = (new PHPEnumCase($this->parserContainer))->readObjectFromReflection($case);
+                $this->caseDetails[$caseName] = $caseDetail;
+                $this->cases[$caseName] = $caseDetail->value;
             }
         }
 

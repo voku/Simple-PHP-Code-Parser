@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Comment\Doc;
-use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Param;
+use PhpParser\Node\Stmt\Property;
 use ReflectionProperty;
 use voku\SimplePhpParser\Parsers\Helper\DocFactoryProvider;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
@@ -25,6 +25,11 @@ class PHPProperty extends BasePHPElement
     public ?string $typeFromDefaultValue = null;
 
     public ?string $typeFromPhpDoc = null;
+
+    /**
+     * Import-aware equivalent of $typeFromPhpDoc for AST-backed models.
+     */
+    public ?string $typeFromPhpDocResolved = null;
 
     public ?string $typeFromPhpDocSimple = null;
 
@@ -71,16 +76,19 @@ class PHPProperty extends BasePHPElement
     public array $attributes = [];
 
     /**
-     * @param Property    $node
-     * @param string|null $classStr
+     * @param Property                                        $node
+     * @param string|null                                     $classStr
+     * @param \PhpParser\Node\PropertyItem|\PhpParser\Node\Stmt\PropertyProperty|null $propertyItem
      *
      * @phpstan-param class-string|null $classStr
      *
      * @return $this
      */
-    public function readObjectFromPhpNode($node, $classStr = null): self
+    public function readObjectFromPhpNode($node, $classStr = null, ?object $propertyItem = null): self
     {
-        $this->name = $this->getConstantFQN($node, $node->props[0]->name->name);
+        $propertyItem ??= $node->props[0];
+
+        $this->name = $this->getConstantFQN($node, $propertyItem->name->name);
 
         $this->is_static = $node->isStatic();
 
@@ -121,7 +129,7 @@ class PHPProperty extends BasePHPElement
                 $this->is_inheritdoc = true;
             }
 
-            $this->readPhpDoc($docComment);
+            $this->readPhpDoc($docComment, self::getPhpDocContext($node));
         }
 
         if ($node->type !== null) {
@@ -137,8 +145,8 @@ class PHPProperty extends BasePHPElement
             }
         }
 
-        if ($node->props[0]->default !== null) {
-            $defaultValue = Utils::getPhpParserValueFromNode($node->props[0]->default, $classStr);
+        if ($propertyItem->default !== null) {
+            $defaultValue = Utils::getPhpParserValueFromNode($propertyItem->default, $classStr);
             if ($defaultValue !== Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
                 $this->defaultValue = $defaultValue;
 
@@ -444,7 +452,7 @@ class PHPProperty extends BasePHPElement
     /**
      * @param Doc|string $doc
      */
-    private function readPhpDoc($doc): void
+    private function readPhpDoc($doc, ?\phpDocumentor\Reflection\Types\Context $context = null): void
     {
         if ($doc instanceof Doc) {
             $docComment = $doc->getText();
@@ -466,7 +474,6 @@ class PHPProperty extends BasePHPElement
 
                     if ($parsedParamTag instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
                         $type = $parsedParamTag->getType();
-
                         $this->typeFromPhpDoc = Utils::normalizePhpType($type . '');
 
                         $typeFromPhpDocMaybeWithCommentTmp = \trim($parsedParamTagParam);
@@ -503,6 +510,17 @@ class PHPProperty extends BasePHPElement
 
                     $this->typeFromPhpDocExtended = Utils::modernPhpdoc($parsedParamTagStr);
                 }
+            }
+        } catch (\Exception $e) {
+            $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
+            $this->parseError[\md5($tmpErrorMessage)] = $tmpErrorMessage;
+        }
+
+        try {
+            $resolvedPhpDoc = DocFactoryProvider::getDocFactory()->create($docComment, $context);
+            $resolvedVarTags = $resolvedPhpDoc->getTagsByName('var');
+            if (isset($resolvedVarTags[0]) && $resolvedVarTags[0] instanceof \phpDocumentor\Reflection\DocBlock\Tags\Var_) {
+                $this->typeFromPhpDocResolved = (string)$resolvedVarTags[0]->getType();
             }
         } catch (\Exception $e) {
             $tmpErrorMessage = $this->name . ':' . ($this->line ?? '?') . ' | ' . \print_r($e->getMessage(), true);
@@ -564,7 +582,7 @@ class PHPProperty extends BasePHPElement
             if (!$this->phpDocRaw) {
                 $this->phpDocRaw = $bestContent;
             }
-            $this->typeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
+                $this->typeFromPhpDocExtended = Utils::modernPhpdoc($bestContent);
         }
     }
 }

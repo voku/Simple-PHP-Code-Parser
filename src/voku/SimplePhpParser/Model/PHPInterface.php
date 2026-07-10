@@ -56,6 +56,8 @@ class PHPInterface extends BasePHPClass
 
         $this->collectTags($node);
 
+        $this->collectTraitUsesFromPhpNode($node);
+
         foreach ($node->getMethods() as $method) {
             $methodNameTmp = $method->name->name;
 
@@ -71,9 +73,11 @@ class PHPInterface extends BasePHPClass
         }
 
         if (!empty($node->extends)) {
-            /** @var class-string $interfaceExtended */
-            $interfaceExtended = $node->extends[0]->toString();
-            $this->parentInterfaces[] = $interfaceExtended;
+            foreach ($node->extends as $interfaceExtendedNode) {
+                /** @var class-string $interfaceExtended */
+                $interfaceExtended = $interfaceExtendedNode->toString();
+                $this->parentInterfaces[] = $interfaceExtended;
+            }
         }
 
         return $this;
@@ -92,6 +96,13 @@ class PHPInterface extends BasePHPClass
             $lineTmp = $interface->getStartLine();
             if ($lineTmp !== false) {
                 $this->line = $lineTmp;
+            }
+        }
+
+        if ($this->endLine === null) {
+            $endLineTmp = $interface->getEndLine();
+            if ($endLineTmp !== false) {
+                $this->endLine = $endLineTmp;
             }
         }
 

@@ -12,12 +12,14 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use voku\cache\Cache;
+use voku\SimplePhpParser\Model\PHPFileInfo;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
+use voku\SimplePhpParser\Parsers\Visitors\PhpDocContextConnector;
 
 final class PhpCodeParser
 {
@@ -40,6 +42,83 @@ final class PhpCodeParser
             $code,
             $autoloaderProjectPaths
         );
+    }
+
+    /**
+     * Parse PHP source into the names-resolved AST used internally to build
+     * the public model layer.
+     *
+     * The returned nodes retain php-parser's location attributes and have a
+     * `parent` attribute. NameResolver also preserves aliases as
+     * `originalName` attributes while replacing resolvable names with their
+     * fully-qualified form. This is an escape hatch for consumers that need
+     * syntax not represented by the compact model layer.
+     *
+     * @return array<int, \PhpParser\Node>
+     *
+     * @throws \RuntimeException when the source cannot be parsed
+     */
+    public static function getAstFromString(string $code): array
+    {
+        $errorHandler = new ParserErrorHandler();
+        $parsedCode = self::parseAst($code, $errorHandler);
+
+        if ($parsedCode === null || $errorHandler->getErrors() !== []) {
+            throw new \RuntimeException(self::formatParseErrors($errorHandler));
+        }
+
+        self::resolveAst($parsedCode, $errorHandler);
+
+        if ($errorHandler->getErrors() !== []) {
+            throw new \RuntimeException(self::formatParseErrors($errorHandler));
+        }
+
+        return $parsedCode;
+    }
+
+    /**
+     * Parse one PHP file into the names-resolved AST used internally to build
+     * the public model layer.
+     *
+     * @return array<int, \PhpParser\Node>
+     *
+     * @throws \RuntimeException when the file cannot be read or parsed
+     */
+    public static function getAstFromFile(string $fileName): array
+    {
+        $code = \file_get_contents($fileName);
+        if ($code === false) {
+            $lastError = \error_get_last();
+            throw new \RuntimeException('Could not read file: ' . $fileName . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
+        }
+
+        return self::getAstFromString($code);
+    }
+
+    /**
+     * Return compact namespace, import, and declare metadata for one source
+     * string without forcing callers to walk the raw AST.
+     */
+    public static function getFileInfoFromString(string $code): PHPFileInfo
+    {
+        return PHPFileInfo::fromAst(self::getAstFromString($code));
+    }
+
+    /**
+     * Return compact namespace, import, and declare metadata for one PHP
+     * file without forcing callers to walk the raw AST.
+     *
+     * @throws \RuntimeException when the file cannot be read or parsed
+     */
+    public static function getFileInfoFromFile(string $fileName): PHPFileInfo
+    {
+        $code = \file_get_contents($fileName);
+        if ($code === false) {
+            $lastError = \error_get_last();
+            throw new \RuntimeException('Could not read file: ' . $fileName . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
+        }
+
+        return PHPFileInfo::fromAst(self::getAstFromString($code), $fileName);
     }
 
     /**
@@ -204,34 +283,15 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ASTVisitor $visitor
     ) {
-        $parser = (new ParserFactory())->createForNewestSupportedVersion();
-
         $errorHandler = new ParserErrorHandler();
 
-        $nameResolver = new NameResolver(
-            $errorHandler,
-            [
-                'preserveOriginalNames' => true,
-            ]
-        );
-
-        /** @var \PhpParser\Node[]|null $parsedCode */
-        $parsedCode = $parser->parse($phpCode, $errorHandler);
+        $parsedCode = self::parseAst($phpCode, $errorHandler);
 
         if ($parsedCode === null) {
             return $errorHandler;
         }
 
-        // Pass 1: set parent attributes and fully resolve all names in the AST.
-        // NameResolver modifies Name nodes in-place (converting them to FullyQualified),
-        // so by the time ASTVisitor runs in pass 2, every type-hint Name node already
-        // carries its fully-qualified form. This is necessary because ASTVisitor processes
-        // class members (properties, methods) eagerly inside enterNode(Class_), before
-        // the single-pass traverser would have had a chance to visit those child nodes.
-        $traverser1 = new NodeTraverser();
-        $traverser1->addVisitor(new ParentConnector());
-        $traverser1->addVisitor($nameResolver);
-        $traverser1->traverse($parsedCode);
+        self::resolveAst($parsedCode, $errorHandler);
 
         $visitor->fileName = $fileName;
 
@@ -241,6 +301,49 @@ final class PhpCodeParser
         $traverser2->traverse($parsedCode);
 
         return $parserContainer;
+    }
+
+    /**
+     * @return array<int, \PhpParser\Node>|null
+     */
+    private static function parseAst(string $phpCode, ParserErrorHandler $errorHandler): ?array
+    {
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
+
+        return $parser->parse($phpCode, $errorHandler);
+    }
+
+    /**
+     * @param array<int, \PhpParser\Node> $parsedCode
+     */
+    private static function resolveAst(array $parsedCode, ParserErrorHandler $errorHandler): void
+    {
+        $nameResolver = new NameResolver(
+            $errorHandler,
+            [
+                'preserveOriginalNames' => true,
+            ]
+        );
+
+        // Set parent attributes and fully resolve all names before model
+        // extraction. ASTVisitor reads class members eagerly when it enters a
+        // class-like node, so a single traversal would resolve their types too
+        // late.
+        $traverser = new NodeTraverser();
+        $traverser->addVisitor(new ParentConnector());
+        $traverser->addVisitor($nameResolver);
+        $traverser->addVisitor(new PhpDocContextConnector());
+        $traverser->traverse($parsedCode);
+    }
+
+    private static function formatParseErrors(ParserErrorHandler $errorHandler): string
+    {
+        $messages = [];
+        foreach ($errorHandler->getErrors() as $error) {
+            $messages[] = $error->getMessage();
+        }
+
+        return $messages === [] ? 'Could not parse PHP code.' : \implode("\n", $messages);
     }
 
     /**
