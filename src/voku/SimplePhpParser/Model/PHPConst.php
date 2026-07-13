@@ -55,7 +55,8 @@ class PHPConst extends BasePHPElement
 
         $this->name = $this->getConstantFQN($node, $node->name->name);
 
-        $this->value = Utils::getPhpParserValueFromNode($node);
+        $valueTmp = Utils::getPhpParserValueFromNode($node);
+        $this->value = $valueTmp === Utils::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER ? null : $valueTmp;
 
         $parentNode = $node->getAttribute('parent');
 
@@ -117,10 +118,21 @@ class PHPConst extends BasePHPElement
             $this->file = $file;
         }
 
-        /** @psalm-suppress InvalidPropertyAssignmentValue - upstream phpdoc error ? */
-        $this->value = $constant->getValue();
+        try {
+            /** @psalm-suppress InvalidPropertyAssignmentValue - upstream phpdoc error ? */
+            $this->value = $constant->getValue();
+        } catch (\Error $e) {
+            // ReflectionClassConstant::getValue() enforces the constant's
+            // visibility against the *calling* class scope (here: this
+            // class, not the reflected one), so private/protected constants
+            // reflected from outside their declaring class throw instead of
+            // returning a value. There is no accessibility bypass for
+            // constants, so fall back to an unresolved value rather than
+            // aborting the whole reflection pass.
+            $this->value = null;
+        }
 
-        $this->type = \gettype($this->value);
+        $this->type = Utils::normalizePhpType(\gettype($this->value));
 
         if ($constant->isPrivate()) {
             $this->visibility = 'private';

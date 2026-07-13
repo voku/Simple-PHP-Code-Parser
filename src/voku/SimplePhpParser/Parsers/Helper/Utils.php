@@ -161,7 +161,14 @@ final class Utils
             }
 
             if (\class_exists($className, true)) {
-                return \constant($className . '::' . $node->name->name);
+                try {
+                    return \constant($className . '::' . $node->name->name);
+                } catch (\Error $e) {
+                    // constant() enforces the constant's visibility against
+                    // this calling scope, so a private/protected constant
+                    // throws \Error instead of returning its value here.
+                    return self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER;
+                }
             }
         }
 

@@ -154,6 +154,10 @@ class PHPParameter extends BasePHPElement
                 $this->defaultValue = $parameter->getDefaultValue();
             } catch (\ReflectionException $e) {
                 // nothing
+            } catch (\Error $e) {
+                // getDefaultValue() throws \Error (not \ReflectionException)
+                // when the default references a private/protected constant
+                // reflected from outside its declaring class scope.
             }
             if ($this->defaultValue !== null) {
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
@@ -196,7 +200,11 @@ class PHPParameter extends BasePHPElement
                         }
                     }
                 }
-            } catch (\ReflectionException $e) {
+            } catch (\ReflectionException | \Error $e) {
+                // \Error (not \ReflectionException) is what constant()/
+                // getDefaultValueConstantName() throw when the default
+                // references a private/protected constant reflected from
+                // outside its declaring class scope.
                 if ($type->allowsNull()) {
                     if ($this->type && $this->type !== 'null' && \strpos($this->type, 'null|') !== 0) {
                         $this->type = 'null|' . $this->type;

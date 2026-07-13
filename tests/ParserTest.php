@@ -3060,4 +3060,58 @@ PHP;
         static::assertSame('(Countable & Traversable)|null', $method->parameters['input']->typeFromPhpDocExtended);
         static::assertSame('(Countable & Traversable)|null', $method->returnTypeFromPhpDocExtended);
     }
+
+    public function testCrossClassPrivateConstantReferenceDoesNotLeakSentinelValue(): void
+    {
+        // Resolving a class constant's value via constant() enforces visibility
+        // against the calling scope, so referencing another class's private
+        // constant throws \Error under the hood. The parser must recover from
+        // that (null value / null type) instead of leaking the internal
+        // "can't resolve" sentinel string into the parsed data.
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPrivateConst.php');
+        $phpClasses = $phpCode->getClasses();
+
+        $consumer = $phpClasses[DummyPrivateConstConsumer::class];
+
+        static::assertNull($consumer->constants['LEAKED']->value);
+        static::assertSame('null', $consumer->constants['LEAKED']->type);
+
+        $param = $consumer->methods['withPrivateConstDefault']->parameters['x'];
+        static::assertNull($param->defaultValue);
+    }
+
+    public function testReflectionRecoversFromPrivateAndProtectedConstantVisibilityErrors(): void
+    {
+        // Same as above, but exercised through real PHP Reflection objects
+        // (readObjectFromReflection) rather than the AST path, since the two
+        // code paths hit different PHP engine APIs (constant() vs
+        // ReflectionClassConstant::getValue() / ReflectionParameter).
+        $reflectionClass = new \ReflectionClass(DummyPrivateConstOwner::class);
+
+        $privateConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+            ->readObjectFromReflection($reflectionClass->getReflectionConstant('SECRET'));
+        static::assertSame('private', $privateConstant->visibility);
+        static::assertNull($privateConstant->value);
+        static::assertSame('null', $privateConstant->type);
+
+        $protectedConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+            ->readObjectFromReflection($reflectionClass->getReflectionConstant('GUARDED'));
+        static::assertSame('protected', $protectedConstant->visibility);
+        static::assertNull($protectedConstant->value);
+        static::assertSame('null', $protectedConstant->type);
+
+        // A publicly visible constant must still resolve normally.
+        $publicConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+            ->readObjectFromReflection($reflectionClass->getReflectionConstant('OPEN'));
+        static::assertSame('public', $publicConstant->visibility);
+        static::assertSame('open-value', $publicConstant->value);
+        static::assertSame('string', $publicConstant->type);
+
+        $reflectionParameter = (new \ReflectionMethod(DummyPrivateConstConsumer::class, 'withPrivateConstDefault'))
+            ->getParameters()[0];
+
+        $param = (new \voku\SimplePhpParser\Model\PHPParameter())->readObjectFromReflection($reflectionParameter);
+        static::assertNull($param->defaultValue);
+        static::assertSame('string', $param->type);
+    }
 }
