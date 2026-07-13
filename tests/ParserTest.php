@@ -3081,22 +3081,23 @@ PHP;
         // (readObjectFromReflection) rather than the AST path, since the two
         // code paths hit different PHP engine APIs (constant() vs
         // ReflectionClassConstant::getValue() / ReflectionParameter).
+        $parserContainer = new \voku\SimplePhpParser\Parsers\Helper\ParserContainer();
         $reflectionClass = new \ReflectionClass(DummyPrivateConstOwner::class);
 
-        $privateConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+        $privateConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('SECRET'));
         static::assertSame('private', $privateConstant->visibility);
         static::assertNull($privateConstant->value);
         static::assertSame('null', $privateConstant->type);
 
-        $protectedConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+        $protectedConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('GUARDED'));
         static::assertSame('protected', $protectedConstant->visibility);
         static::assertNull($protectedConstant->value);
         static::assertSame('null', $protectedConstant->type);
 
         // A publicly visible constant must still resolve normally.
-        $publicConstant = (new \voku\SimplePhpParser\Model\PHPConst())
+        $publicConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('OPEN'));
         static::assertSame('public', $publicConstant->visibility);
         static::assertSame('open-value', $publicConstant->value);
@@ -3105,7 +3106,7 @@ PHP;
         $reflectionParameter = (new \ReflectionMethod(DummyPrivateConstConsumer::class, 'withPrivateConstDefault'))
             ->getParameters()[0];
 
-        $param = (new \voku\SimplePhpParser\Model\PHPParameter())->readObjectFromReflection($reflectionParameter);
+        $param = (new \voku\SimplePhpParser\Model\PHPParameter($parserContainer))->readObjectFromReflection($reflectionParameter);
         static::assertNull($param->defaultValue);
         static::assertSame('string', $param->type);
     }
