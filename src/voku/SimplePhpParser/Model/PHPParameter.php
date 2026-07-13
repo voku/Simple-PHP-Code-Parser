@@ -154,10 +154,12 @@ class PHPParameter extends BasePHPElement
                 $this->defaultValue = $parameter->getDefaultValue();
             } catch (\ReflectionException $e) {
                 // nothing
+            // PHPStan's stub only declares \ReflectionException for
+            // getDefaultValue(), but it also throws \Error at runtime
+            // when the default references a private/protected constant
+            // reflected from outside its declaring class scope.
+            // @phpstan-ignore catch.neverThrown
             } catch (\Error $e) {
-                // getDefaultValue() throws \Error (not \ReflectionException)
-                // when the default references a private/protected constant
-                // reflected from outside its declaring class scope.
             }
             if ($this->defaultValue !== null) {
                 $this->typeFromDefaultValue = Utils::normalizePhpType(\gettype($this->defaultValue));
