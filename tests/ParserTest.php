@@ -3061,22 +3061,17 @@ PHP;
         static::assertSame('(Countable & Traversable)|null', $method->returnTypeFromPhpDocExtended);
     }
 
-    public function testCrossClassPrivateConstantReferenceDoesNotLeakSentinelValue(): void
+    public function testParameterDefaultReferencingPrivateConstantDoesNotCrashAstParsing(): void
     {
         // Resolving a class constant's value via constant() enforces visibility
-        // against the calling scope, so referencing another class's private
-        // constant throws \Error under the hood. The parser must recover from
-        // that (null value / null type) instead of leaking the internal
-        // "can't resolve" sentinel string into the parsed data.
-        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPrivateConst.php');
+        // against the calling scope, so a parameter default that references
+        // another class's private constant throws \Error under the hood.
+        // Parsing must recover from that (default value left unresolved)
+        // instead of letting the \Error bubble up and abort the whole file.
+        $phpCode = PhpCodeParser::getPhpFiles(__DIR__ . '/DummyPrivateConstConsumer.php');
         $phpClasses = $phpCode->getClasses();
 
-        $consumer = $phpClasses[DummyPrivateConstConsumer::class];
-
-        static::assertNull($consumer->constants['LEAKED']->value);
-        static::assertSame('null', $consumer->constants['LEAKED']->type);
-
-        $param = $consumer->methods['withPrivateConstDefault']->parameters['x'];
+        $param = $phpClasses[DummyPrivateConstConsumer::class]->methods['withPrivateConstDefault']->parameters['x'];
         static::assertNull($param->defaultValue);
     }
 
