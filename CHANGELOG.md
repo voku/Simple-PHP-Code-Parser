@@ -5,6 +5,7 @@
 - fix: reflecting/parsing a private or protected class constant referenced from outside its declaring class (via `constant()` / `ReflectionParameter::getDefaultValue()`) threw an uncaught `\Error` and aborted the whole parse; now recovered gracefully
 - fix: `PHPConst` reflection path assigned an unnormalized `gettype()` string (e.g. `'NULL'` instead of `'null'`) when a constant's value couldn't be resolved
 - add regression coverage for parsing/reflecting code that references private/protected constants across class boundaries
+- fix: phpstan dead-catch false positive on the `\Error` catch around `ReflectionParameter::getDefaultValue()` (its stub only declares `\ReflectionException`, but it also throws `\Error` at runtime for this case)
 
 ### 0.22.0 (2026-07-10)
 
