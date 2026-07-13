@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.1 (2026-07-13)
+
+- fix: reflecting/parsing a private or protected class constant referenced from outside its declaring class (via `constant()` / `ReflectionParameter::getDefaultValue()`) threw an uncaught `\Error` and aborted the whole parse; now recovered gracefully
+- fix: `PHPConst` reflection path assigned an unnormalized `gettype()` string (e.g. `'NULL'` instead of `'null'`) when a constant's value couldn't be resolved
+- add regression coverage for parsing/reflecting code that references private/protected constants across class boundaries
+
 ### 0.22.0 (2026-07-10)
 
 - add source-range info to every model element: `endLine`, `startFilePos`, `endFilePos` (byte offsets), enabling precise `sed`/byte-range reads of a single declaration without loading the whole file
