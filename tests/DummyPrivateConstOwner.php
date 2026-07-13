@@ -14,4 +14,6 @@ class DummyPrivateConstOwner
     protected const GUARDED = 'guarded-value';
 
     public const OPEN = 'open-value';
+
+    public const NOTHING = null;
 }

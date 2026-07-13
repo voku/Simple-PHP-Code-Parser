@@ -3075,34 +3075,50 @@ PHP;
         static::assertNull($param->defaultValue);
     }
 
-    public function testReflectionRecoversFromPrivateAndProtectedConstantVisibilityErrors(): void
+    public function testReflectionReadsPrivateAndProtectedConstantsDirectly(): void
     {
-        // Same as above, but exercised through real PHP Reflection objects
-        // (readObjectFromReflection) rather than the AST path, since the two
-        // code paths hit different PHP engine APIs (constant() vs
-        // ReflectionClassConstant::getValue() / ReflectionParameter).
+        // ReflectionClassConstant::getValue() bypasses PHP visibility entirely
+        // (unlike the constant() function), so private/protected constants
+        // must resolve to their real value via reflection, with a properly
+        // normalized ('null', not 'NULL') type in all cases.
         $parserContainer = new \voku\SimplePhpParser\Parsers\Helper\ParserContainer();
         $reflectionClass = new \ReflectionClass(DummyPrivateConstOwner::class);
 
         $privateConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('SECRET'));
         static::assertSame('private', $privateConstant->visibility);
-        static::assertNull($privateConstant->value);
-        static::assertSame('null', $privateConstant->type);
+        static::assertSame('secret-value', $privateConstant->value);
+        static::assertSame('string', $privateConstant->type);
 
         $protectedConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('GUARDED'));
         static::assertSame('protected', $protectedConstant->visibility);
-        static::assertNull($protectedConstant->value);
-        static::assertSame('null', $protectedConstant->type);
+        static::assertSame('guarded-value', $protectedConstant->value);
+        static::assertSame('string', $protectedConstant->type);
 
-        // A publicly visible constant must still resolve normally.
         $publicConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
             ->readObjectFromReflection($reflectionClass->getReflectionConstant('OPEN'));
         static::assertSame('public', $publicConstant->visibility);
         static::assertSame('open-value', $publicConstant->value);
         static::assertSame('string', $publicConstant->type);
 
+        // gettype(null) === 'NULL' (uppercase); the type must go through
+        // normalizePhpType() like every other type-from-value assignment,
+        // otherwise a constant with a real null value gets an inconsistent
+        // uppercase 'NULL' type instead of 'null'.
+        $nullConstant = (new \voku\SimplePhpParser\Model\PHPConst($parserContainer))
+            ->readObjectFromReflection($reflectionClass->getReflectionConstant('NOTHING'));
+        static::assertNull($nullConstant->value);
+        static::assertSame('null', $nullConstant->type);
+    }
+
+    public function testReflectionRecoversFromPrivateConstantDefaultValueVisibilityError(): void
+    {
+        // Unlike ReflectionClassConstant::getValue(), ReflectionParameter::getDefaultValue()
+        // and constant() both enforce the constant's visibility against the *calling*
+        // scope, so a parameter default referencing another class's private constant
+        // throws \Error here. Reflecting such a parameter must not crash.
+        $parserContainer = new \voku\SimplePhpParser\Parsers\Helper\ParserContainer();
         $reflectionParameter = (new \ReflectionMethod(DummyPrivateConstConsumer::class, 'withPrivateConstDefault'))
             ->getParameters()[0];
 
