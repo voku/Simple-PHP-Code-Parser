@@ -190,7 +190,9 @@ class PHPEnum extends BasePHPClass
         } elseif ($clazz->isEnum()) {
             // Utils::createClassReflectionInstance() intentionally returns a
             // ReflectionClass, even when the reflected class is an enum.
-            $reflectionEnum = new ReflectionEnum($clazz->getName());
+            $enumName = $clazz->getName();
+            /** @var class-string<\UnitEnum> $enumName */
+            $reflectionEnum = new ReflectionEnum($enumName);
         }
 
         if ($reflectionEnum !== null) {
