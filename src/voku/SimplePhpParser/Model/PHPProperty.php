@@ -291,18 +291,7 @@ class PHPProperty extends BasePHPElement
         if (\method_exists($property, 'getType')) {
             $type = $property->getType();
             if ($type !== null) {
-                if (\method_exists($type, 'getName')) {
-                    $this->type = Utils::normalizePhpType($type->getName(), true);
-                } else {
-                    $this->type = Utils::normalizePhpType($type . '', true);
-                }
-                try {
-                    if ($this->type && \class_exists($this->type, true)) {
-                        $this->type = '\\' . \ltrim($this->type, '\\');
-                    }
-                } catch (\Exception $e) {
-                    // nothing
-                }
+                $this->type = self::reflectionTypeToString($type);
 
                 if ($type->allowsNull()) {
                     $this->type = self::normalizeNullableTypeString($this->type);

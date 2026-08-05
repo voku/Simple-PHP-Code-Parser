@@ -56,6 +56,11 @@ class PHPEnum extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        // Enums are implicitly final and cannot be abstract or anonymous.
+        $this->is_final = true;
+        $this->is_abstract = false;
+        $this->is_anonymous = false;
+
         if ($node->scalarType !== null) {
             $this->scalarType = $node->scalarType->toString();
         }
@@ -65,13 +70,17 @@ class PHPEnum extends BasePHPClass
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
+        // Keep enum autoloading aligned with class parsing: newer syntax may be
+        // parseable by php-parser while the current runtime cannot compile it.
         $enumExists = false;
-        try {
-            if (\class_exists($this->name, true) || \enum_exists($this->name, true)) {
-                $enumExists = true;
+        if (self::canAutoloadFromPhpNode($node)) {
+            try {
+                if (\enum_exists($this->name, true)) {
+                    $enumExists = true;
+                }
+            } catch (\Throwable $e) {
+                // nothing
             }
-        } catch (\Throwable $e) {
-            // nothing
         }
         if ($enumExists) {
             $reflectionEnum = Utils::createClassReflectionInstance($this->name);
@@ -165,20 +174,34 @@ class PHPEnum extends BasePHPClass
             $this->file = $file;
         }
 
-        $this->is_final = $clazz->isFinal();
+        // Reflection exposes the same language-level enum guarantees.
+        $this->is_final = true;
+        $this->is_abstract = false;
+        $this->is_anonymous = false;
 
         $this->collectTraitUsesFromReflection($clazz);
 
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
+        $reflectionEnum = null;
         if ($clazz instanceof ReflectionEnum) {
-            $backingType = $clazz->getBackingType();
+            $reflectionEnum = $clazz;
+        } elseif ($clazz->isEnum()) {
+            // Utils::createClassReflectionInstance() intentionally returns a
+            // ReflectionClass, even when the reflected class is an enum.
+            $enumName = $clazz->getName();
+            /** @var class-string<\UnitEnum> $enumName */
+            $reflectionEnum = new ReflectionEnum($enumName);
+        }
+
+        if ($reflectionEnum !== null) {
+            $backingType = $reflectionEnum->getBackingType();
             if ($backingType !== null) {
                 $this->scalarType = $backingType->getName();
             }
 
-            foreach ($clazz->getCases() as $case) {
+            foreach ($reflectionEnum->getCases() as $case) {
                 $caseName = $case->getName();
                 $caseDetail = (new PHPEnumCase($this->parserContainer))->readObjectFromReflection($case);
                 $this->caseDetails[$caseName] = $caseDetail;
@@ -205,6 +228,13 @@ class PHPEnum extends BasePHPClass
 
         foreach ($clazz->getReflectionConstants() as $constant) {
             $constantNameTmp = $constant->getName();
+
+            // ReflectionClassConstant knows whether it represents an enum case.
+            // This is authoritative and does not depend on caseDetails having
+            // already been populated by a specific reflection implementation.
+            if ($constant->isEnumCase()) {
+                continue;
+            }
 
             $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromReflection($constant);
 

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node;
+use PhpParser\NodeAbstract;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\NodeAbstract;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 
 abstract class BasePHPElement
 {
@@ -155,6 +156,26 @@ abstract class BasePHPElement
         $context = $node->getAttribute('phpDocContext');
 
         return $context instanceof \phpDocumentor\Reflection\Types\Context ? $context : null;
+    }
+
+    protected static function reflectionTypeToString(\ReflectionType $type): ?string
+    {
+        if (!$type instanceof \ReflectionNamedType) {
+            return Utils::normalizePhpType((string) $type, true);
+        }
+
+        $normalizedType = Utils::normalizePhpType($type->getName(), true);
+        if (
+            $normalizedType === null
+            ||
+            $type->isBuiltin()
+            ||
+            \in_array(\strtolower($normalizedType), ['self', 'parent', 'static'], true)
+        ) {
+            return $normalizedType;
+        }
+
+        return '\\' . \ltrim($normalizedType, '\\');
     }
 
     /**
