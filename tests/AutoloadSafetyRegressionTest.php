@@ -66,7 +66,7 @@ PHP;
     {
         $fixtureClass = __NAMESPACE__ . '\\ReflectionTypeAutoloadFixture';
         $missingType = __NAMESPACE__ . '\\MissingReflectionType';
-        $fixture = __DIR__ . '/fixtures/ReflectionTypeAutoloadFixture.php';
+        $fixture = __DIR__ . '/ReflectionTypeAutoloadFixture.php';
 
         require_once $fixture;
 
