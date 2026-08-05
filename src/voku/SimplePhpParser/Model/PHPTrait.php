@@ -34,11 +34,8 @@ final class PHPTrait extends BasePHPClass
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
-        // PHP < 8.2 raises an uncatchable E_COMPILE_ERROR for traits with constants.
-        // Skip autoloading in that case; constants are still read from the AST below.
-        $canAutoload = \PHP_VERSION_ID >= 80200 || empty($node->getConstants());
         $traitExists = false;
-        if ($canAutoload) {
+        if (self::canAutoloadFromPhpNode($node)) {
             try {
                 if (\trait_exists($this->name, true)) {
                     $traitExists = true;
