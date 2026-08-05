@@ -51,7 +51,7 @@ PHP;
             $autoloadedClasses[] = $className;
         };
 
-        \spl_autoload_register($autoloader);
+        \spl_autoload_register($autoloader, true, true);
         try {
             $container = PhpCodeParser::getFromString($source);
         } finally {
@@ -75,7 +75,7 @@ PHP;
             $autoloadedClasses[] = $className;
         };
 
-        \spl_autoload_register($autoloader);
+        \spl_autoload_register($autoloader, true, true);
         try {
             $class = PhpCodeParser::getPhpFiles($fixture)->getClasses()[$fixtureClass];
         } finally {
