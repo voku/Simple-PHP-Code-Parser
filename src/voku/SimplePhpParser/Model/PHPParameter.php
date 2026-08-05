@@ -181,13 +181,20 @@ class PHPParameter extends BasePHPElement
             $type = null;
         }
         if ($type !== null) {
-            if (\method_exists($type, 'getName')) {
-                $this->type = Utils::normalizePhpType($type->getName(), true);
+            if ($type instanceof \ReflectionNamedType) {
+                $normalizedType = Utils::normalizePhpType($type->getName(), true);
+                if (
+                    $normalizedType !== null
+                    &&
+                    !$type->isBuiltin()
+                    &&
+                    !\in_array(\strtolower($normalizedType), ['self', 'parent', 'static'], true)
+                ) {
+                    $normalizedType = '\\' . \ltrim($normalizedType, '\\');
+                }
+                $this->type = $normalizedType;
             } else {
                 $this->type = Utils::normalizePhpType($type . '', true);
-            }
-            if ($this->type && \class_exists($this->type, true)) {
-                $this->type = '\\' . \ltrim($this->type, '\\');
             }
 
             try {
