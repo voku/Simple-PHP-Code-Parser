@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace voku\SimplePhpParser\Model;
 
 use PhpParser\Node;
+use PhpParser\NodeAbstract;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Namespace_;
-use PhpParser\NodeAbstract;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
