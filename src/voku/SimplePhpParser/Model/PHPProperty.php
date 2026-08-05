@@ -362,7 +362,7 @@ class PHPProperty extends BasePHPElement
     }
 
     /**
-     * @param array<int, object> $hooks
+     * @param array<array-key, object> $hooks
      *
      * @return array<string, array{name: string, is_final: bool, params: list<string>}>
      */

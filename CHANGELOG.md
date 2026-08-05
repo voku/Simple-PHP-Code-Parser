@@ -1,5 +1,15 @@
 # Changelog
 
+### 0.22.2 (2026-08-05)
+
+- BREAKING (output only): `PHPProperty::$type` / `PHPParameter::$type` read via reflection are now consistently fully qualified, e.g. `Psr\Container\ContainerInterface` is now reported as `\Psr\Container\ContainerInterface`. Previously the leading `\` was only added when `class_exists()` happened to be true, so interfaces, enums-in-unloadable-files and any not-yet-autoloadable class silently lost it, while the AST path always emitted it. Both paths now agree. Consumers that compare these strings verbatim have to expect the leading `\` (built-in types, `self`, `parent`, `static` and intersection types are unchanged)
+- BREAKING (output only): enum cases no longer show up in `PHPEnum::$constants`; they were already available (with more detail) via `$cases` / `$caseDetails`
+- fix: formatting a reflected property/parameter type no longer autoloads the referenced class, which could fatal when that class uses syntax the current runtime cannot compile
+- fix: `PHPEnum` read from a plain `ReflectionClass` (which is what `Utils::createClassReflectionInstance()` returns) now reports `$scalarType` and `$cases` / `$caseDetails`; before, that data was only filled in when a `ReflectionEnum` was passed explicitly
+- fix: `PHPEnum::$is_final` / `$is_abstract` / `$is_anonymous` now always reflect the language guarantees (`true` / `false` / `false`) instead of staying `null` when the enum could not be autoloaded
+- fix: traits with constants use the shared PHP-version autoload guard again, so the runtime-compatibility check is identical for classes, interfaces, traits and enums
+- add regression coverage for all of the above, plus a public-API surface test, model invariants over the whole code base and end-to-end coverage of every `PhpCodeParser` entry point
+
 ### 0.22.1 (2026-07-13)
 
 - fix: reflecting/parsing a private or protected class constant referenced from outside its declaring class (via `constant()` / `ReflectionParameter::getDefaultValue()`) threw an uncaught `\Error` and aborted the whole parse; now recovered gracefully
