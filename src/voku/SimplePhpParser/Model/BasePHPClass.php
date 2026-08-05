@@ -167,11 +167,19 @@ abstract class BasePHPClass extends BasePHPElement
     }
 
     /**
-     * Detect PHP 8.2-only syntax within a class-like AST such as readonly classes,
-     * DNF types, and standalone null/true/false types.
+     * Detect PHP 8.2-only syntax within a class-like AST such as trait constants,
+     * readonly classes, DNF types, and standalone null/true/false types.
      */
     private static function containsPHP82PlusSyntax(\PhpParser\Node $node): bool
     {
+        if (
+            $node instanceof \PhpParser\Node\Stmt\Trait_
+            &&
+            $node->getConstants() !== []
+        ) {
+            return true;
+        }
+
         if (
             $node instanceof \PhpParser\Node\Stmt\Class_
             &&
