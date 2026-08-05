@@ -181,21 +181,7 @@ class PHPParameter extends BasePHPElement
             $type = null;
         }
         if ($type !== null) {
-            if ($type instanceof \ReflectionNamedType) {
-                $normalizedType = Utils::normalizePhpType($type->getName(), true);
-                if (
-                    $normalizedType !== null
-                    &&
-                    !$type->isBuiltin()
-                    &&
-                    !\in_array(\strtolower($normalizedType), ['self', 'parent', 'static'], true)
-                ) {
-                    $normalizedType = '\\' . \ltrim($normalizedType, '\\');
-                }
-                $this->type = $normalizedType;
-            } else {
-                $this->type = Utils::normalizePhpType($type . '', true);
-            }
+            $this->type = self::reflectionTypeToString($type);
 
             try {
                 $constNameTmp = $parameter->getDefaultValueConstantName();
