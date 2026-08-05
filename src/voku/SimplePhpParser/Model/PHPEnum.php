@@ -184,13 +184,22 @@ class PHPEnum extends BasePHPClass
         // Extract PHP 8.0+ attributes
         $this->attributes = Utils::extractAttributesFromReflection($clazz);
 
+        $reflectionEnum = null;
         if ($clazz instanceof ReflectionEnum) {
-            $backingType = $clazz->getBackingType();
+            $reflectionEnum = $clazz;
+        } elseif ($clazz->isEnum()) {
+            // Utils::createClassReflectionInstance() intentionally returns a
+            // ReflectionClass, even when the reflected class is an enum.
+            $reflectionEnum = new ReflectionEnum($clazz->getName());
+        }
+
+        if ($reflectionEnum !== null) {
+            $backingType = $reflectionEnum->getBackingType();
             if ($backingType !== null) {
                 $this->scalarType = $backingType->getName();
             }
 
-            foreach ($clazz->getCases() as $case) {
+            foreach ($reflectionEnum->getCases() as $case) {
                 $caseName = $case->getName();
                 $caseDetail = (new PHPEnumCase($this->parserContainer))->readObjectFromReflection($case);
                 $this->caseDetails[$caseName] = $caseDetail;
@@ -218,10 +227,10 @@ class PHPEnum extends BasePHPClass
         foreach ($clazz->getReflectionConstants() as $constant) {
             $constantNameTmp = $constant->getName();
 
-            // Reflection reports enum cases as class constants as well. They
-            // already live in $cases/$caseDetails and must not leak into the
-            // ordinary constants collection.
-            if (\array_key_exists($constantNameTmp, $this->caseDetails)) {
+            // ReflectionClassConstant knows whether it represents an enum case.
+            // This is authoritative and does not depend on caseDetails having
+            // already been populated by a specific reflection implementation.
+            if ($constant->isEnumCase()) {
                 continue;
             }
 
