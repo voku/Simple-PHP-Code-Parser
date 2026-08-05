@@ -46,9 +46,11 @@ trait TypedConstantTrait
 PHP;
         }
 
-        $autoloadedClasses = [];
-        $autoloader = static function (string $className) use (&$autoloadedClasses): void {
-            $autoloadedClasses[] = $className;
+        $traitAutoloaded = false;
+        $autoloader = static function (string $className) use ($traitName, &$traitAutoloaded): void {
+            if ($className === $traitName) {
+                $traitAutoloaded = true;
+            }
         };
 
         \spl_autoload_register($autoloader, true, true);
@@ -59,7 +61,7 @@ PHP;
         }
 
         static::assertArrayHasKey($traitName, $container->getTraits());
-        static::assertSame([], $autoloadedClasses);
+        static::assertFalse($traitAutoloaded);
     }
 
     public function testReflectionTypeFormattingDoesNotTriggerAutoload(): void
@@ -70,9 +72,11 @@ PHP;
 
         require_once $fixture;
 
-        $autoloadedClasses = [];
-        $autoloader = static function (string $className) use (&$autoloadedClasses): void {
-            $autoloadedClasses[] = $className;
+        $missingTypeAutoloaded = false;
+        $autoloader = static function (string $className) use ($missingType, &$missingTypeAutoloaded): void {
+            if ($className === $missingType) {
+                $missingTypeAutoloaded = true;
+            }
         };
 
         \spl_autoload_register($autoloader, true, true);
@@ -82,7 +86,7 @@ PHP;
             \spl_autoload_unregister($autoloader);
         }
 
-        static::assertNotContains($missingType, $autoloadedClasses);
+        static::assertFalse($missingTypeAutoloaded);
         static::assertSame('\\' . $missingType, $class->properties['property']->type);
         static::assertSame('\\' . $missingType, $class->methods['handle']->parameters['parameter']->type);
     }
