@@ -15,34 +15,11 @@ final class PHPEnumRegressionTest extends TestCase
     public function testEnumCasesDoNotLeakIntoConstantsDuringReflectionAugmentation(): void
     {
         $enumClass = __NAMESPACE__ . '\\EnumReflectionFixture';
+        $fixture = __DIR__ . '/fixtures/EnumReflectionFixture.php';
 
-        if (!\enum_exists($enumClass, false)) {
-            eval(<<<'PHP'
-namespace voku\tests;
+        require_once $fixture;
 
-enum EnumReflectionFixture: string
-{
-    case Ready = 'ready';
-
-    public const LABEL = 'label';
-}
-PHP);
-        }
-
-        $source = <<<'PHP'
-<?php
-
-namespace voku\tests;
-
-enum EnumReflectionFixture: string
-{
-    case Ready = 'ready';
-
-    public const LABEL = 'label';
-}
-PHP;
-
-        $enum = PhpCodeParser::getFromString($source)->getEnums()[$enumClass];
+        $enum = PhpCodeParser::getPhpFiles($fixture)->getEnums()[$enumClass];
 
         static::assertSame('ready', $enum->cases['Ready']);
         static::assertArrayHasKey('Ready', $enum->caseDetails);
