@@ -56,6 +56,11 @@ class PHPEnum extends BasePHPClass
 
         $this->name = static::getFQN($node);
 
+        // Enums are implicitly final and cannot be abstract or anonymous.
+        $this->is_final = true;
+        $this->is_abstract = false;
+        $this->is_anonymous = false;
+
         if ($node->scalarType !== null) {
             $this->scalarType = $node->scalarType->toString();
         }
@@ -65,13 +70,17 @@ class PHPEnum extends BasePHPClass
             $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
         }
 
+        // Keep enum autoloading aligned with class parsing: newer syntax may be
+        // parseable by php-parser while the current runtime cannot compile it.
         $enumExists = false;
-        try {
-            if (\class_exists($this->name, true) || \enum_exists($this->name, true)) {
-                $enumExists = true;
+        if (self::canAutoloadFromPhpNode($node)) {
+            try {
+                if (\enum_exists($this->name, true)) {
+                    $enumExists = true;
+                }
+            } catch (\Throwable $e) {
+                // nothing
             }
-        } catch (\Throwable $e) {
-            // nothing
         }
         if ($enumExists) {
             $reflectionEnum = Utils::createClassReflectionInstance($this->name);
@@ -165,7 +174,10 @@ class PHPEnum extends BasePHPClass
             $this->file = $file;
         }
 
-        $this->is_final = $clazz->isFinal();
+        // Reflection exposes the same language-level enum guarantees.
+        $this->is_final = true;
+        $this->is_abstract = false;
+        $this->is_anonymous = false;
 
         $this->collectTraitUsesFromReflection($clazz);
 
@@ -205,6 +217,13 @@ class PHPEnum extends BasePHPClass
 
         foreach ($clazz->getReflectionConstants() as $constant) {
             $constantNameTmp = $constant->getName();
+
+            // Reflection reports enum cases as class constants as well. They
+            // already live in $cases/$caseDetails and must not leak into the
+            // ordinary constants collection.
+            if (\array_key_exists($constantNameTmp, $this->caseDetails)) {
+                continue;
+            }
 
             $this->constants[$constantNameTmp] = (new PHPConst($this->parserContainer))->readObjectFromReflection($constant);
 
