@@ -15,7 +15,7 @@ final class PHPEnumRegressionTest extends TestCase
     public function testEnumCasesDoNotLeakIntoConstantsDuringReflectionAugmentation(): void
     {
         $enumClass = __NAMESPACE__ . '\\EnumReflectionFixture';
-        $fixture = __DIR__ . '/fixtures/EnumReflectionFixture.php';
+        $fixture = __DIR__ . '/EnumReflectionFixture.php';
 
         require_once $fixture;
 
