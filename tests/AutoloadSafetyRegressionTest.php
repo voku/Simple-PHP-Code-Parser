@@ -15,7 +15,7 @@ final class AutoloadSafetyRegressionTest extends TestCase
     public function testUnsupportedTraitSyntaxDoesNotTriggerAutoload(): void
     {
         if (\PHP_VERSION_ID >= 80300) {
-            static::markTestSkipped('The supported runtime can compile the available cross-version trait fixtures.');
+            static::markTestSkipped('No unsupported trait fixture for this runtime.');
         }
 
         if (\PHP_VERSION_ID < 80200) {
@@ -66,36 +66,9 @@ PHP;
     {
         $fixtureClass = __NAMESPACE__ . '\\ReflectionTypeAutoloadFixture';
         $missingType = __NAMESPACE__ . '\\MissingReflectionType';
+        $fixture = __DIR__ . '/fixtures/ReflectionTypeAutoloadFixture.php';
 
-        if (!\class_exists($fixtureClass, false)) {
-            eval(<<<'PHP'
-namespace voku\tests;
-
-final class ReflectionTypeAutoloadFixture
-{
-    public MissingReflectionType $property;
-
-    public function handle(MissingReflectionType $parameter): void
-    {
-    }
-}
-PHP);
-        }
-
-        $source = <<<'PHP'
-<?php
-
-namespace voku\tests;
-
-final class ReflectionTypeAutoloadFixture
-{
-    public MissingReflectionType $property;
-
-    public function handle(MissingReflectionType $parameter): void
-    {
-    }
-}
-PHP;
+        require_once $fixture;
 
         $autoloadedClasses = [];
         $autoloader = static function (string $className) use (&$autoloadedClasses): void {
@@ -104,7 +77,7 @@ PHP;
 
         \spl_autoload_register($autoloader);
         try {
-            $class = PhpCodeParser::getFromString($source)->getClasses()[$fixtureClass];
+            $class = PhpCodeParser::getPhpFiles($fixture)->getClasses()[$fixtureClass];
         } finally {
             \spl_autoload_unregister($autoloader);
         }
