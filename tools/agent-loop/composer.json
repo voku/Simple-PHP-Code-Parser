@@ -1,0 +1,26 @@
+{
+  "name": "voku/simple-php-code-parser-agent-loop-tools",
+  "description": "Repository-local agent-loop tooling for real-issue dogfood replays.",
+  "type": "project",
+  "license": "Apache-2.0",
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/voku/agent-loop.git"
+    },
+    {
+      "type": "vcs",
+      "url": "https://github.com/voku/agent-recall-compiler.git"
+    }
+  ],
+  "require-dev": {
+    "voku/agent-loop": "dev-main#9db5683b79996928553e13dcdb976037615d5742",
+    "voku/agent-recall-compiler": "dev-fix/task-mentioned-composer-dependencies#5a2710970e68e41c96a7c5d015f573fd4ec1d289 as 0.10.99"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}
