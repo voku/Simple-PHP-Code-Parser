@@ -33,6 +33,14 @@ jobs:
           path: target
           persist-credentials: false
 
+      - name: Checkout pinned agent-loop source and metadata
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-loop
+          ref: 9db5683b79996928553e13dcdb976037615d5742
+          path: toolchain/agent-loop
+          persist-credentials: false
+
       - name: Checkout Recall candidate discovered by the replay
         uses: actions/checkout@v4
         with:
@@ -60,26 +68,36 @@ jobs:
       - name: Validate frozen input and target
         run: |
           set -euo pipefail
-          expected="$(jq -r '.target_base_commit' harness/tools/agent-loop/dogfood/issue-60.json)"
-          actual="$(git -C target rev-parse HEAD)"
-          test "${actual}" = "${expected}"
-          test "$(jq -r '.toolchain.agent_skills_commit' harness/tools/agent-loop/dogfood/issue-60.json)" = "$(git -C skills rev-parse HEAD)"
-          test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' harness/tools/agent-loop/dogfood/issue-60.json)" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
+          issue='harness/tools/agent-loop/dogfood/issue-60.json'
+          test "$(jq -r '.target_base_commit' "${issue}")" = "$(git -C target rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_loop_commit' "${issue}")" = "$(git -C toolchain/agent-loop rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' "${issue}")" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
 
-      - name: Inject only the Recall candidate into the isolated tool project
+      - name: Inject exact source checkouts into the isolated tool project
         run: |
           set -euo pipefail
           php -r '
           $path = "harness/tools/agent-loop/composer.json";
           $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
-          array_unshift($data["repositories"], [
-              "type" => "path",
-              "url" => "../../../candidate/agent-recall-compiler",
-              "options" => [
-                  "symlink" => false,
-                  "versions" => ["voku/agent-recall-compiler" => "0.10.99"],
+          $data["repositories"] = [
+              [
+                  "type" => "path",
+                  "url" => "../../../toolchain/agent-loop",
+                  "options" => [
+                      "symlink" => false,
+                      "versions" => ["voku/agent-loop" => "dev-main"],
+                  ],
               ],
-          ]);
+              [
+                  "type" => "path",
+                  "url" => "../../../candidate/agent-recall-compiler",
+                  "options" => [
+                      "symlink" => false,
+                      "versions" => ["voku/agent-recall-compiler" => "0.10.99"],
+                  ],
+              ],
+          ];
           $data["require-dev"]["voku/agent-recall-compiler"] = "0.10.99";
           file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
           '
@@ -199,6 +217,7 @@ jobs:
           composer show --working-dir=harness/tools/agent-loop --format=json > "${out}/tool-packages.json" 2>/dev/null || true
           sha256sum skills/skills/operational-prompting/operating-prompts.json > "${out}/operating-prompts.sha256" 2>/dev/null || true
           git -C target rev-parse HEAD > "${out}/target-commit.txt"
+          git -C toolchain/agent-loop rev-parse HEAD > "${out}/agent-loop-commit.txt"
           git -C candidate/agent-recall-compiler rev-parse HEAD > "${out}/recall-candidate-commit.txt"
           git -C skills rev-parse HEAD > "${out}/skills-commit.txt"
 
