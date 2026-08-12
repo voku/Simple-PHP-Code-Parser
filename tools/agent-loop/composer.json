@@ -3,16 +3,10 @@
   "description": "Repository-local agent-loop tooling for real-issue dogfood replays.",
   "type": "project",
   "license": "Apache-2.0",
-  "repositories": [
-    {
-      "type": "vcs",
-      "url": "https://github.com/voku/agent-loop.git"
-    }
-  ],
   "require-dev": {
     "voku/agent-kanban": "0.2.1",
     "voku/agent-learning": "0.8.12",
-    "voku/agent-loop": "dev-main#9db5683b79996928553e13dcdb976037615d5742",
+    "voku/agent-loop": "dev-main",
     "voku/agent-map": "0.7.0",
     "voku/agent-session": "0.3.0",
     "voku/simple-cache": "6.1.0",
