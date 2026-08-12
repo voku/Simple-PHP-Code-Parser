@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "kind": "real_issue_replay_input",
+  "repository": "voku/Simple-PHP-Code-Parser",
+  "issue": {
+    "number": 60,
+    "url": "https://github.com/voku/Simple-PHP-Code-Parser/issues/60",
+    "title": "Update for use with PHP 8.4",
+    "body": "Some outdated libraries make it difficult to install.\n\nProblem 1\n- Root composer.json requires voku/simple-php-code-parser * -> satisfiable by voku/simple-php-code-parser[0.1.0, ..., 0.20.1].\n- voku/simple-php-code-parser[0.1.0, ..., 0.13.0] require nikic/php-parser ~4.4 -> found nikic/php-parser[v4.4.0, ..., v4.19.4] but the package is fixed to v5.4.0 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.\n- voku/simple-php-code-parser[0.7.0, ..., 0.12.0] require jetbrains/phpstorm-stubs 2019.3 -> found jetbrains/phpstorm-stubs[v2019.3] but the package is fixed to v2024.3 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.\n- voku/simple-php-code-parser[0.13.1, ..., 0.14.0] require phpstan/phpdoc-parser 0.4.* -> found phpstan/phpdoc-parser[0.4.0, ..., 0.4.14] but it conflicts with your root composer.json require (^2.1).\n- voku/simple-php-code-parser[0.15.0, ..., 0.16.6] require phpstan/phpdoc-parser ~0.4 -> found phpstan/phpdoc-parser[0.4.0, ..., 0.5.7] but it conflicts with your root composer.json require (^2.1).\n- voku/simple-php-code-parser 0.17.0 requires phpstan/phpdoc-parser ~0.5 -> found phpstan/phpdoc-parser[0.5.0, ..., 0.5.7] but it conflicts with your root composer.json require (^2.1).\n- voku/simple-php-code-parser[0.18.0, ..., 0.19.2] require phpdocumentor/type-resolver ~1.5.1 -> found phpdocumentor/type-resolver[1.5.1] but the package is fixed to 1.10.0 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.\n- voku/simple-php-code-parser[0.19.3, ..., 0.19.6] require phpdocumentor/type-resolver ~1.6.1 -> found phpdocumentor/type-resolver[1.6.1, 1.6.2] but the package is fixed to 1.10.0 (lock file version) by a partial update and that version does not match. Make sure you list it as an argument for the update command.\n- voku/simple-php-code-parser[0.20.0, ..., 0.20.1] require react/filesystem ^0.2@dev -> found react/filesystem[0.2.x-dev] but it does not match your minimum-stability.\n\nUse the option --with-all-dependencies (-W) to allow upgrades, downgrades and removals for packages currently locked to specific versions.\nYou can also try re-running composer require with an explicit version constraint, e.g. \"composer require voku/simple-php-code-parser:*\" to figure out if any version is installable, or \"composer require voku/simple-php-code-parser:^2.1\" if you know which you need."
+  },
+  "target_base_commit": "5156d5d74ca1bce275219f4571efd54ec44be911",
+  "toolchain": {
+    "agent_loop_commit": "9db5683b79996928553e13dcdb976037615d5742",
+    "agent_recall_compiler_candidate_commit": "5a2710970e68e41c96a7c5d015f573fd4ec1d289",
+    "agent_skills_commit": "c7e9d8bdda59d957600bca8dc9f787f03286b277",
+    "operating_prompt": "reproduce-before-fix"
+  }
+}
