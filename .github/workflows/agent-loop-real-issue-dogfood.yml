@@ -1,0 +1,214 @@
+name: Agent Loop Real Issue Dogfood
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dogfood/issue-60-agent-loop
+  pull_request:
+    paths:
+      - '.github/workflows/agent-loop-real-issue-dogfood.yml'
+      - 'tools/agent-loop/**'
+
+permissions:
+  contents: read
+
+jobs:
+  replay-issue-60:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout dogfood harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Checkout frozen pre-fix target
+        uses: actions/checkout@v4
+        with:
+          repository: voku/Simple-PHP-Code-Parser
+          ref: 5156d5d74ca1bce275219f4571efd54ec44be911
+          path: target
+          persist-credentials: false
+
+      - name: Checkout Recall candidate discovered by the replay
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-recall-compiler
+          ref: 5a2710970e68e41c96a7c5d015f573fd4ec1d289
+          path: candidate/agent-recall-compiler
+          persist-credentials: false
+
+      - name: Checkout pinned L2 skill catalog
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-skills
+          ref: c7e9d8bdda59d957600bca8dc9f787f03286b277
+          path: skills
+          persist-credentials: false
+
+      - name: Setup PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: json, mbstring, pdo_sqlite, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate frozen input and target
+        run: |
+          set -euo pipefail
+          expected="$(jq -r '.target_base_commit' harness/tools/agent-loop/dogfood/issue-60.json)"
+          actual="$(git -C target rev-parse HEAD)"
+          test "${actual}" = "${expected}"
+          test "$(jq -r '.toolchain.agent_skills_commit' harness/tools/agent-loop/dogfood/issue-60.json)" = "$(git -C skills rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' harness/tools/agent-loop/dogfood/issue-60.json)" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
+
+      - name: Inject only the Recall candidate into the isolated tool project
+        run: |
+          set -euo pipefail
+          php -r '
+          $path = "harness/tools/agent-loop/composer.json";
+          $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+          array_unshift($data["repositories"], [
+              "type" => "path",
+              "url" => "../../../candidate/agent-recall-compiler",
+              "options" => [
+                  "symlink" => false,
+                  "versions" => ["voku/agent-recall-compiler" => "0.10.99"],
+              ],
+          ]);
+          $data["require-dev"]["voku/agent-recall-compiler"] = "0.10.99";
+          file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+          '
+          composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
+
+      - name: Install historical target dependencies
+        run: composer install --working-dir=target --no-interaction --prefer-dist --no-progress
+
+      - name: Build frozen pre-fix map and search from issue text only
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-60'
+          mkdir -p "${out}/learning" "${out}/recall" 'target/.agent-loop/map'
+
+          harness/tools/agent-loop/vendor/bin/agent-map build \
+            --root=target \
+            --paths=src,tests \
+            --out=target/.agent-loop/map/php-symbols.json
+
+          harness/tools/agent-loop/vendor/bin/agent-map search-index build \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=target/.agent-loop/map/search.sqlite
+
+          query="$(jq -r '.issue | .title + "\n\n" + .body' harness/tools/agent-loop/dogfood/issue-60.json)"
+          harness/tools/agent-loop/vendor/bin/agent-map search "${query}" \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=target/.agent-loop/map/search.sqlite \
+            --limit=10 \
+            --format=json > "${out}/map-search.json"
+
+      - name: Compile project-specific Recall and L2 contract input
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-60'
+          cat > "${out}/learning/config.json" <<'JSON'
+          {
+            "schema_version": "1.0",
+            "project_root": "../../../.."
+          }
+          JSON
+
+          query="$(jq -r '.issue | .title + "\n\n" + .body' harness/tools/agent-loop/dogfood/issue-60.json)"
+          harness/tools/agent-loop/vendor/bin/agent-recall-compiler compile \
+            --root "${out}/learning" \
+            --task GH-60 \
+            --description "${query}" \
+            --map-index target/.agent-loop/map/php-symbols.json \
+            --map-root target \
+            --map-search-index target/.agent-loop/map/search.sqlite \
+            --map-search-limit 10 \
+            --operating-prompt-manifest skills/skills/operational-prompting/operating-prompts.json \
+            --operating-prompt '{"id":"reproduce-before-fix","arguments":{}}' \
+            --output-dir "${out}/recall"
+
+      - name: Enforce deterministic Recall and L2 gates
+        run: |
+          set -euo pipefail
+          facts='target/.agent-loop/dogfood/issue-60/recall/facts.json'
+          system='target/.agent-loop/dogfood/issue-60/recall/system.md'
+
+          jq -e '
+            .facts[]
+            | select(.id == "project.capabilities")
+            | .payload.mentioned_direct_dependencies["react/filesystem"]
+            | select(.section == "require" and .constraint == "^0.2@dev")
+          ' "${facts}" >/dev/null
+
+          jq -e '
+            .facts[]
+            | select(.id == "project.capabilities")
+            | .payload.composer_scripts
+            | select(type == "object" and length == 0)
+          ' "${facts}" >/dev/null
+
+          grep -F 'L2 Operational Prompt Construction' "${system}" >/dev/null
+
+      - name: Compare frozen context with the later verified fix
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-60'
+          oracle='harness/tools/agent-loop/dogfood/issue-60-oracle.json'
+          expected_file="$(jq -r '.expected_channels.agent_map[0]' "${oracle}")"
+          map_rank="$(jq --arg file "${expected_file}" '[.results[].file_path] | index($file) | if . == null then null else . + 1 end' "${out}/map-search.json")"
+          map_count="$(jq '.results | length' "${out}/map-search.json")"
+
+          jq -n \
+            --arg expected_file "${expected_file}" \
+            --argjson map_rank "${map_rank}" \
+            --argjson map_count "${map_count}" \
+            '{
+              schema_version: "1.0",
+              issue: 60,
+              hard_gates: {
+                recall_named_dependency_hit: true,
+                recall_did_not_invent_composer_scripts: true,
+                l2_construction_contract_present: true
+              },
+              observations: {
+                agent_map_expected_production_file: $expected_file,
+                agent_map_hit: ($map_rank != null),
+                agent_map_rank: $map_rank,
+                agent_map_result_count: $map_count
+              }
+            }' > "${out}/evaluation.json"
+
+          cat "${out}/evaluation.json"
+
+      - name: Capture replay provenance
+        if: always()
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-60'
+          mkdir -p "${out}"
+          cp harness/tools/agent-loop/composer.lock "${out}/tool-composer.lock" 2>/dev/null || true
+          composer show --working-dir=harness/tools/agent-loop --format=json > "${out}/tool-packages.json" 2>/dev/null || true
+          sha256sum skills/skills/operational-prompting/operating-prompts.json > "${out}/operating-prompts.sha256" 2>/dev/null || true
+          git -C target rev-parse HEAD > "${out}/target-commit.txt"
+          git -C candidate/agent-recall-compiler rev-parse HEAD > "${out}/recall-candidate-commit.txt"
+          git -C skills rev-parse HEAD > "${out}/skills-commit.txt"
+
+      - name: Upload replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-issue-60-dogfood-${{ github.sha }}
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            target/.agent-loop/dogfood/issue-60
+            target/.agent-loop/map/php-symbols.json
