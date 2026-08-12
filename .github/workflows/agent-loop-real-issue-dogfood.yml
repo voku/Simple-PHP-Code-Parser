@@ -171,10 +171,11 @@ jobs:
             .facts[]
             | select(.id == "project.capabilities")
             | .payload.composer_scripts
-            | select(type == "object" and length == 0)
+            | select(length == 0)
           ' "${facts}" >/dev/null
 
           grep -F 'L2 Operational Prompt Construction' "${system}" >/dev/null
+          grep -F 'Never invent repository commands, tools, APIs, or architectural rules.' "${system}" >/dev/null
 
       - name: Compare frozen context with the later verified fix
         run: |
@@ -195,7 +196,8 @@ jobs:
               hard_gates: {
                 recall_named_dependency_hit: true,
                 recall_did_not_invent_composer_scripts: true,
-                l2_construction_contract_present: true
+                l2_construction_contract_present: true,
+                l2_command_honesty_rule_present: true
               },
               observations: {
                 agent_map_expected_production_file: $expected_file,
