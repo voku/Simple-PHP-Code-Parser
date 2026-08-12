@@ -7,15 +7,17 @@
     {
       "type": "vcs",
       "url": "https://github.com/voku/agent-loop.git"
-    },
-    {
-      "type": "vcs",
-      "url": "https://github.com/voku/agent-recall-compiler.git"
     }
   ],
   "require-dev": {
+    "voku/agent-kanban": "0.2.1",
+    "voku/agent-learning": "0.8.12",
     "voku/agent-loop": "dev-main#9db5683b79996928553e13dcdb976037615d5742",
-    "voku/agent-recall-compiler": "dev-fix/task-mentioned-composer-dependencies#5a2710970e68e41c96a7c5d015f573fd4ec1d289 as 0.10.99"
+    "voku/agent-map": "0.7.0",
+    "voku/agent-session": "0.3.0",
+    "voku/simple-cache": "6.1.0",
+    "voku/simple-php-code-parser": "0.22.2",
+    "voku/stop-words": "2.0.1"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
