@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "kind": "post_context_evaluation_oracle",
+  "issue": 60,
+  "fix_pull_request": 84,
+  "fix_base_commit": "5156d5d74ca1bce275219f4571efd54ec44be911",
+  "fix_merge_commit": "15663692ddb17b32eafa02e8d4cbfa8c045e9028",
+  "changed_files": [
+    "composer.json",
+    "src/voku/SimplePhpParser/Parsers/PhpCodeParser.php"
+  ],
+  "expected_channels": {
+    "agent_map": [
+      "src/voku/SimplePhpParser/Parsers/PhpCodeParser.php"
+    ],
+    "project_metadata": [
+      "composer.json"
+    ]
+  },
+  "notes": "This file is consumed only after pre-fix map and Recall outputs exist. It must never be passed into map search, Recall compilation, or L2 construction. A map miss is recorded as a finding rather than converted into a fake passing threshold."
+}
