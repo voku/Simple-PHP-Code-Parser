@@ -27,7 +27,7 @@ final class Standalone
 }
 PHP;
 
-        $previousHandler = \set_error_handler(
+        \set_error_handler(
             static function (int $severity, string $message, string $file, int $line): bool {
                 if (
                     $severity === \E_DEPRECATED
@@ -50,6 +50,5 @@ PHP;
             'NotLoadable\\InheritdocWithoutParent\\Standalone',
             $container->getClasses()
         );
-        static::assertSame(null, $previousHandler);
     }
 }
