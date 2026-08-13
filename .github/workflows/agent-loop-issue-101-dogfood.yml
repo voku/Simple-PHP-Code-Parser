@@ -138,9 +138,9 @@ jobs:
             --by issue-101-dogfood \
             --file tests/ReflectionTypeFormattingRegressionTest.php \
             --file src/voku/SimplePhpParser/Parsers/PhpCodeParser.php \
-            --goal='Reproduce and minimally fix the two PHP 8.5 regressions without changing established type semantics.' \
-            --non-goal='Do not redesign the parser or change unrelated PHP-version behavior.' \
-            --validation='vendor/bin/phpunit tests/ReflectionTypeFormattingRegressionTest.php' \
+            --goal 'Reproduce and minimally fix the two PHP 8.5 regressions without changing established type semantics.' \
+            --non-goal 'Do not redesign the parser or change unrelated PHP-version behavior.' \
+            --validation 'vendor/bin/phpunit tests/ReflectionTypeFormattingRegressionTest.php' \
             --tag reflection \
             --tag php85 \
             --operating-prompt-manifest "${skills}" \
@@ -162,7 +162,7 @@ jobs:
               if (!$type instanceof ReflectionNamedType) {
                   throw new RuntimeException("Expected named property type: " . $propertyName);
               }
-              $result["property"]["$propertyName"] = [
+              $result["property"][$propertyName] = [
                   "getName" => $type->getName(),
                   "toString" => (string) $type,
               ];
