@@ -31,11 +31,11 @@ jobs:
           path: target
           persist-credentials: false
 
-      - name: Checkout pinned agent-loop control
+      - name: Checkout pinned agent-loop structural-context control
         uses: actions/checkout@v7
         with:
           repository: voku/agent-loop
-          ref: 206cfdb3199740d85f342699e34a19744c554ef5
+          ref: 9249b32f1aa5da90b77bafad427a67eeb3e4a3b9
           path: toolchain/agent-loop
           persist-credentials: false
 
@@ -71,12 +71,12 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Validate frozen provenance and one-variable candidate
+      - name: Validate frozen problem and one-variable candidate provenance
         run: |
           set -euo pipefail
           issue='harness/tools/agent-loop/dogfood/issue-101.json'
           test "$(jq -r '.target_base_commit' "${issue}")" = "$(git -C target rev-parse HEAD)"
-          test "$(jq -r '.toolchain.agent_loop_commit' "${issue}")" = "$(git -C toolchain/agent-loop rev-parse HEAD)"
+          test "$(git -C toolchain/agent-loop rev-parse HEAD)" = '9249b32f1aa5da90b77bafad427a67eeb3e4a3b9'
           test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' "${issue}")" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
           test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
           test "$(git -C candidate/agent-map rev-parse HEAD)" = '62c90034775f7dbc14696caccc156b0c51bb8ea3'
@@ -166,7 +166,7 @@ jobs:
             --by agent-map-8-replay \
             --file tests/ReflectionTypeFormattingRegressionTest.php \
             --file src/voku/SimplePhpParser/Parsers/PhpCodeParser.php \
-            --goal 'Reproduce and minimally fix the two PHP 8.5 regressions without changing established type semantics.' \
+            --goal "${query}" \
             --non-goal 'Do not redesign the parser or change unrelated PHP-version behavior.' \
             --validation 'vendor/bin/phpunit tests/ReflectionTypeFormattingRegressionTest.php' \
             --tag reflection \
