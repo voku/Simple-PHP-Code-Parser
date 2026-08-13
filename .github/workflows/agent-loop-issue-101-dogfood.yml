@@ -111,12 +111,13 @@ jobs:
           harness/tools/agent-loop/vendor/bin/agent-map search-index build \
             --root=target \
             --index=target/.agent-loop/map/php-symbols.json \
-            --database=target/.agent-loop/map/search.sqlite
+            --database=.agent-loop/map/search.sqlite
+          test -f target/.agent-loop/map/search.sqlite
           query="$(jq -r '.issue | .title + "\n\n" + .body' harness/tools/agent-loop/dogfood/issue-101.json)"
           harness/tools/agent-loop/vendor/bin/agent-map search "${query}" \
             --root=target \
             --index=target/.agent-loop/map/php-symbols.json \
-            --database=target/.agent-loop/map/search.sqlite \
+            --database=.agent-loop/map/search.sqlite \
             --limit=15 \
             --format=json > "${out}/map-search.json"
 
