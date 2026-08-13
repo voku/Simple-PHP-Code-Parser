@@ -98,6 +98,9 @@ class PHPClass extends BasePHPClass
                 $propertyNameTmp = $this->getConstantFQN($property, $propertyItem->name->name);
 
                 if (isset($this->properties[$propertyNameTmp])) {
+                    if (self::containsRelativeType($property->type)) {
+                        $this->properties[$propertyNameTmp]->type = null;
+                    }
                     $this->properties[$propertyNameTmp] = $this->properties[$propertyNameTmp]->readObjectFromPhpNode($property, $this->name, $propertyItem);
                 } else {
                     $this->properties[$propertyNameTmp] = (new PHPProperty($this->parserContainer))->readObjectFromPhpNode($property, $this->name, $propertyItem);
@@ -113,6 +116,20 @@ class PHPClass extends BasePHPClass
             $methodNameTmp = $method->name->name;
 
             if (isset($this->methods[$methodNameTmp])) {
+                if (self::containsRelativeType($method->returnType)) {
+                    $this->methods[$methodNameTmp]->returnType = null;
+                }
+                foreach ($method->getParams() as $parameter) {
+                    $parameterName = $parameter->var->name ?? null;
+                    if (
+                        \is_string($parameterName)
+                        && isset($this->methods[$methodNameTmp]->parameters[$parameterName])
+                        && self::containsRelativeType($parameter->type)
+                    ) {
+                        $this->methods[$methodNameTmp]->parameters[$parameterName]->type = null;
+                    }
+                }
+
                 $this->methods[$methodNameTmp] = $this->methods[$methodNameTmp]->readObjectFromPhpNode($method, $this->name);
             } else {
                 $this->methods[$methodNameTmp] = (new PHPMethod($this->parserContainer))->readObjectFromPhpNode($method, $this->name);
@@ -549,5 +566,35 @@ class PHPClass extends BasePHPClass
             $existingProperty->defaultValue = $promotedProperty->defaultValue;
             $existingProperty->typeFromDefaultValue = $promotedProperty->typeFromDefaultValue;
         }
+    }
+
+    private static function containsRelativeType(?\PhpParser\Node $type): bool
+    {
+        if ($type === null) {
+            return false;
+        }
+
+        if ($type instanceof \PhpParser\Node\Name) {
+            return \in_array(\strtolower($type->toString()), ['self', 'parent', 'static'], true);
+        }
+
+        foreach ($type->getSubNodeNames() as $subNodeName) {
+            $subNode = $type->{$subNodeName};
+            if ($subNode instanceof \PhpParser\Node && self::containsRelativeType($subNode)) {
+                return true;
+            }
+
+            if (!\is_array($subNode)) {
+                continue;
+            }
+
+            foreach ($subNode as $innerNode) {
+                if ($innerNode instanceof \PhpParser\Node && self::containsRelativeType($innerNode)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
