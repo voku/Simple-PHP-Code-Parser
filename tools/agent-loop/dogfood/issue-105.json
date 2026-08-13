@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "issue": {
+    "number": 105,
+    "title": "Dogfood: selectively adapt upstream fork changes after #99",
+    "body": "Review the changes in BrianHenryIE/Simple-PHP-Code-Parser since our selective fork import in #99 and adapt only improvements that are still missing or materially better in this repository. The frozen upstream change adds ParserContainer::setAst()/getAst() and populates it from PhpCodeParser::process() so consumers can access the resolved php-parser AST alongside extracted models. Preserve the voku package identity and namespace. Compare behavior rather than implementation shape. Prefer existing public API when it already provides the capability cleanly. Do not add mutable state or public API just to force a diff. If the upstream intent is already covered, finish as an evidence-backed no-op."
+  },
+  "target_base_commit": "93867be39e3222a3243115b50808deb44501ce59",
+  "upstream": {
+    "repository": "BrianHenryIE/Simple-PHP-Code-Parser",
+    "commit": "5025da610fa7c5d538847d8a58478d9513aae5fa"
+  },
+  "toolchain": {
+    "agent_loop_commit": "9249b32f1aa5da90b77bafad427a67eeb3e4a3b9",
+    "agent_recall_compiler_commit": "15297d3ad8f10df4c1ca330af20a50bcc194107f",
+    "agent_skills_commit": "737e3be448972c6474217d7e39f6b2513757b0c8"
+  }
+}
