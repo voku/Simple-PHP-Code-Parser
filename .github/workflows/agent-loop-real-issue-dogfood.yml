@@ -20,13 +20,13 @@ jobs:
 
     steps:
       - name: Checkout dogfood harness
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: harness
           persist-credentials: false
 
       - name: Checkout frozen pre-fix target
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: voku/Simple-PHP-Code-Parser
           ref: 5156d5d74ca1bce275219f4571efd54ec44be911
@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout pinned agent-loop source and metadata
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: voku/agent-loop
           ref: 206cfdb3199740d85f342699e34a19744c554ef5
@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout Recall candidate discovered by the replay
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: voku/agent-recall-compiler
           ref: 5a2710970e68e41c96a7c5d015f573fd4ec1d289
@@ -50,7 +50,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout pinned L2 skill catalog
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: voku/agent-skills
           ref: c7e9d8bdda59d957600bca8dc9f787f03286b277
