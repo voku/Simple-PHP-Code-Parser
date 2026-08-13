@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "kind": "real_issue_input",
+  "repository": "voku/Simple-PHP-Code-Parser",
+  "issue": {
+    "number": 101,
+    "url": "https://github.com/voku/Simple-PHP-Code-Parser/issues/101",
+    "title": "PHP 8.5: reflection `self` formatting diverges and null array-key deprecations surface",
+    "body": "The normal CI matrix exposed a current PHP 8.5-only failure while running the isolated agent-loop replay in #100. #100 does not modify production PHP or parser tests, so this is a separate product/runtime compatibility issue rather than part of that dogfood harness. On PHP 8.5.9, both parser-v4 and parser-v5 jobs fail while corresponding PHP 8.1-8.4 jobs pass. ReflectionTypeFormattingRegressionTest expects selfType to be 'self', but pure reflection and the full parse produce '\\voku\\tests\\ReflectionTypeFixture'. PHP 8.5 also reports 'Using null as an array offset is deprecated, use an empty string instead' at src/voku/SimplePhpParser/Parsers/PhpCodeParser.php:529. Treat the observations independently unless evidence proves one root cause. Preserve the intended cross-version public type model, AST/reflection consistency, parser-v4/v5 compatibility, existing PHP 8.1-8.4 behavior, PHPUnit and PHPStan."
+  },
+  "target_base_commit": "53f1b5085ee883560afa9326ee914f6b23acd6ae",
+  "toolchain": {
+    "agent_loop_commit": "206cfdb3199740d85f342699e34a19744c554ef5",
+    "agent_recall_compiler_candidate_commit": "5a2710970e68e41c96a7c5d015f573fd4ec1d289",
+    "agent_skills_commit": "c7e9d8bdda59d957600bca8dc9f787f03286b277",
+    "operating_prompt": "reproduce-before-fix"
+  }
+}

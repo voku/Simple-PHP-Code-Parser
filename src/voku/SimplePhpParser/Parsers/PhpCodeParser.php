@@ -526,6 +526,10 @@ final class PhpCodeParser
                 $method->parameters = self::mergeMissingParameterTypeFields($method->parameters, $interfaceMethod->parameters);
             }
 
+            if ($class->parentClass === null) {
+                continue;
+            }
+
             if (!isset($classes[$class->parentClass])) {
                 continue;
             }
