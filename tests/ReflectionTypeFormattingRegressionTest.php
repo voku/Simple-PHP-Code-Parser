@@ -10,10 +10,12 @@ use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\PhpCodeParser;
 
 /**
- * Locks down how `PHPProperty::$type` / `PHPParameter::$type` are rendered.
+ * Locks down how native PHP types are rendered by reflection-only and AST-backed parsing.
  *
- * Both the AST path and the reflection path have to produce the very same
- * strings, and neither of them may autoload a type just to format it.
+ * PHP 8.5 resolves lexical `self` to the declaring class in ReflectionNamedType. Pure
+ * reflection therefore cannot recover whether the source said `self` or the explicit
+ * current class name. AST-backed parsing still owns the source syntax and must preserve
+ * the established source-level `self` representation.
  *
  * @internal
  */
@@ -65,12 +67,22 @@ final class ReflectionTypeFormattingRegressionTest extends TestCase
             new \ReflectionClass(ReflectionTypeFixture::class)
         );
 
-        foreach (self::EXPECTED_PROPERTY_TYPES as $propertyName => $expectedType) {
+        $expectedPropertyTypes = self::EXPECTED_PROPERTY_TYPES;
+        $expectedParameterTypes = self::EXPECTED_PARAMETER_TYPES;
+        if (\PHP_VERSION_ID >= 80500) {
+            // PHP 8.5 resolves both `self` and an explicit current-class declaration to the
+            // same ReflectionNamedType name. Pretending we can recover the source token here
+            // would also turn the explicit classType into `self`.
+            $expectedPropertyTypes['selfType'] = '\\voku\\tests\\ReflectionTypeFixture';
+            $expectedParameterTypes['selfType'] = '\\voku\\tests\\ReflectionTypeFixture';
+        }
+
+        foreach ($expectedPropertyTypes as $propertyName => $expectedType) {
             static::assertArrayHasKey($propertyName, $class->properties);
             static::assertSame($expectedType, $class->properties[$propertyName]->type, 'property: ' . $propertyName);
         }
 
-        foreach (self::EXPECTED_PARAMETER_TYPES as $parameterName => $expectedType) {
+        foreach ($expectedParameterTypes as $parameterName => $expectedType) {
             static::assertArrayHasKey($parameterName, $class->methods['method']->parameters);
             static::assertSame(
                 $expectedType,
@@ -78,9 +90,14 @@ final class ReflectionTypeFormattingRegressionTest extends TestCase
                 'parameter: ' . $parameterName
             );
         }
+
+        $expectedReturnType = \PHP_VERSION_ID >= 80500
+            ? ReflectionTypeFixture::class
+            : 'self';
+        static::assertSame($expectedReturnType, $class->methods['method']->returnType);
     }
 
-    public function testTypesFromFullParseMatchPureReflection(): void
+    public function testFullParsePreservesSourceLevelRelativeTypes(): void
     {
         $class = PhpCodeParser::getPhpFiles(__DIR__ . '/ReflectionTypeFixture.php')
             ->getClasses()[ReflectionTypeFixture::class];
@@ -96,13 +113,31 @@ final class ReflectionTypeFormattingRegressionTest extends TestCase
                 'parameter: ' . $parameterName
             );
         }
+
+        static::assertSame('self', $class->methods['method']->returnType);
+    }
+
+    public function testPhp85ReflectionCannotDistinguishSelfFromExplicitCurrentClass(): void
+    {
+        if (\PHP_VERSION_ID < 80500) {
+            static::markTestSkipped('PHP 8.5 changed relative ReflectionNamedType resolution.');
+        }
+
+        $reflection = new \ReflectionClass(ReflectionTypeFixture::class);
+        $classType = $reflection->getProperty('classType')->getType();
+        $selfType = $reflection->getProperty('selfType')->getType();
+
+        static::assertInstanceOf(\ReflectionNamedType::class, $classType);
+        static::assertInstanceOf(\ReflectionNamedType::class, $selfType);
+        static::assertSame($classType->getName(), $selfType->getName());
+        static::assertSame((string) $classType, (string) $selfType);
     }
 
     /**
      * The very same declarations, but in a namespace that cannot be autoloaded,
-     * so only the AST path runs. It has to agree with the reflection path.
+     * so only the AST path runs. Source-level relative types must stay lexical.
      */
-    public function testAstOnlyPathRendersTheSameTypes(): void
+    public function testAstOnlyPathRendersSourceLevelTypes(): void
     {
         $source = <<<'PHP'
 <?php
@@ -141,7 +176,7 @@ class Subject
         int|string $unionType,
         callable $callableType,
         $untyped = null
-    ) {}
+    ): self {}
 }
 PHP;
 
@@ -188,6 +223,8 @@ PHP;
                 'parameter: ' . $parameterName
             );
         }
+
+        static::assertSame('self', $class->methods['method']->returnType);
     }
 
     /**
