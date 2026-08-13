@@ -1,0 +1,237 @@
+name: Agent Loop Issue 105 Upstream Dogfood
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/agent-loop-issue-105-dogfood.yml'
+      - 'tools/agent-loop/dogfood/issue-105.json'
+
+permissions:
+  contents: read
+
+jobs:
+  upstream-decision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout dogfood harness
+        uses: actions/checkout@v7
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Checkout frozen target
+        uses: actions/checkout@v7
+        with:
+          repository: voku/Simple-PHP-Code-Parser
+          ref: 93867be39e3222a3243115b50808deb44501ce59
+          path: target
+          persist-credentials: false
+
+      - name: Checkout frozen upstream
+        uses: actions/checkout@v7
+        with:
+          repository: BrianHenryIE/Simple-PHP-Code-Parser
+          ref: 5025da610fa7c5d538847d8a58478d9513aae5fa
+          path: upstream
+          persist-credentials: false
+
+      - name: Checkout pinned agent-loop
+        uses: actions/checkout@v7
+        with:
+          repository: voku/agent-loop
+          ref: 9249b32f1aa5da90b77bafad427a67eeb3e4a3b9
+          path: toolchain/agent-loop
+          persist-credentials: false
+
+      - name: Checkout pinned Recall compiler
+        uses: actions/checkout@v7
+        with:
+          repository: voku/agent-recall-compiler
+          ref: 15297d3ad8f10df4c1ca330af20a50bcc194107f
+          path: toolchain/agent-recall-compiler
+          persist-credentials: false
+
+      - name: Checkout pinned L2 skills
+        uses: actions/checkout@v7
+        with:
+          repository: voku/agent-skills
+          ref: 737e3be448972c6474217d7e39f6b2513757b0c8
+          path: skills
+          persist-credentials: false
+
+      - name: Setup PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: json, mbstring, pdo_sqlite, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate frozen provenance
+        run: |
+          set -euo pipefail
+          issue='harness/tools/agent-loop/dogfood/issue-105.json'
+          test "$(jq -r '.target_base_commit' "${issue}")" = "$(git -C target rev-parse HEAD)"
+          test "$(jq -r '.upstream.commit' "${issue}")" = "$(git -C upstream rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_loop_commit' "${issue}")" = "$(git -C toolchain/agent-loop rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_recall_compiler_commit' "${issue}")" = "$(git -C toolchain/agent-recall-compiler rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
+
+      - name: Install exact agent toolchain
+        run: |
+          set -euo pipefail
+          php -r '
+          $path = "harness/tools/agent-loop/composer.json";
+          $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+          $data["repositories"] = [
+              [
+                  "type" => "path",
+                  "url" => "../../../toolchain/agent-loop",
+                  "options" => ["symlink" => false, "versions" => ["voku/agent-loop" => "dev-main"]],
+              ],
+              [
+                  "type" => "path",
+                  "url" => "../../../toolchain/agent-recall-compiler",
+                  "options" => ["symlink" => false, "versions" => ["voku/agent-recall-compiler" => "0.11.99"]],
+              ],
+          ];
+          $data["require-dev"]["voku/agent-recall-compiler"] = "0.11.99";
+          file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+          '
+          composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
+          composer update --working-dir=target --no-interaction --prefer-dist --no-progress
+
+      - name: Freeze upstream delta evidence
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-105'
+          mkdir -p "${out}" 'target/.agent-loop/map'
+          git -C upstream show --format=fuller --stat HEAD > "${out}/upstream-commit.txt"
+          git -C upstream diff-tree --no-commit-id --name-only -r HEAD > "${out}/upstream-files.txt"
+          git -C upstream show --format= HEAD -- src/Parsers/Helper/ParserContainer.php src/Parsers/PhpCodeParser.php > "${out}/upstream.patch"
+          cat "${out}/upstream-files.txt"
+
+      - name: Build target map and search from frozen task
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-105'
+          harness/tools/agent-loop/vendor/bin/agent-map build \
+            --root=target \
+            --paths=src,tests \
+            --out=target/.agent-loop/map/php-symbols.json
+          harness/tools/agent-loop/vendor/bin/agent-map search-index build \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=.agent-loop/map/search.sqlite
+          test -f target/.agent-loop/map/search.sqlite
+          query="$(jq -r '.issue | .title + "\n\n" + .body' harness/tools/agent-loop/dogfood/issue-105.json)"
+          harness/tools/agent-loop/vendor/bin/agent-map search "${query}" \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=.agent-loop/map/search.sqlite \
+            --limit=20 \
+            --format=json > "${out}/map-search.json"
+
+      - name: Run governed PLAN APPROVE CONTEXT
+        working-directory: target
+        run: |
+          set -euo pipefail
+          loop='../harness/tools/agent-loop/vendor/bin/agent-loop'
+          skills='../skills/skills/operational-prompting/operating-prompts.json'
+          issue='../harness/tools/agent-loop/dogfood/issue-105.json'
+          query="$(jq -r '.issue | .title + "\n\n" + .body' "${issue}")"
+
+          "${loop}" init scaffold
+          mkdir -p .agent-loop/tasks
+          printf '# GH-105\n\n%s\n' "${query}" > .agent-loop/tasks/GH-105.md
+          "${loop}" board card create GH-105 \
+            --title='Selectively adapt upstream AST exposure' \
+            --lane=READY \
+            --status=Selected
+          "${loop}" workflow plan GH-105 \
+            --by issue-105-dogfood \
+            --file src/voku/SimplePhpParser/Parsers/PhpCodeParser.php \
+            --file src/voku/SimplePhpParser/Parsers/Helper/ParserContainer.php \
+            --goal 'Determine whether the frozen upstream AST exposure adds missing behavior and adapt only if justified by repository evidence.' \
+            --non-goal 'Do not copy fork identity or add public mutable state merely to produce a diff.' \
+            --validation 'vendor/bin/phpunit tests/ParserEntryPointsTest.php tests/PublicApiSurfaceTest.php' \
+            --tag upstream \
+            --tag ast \
+            --operating-prompt-manifest "${skills}" \
+            --operating-prompt '{"id":"reproduce-before-fix","arguments":{}}'
+          "${loop}" workflow approve GH-105 --by issue-105-dogfood
+          "${loop}" workflow context GH-105 > .agent-loop/dogfood/issue-105/workflow-context.txt
+
+      - name: Prove current target AST capability
+        working-directory: target
+        run: |
+          set -euo pipefail
+          grep -F 'function getAstFromString' src/voku/SimplePhpParser/Parsers/PhpCodeParser.php >/dev/null
+          grep -F 'function getAstFromFile' src/voku/SimplePhpParser/Parsers/PhpCodeParser.php >/dev/null
+          grep -F 'getAstFromString' README.md >/dev/null
+          grep -F 'getAstFromString' tests/ParserEntryPointsTest.php >/dev/null
+          vendor/bin/phpunit tests/ParserEntryPointsTest.php tests/PublicApiSurfaceTest.php
+
+      - name: Record anti-slop evaluation
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-105'
+          map="${out}/map-search.json"
+          php_code_parser_rank="$(jq '[.results[].file_path] | index("src/voku/SimplePhpParser/Parsers/PhpCodeParser.php") | if . == null then null else . + 1 end' "${map}")"
+          entry_points_rank="$(jq '[.results[].file_path] | index("tests/ParserEntryPointsTest.php") | if . == null then null else . + 1 end' "${map}")"
+          context_mentions_ast=false
+          if grep -F 'getAstFromString' "${out}/workflow-context.txt" >/dev/null; then
+            context_mentions_ast=true
+          fi
+          jq -n \
+            --argjson php_code_parser_rank "${php_code_parser_rank}" \
+            --argjson entry_points_rank "${entry_points_rank}" \
+            --argjson context_mentions_ast "${context_mentions_ast}" \
+            '{
+              schema_version: "1.0",
+              issue: 105,
+              decision: "NO_PRODUCTION_CHANGE_REQUIRED",
+              hard_gates: {
+                frozen_provenance: true,
+                existing_ast_api_present: true,
+                existing_ast_api_documented: true,
+                existing_ast_api_regression_tested: true,
+                focused_project_tests_green: true
+              },
+              observations: {
+                agent_map_php_code_parser_rank: $php_code_parser_rank,
+                agent_map_parser_entry_points_test_rank: $entry_points_rank,
+                governed_context_mentions_getAstFromString: $context_mentions_ast,
+                upstream_last_ast_state_not_copied: true
+              }
+            }' > "${out}/evaluation.json"
+          cat "${out}/evaluation.json"
+
+      - name: Capture provenance
+        if: always()
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-105'
+          cp harness/tools/agent-loop/composer.lock "${out}/tool-composer.lock" 2>/dev/null || true
+          composer show --working-dir=harness/tools/agent-loop --format=json > "${out}/tool-packages.json" 2>/dev/null || true
+          git -C target rev-parse HEAD > "${out}/target-commit.txt"
+          git -C upstream rev-parse HEAD > "${out}/upstream-commit-sha.txt"
+          git -C toolchain/agent-loop rev-parse HEAD > "${out}/agent-loop-commit.txt"
+          git -C toolchain/agent-recall-compiler rev-parse HEAD > "${out}/recall-commit.txt"
+          git -C skills rev-parse HEAD > "${out}/skills-commit.txt"
+
+      - name: Upload dogfood evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue-105-upstream-dogfood-${{ github.sha }}
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            target/.agent-loop/dogfood/issue-105
+            target/.agent-loop/map/php-symbols.json
+            target/.agent-loop/contracts/GH-105
+            target/.agent-loop/runs/GH-105
