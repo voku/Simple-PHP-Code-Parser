@@ -1,0 +1,228 @@
+name: Agent Loop Issue 101 Dogfood
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dogfood/issue-101-php85
+    paths:
+      - '.github/workflows/agent-loop-issue-101-dogfood.yml'
+      - 'tools/agent-loop/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pre-fix-context-and-reproduction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout dogfood harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+
+      - name: Checkout frozen pre-fix target
+        uses: actions/checkout@v4
+        with:
+          repository: voku/Simple-PHP-Code-Parser
+          ref: 53f1b5085ee883560afa9326ee914f6b23acd6ae
+          path: target
+          persist-credentials: false
+
+      - name: Checkout pinned agent-loop
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-loop
+          ref: 206cfdb3199740d85f342699e34a19744c554ef5
+          path: toolchain/agent-loop
+          persist-credentials: false
+
+      - name: Checkout Recall candidate
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-recall-compiler
+          ref: 5a2710970e68e41c96a7c5d015f573fd4ec1d289
+          path: candidate/agent-recall-compiler
+          persist-credentials: false
+
+      - name: Checkout pinned L2 skill catalog
+        uses: actions/checkout@v4
+        with:
+          repository: voku/agent-skills
+          ref: c7e9d8bdda59d957600bca8dc9f787f03286b277
+          path: skills
+          persist-credentials: false
+
+      - name: Setup PHP 8.5 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: json, mbstring, pdo_sqlite, sqlite3
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate frozen provenance
+        run: |
+          set -euo pipefail
+          issue='harness/tools/agent-loop/dogfood/issue-101.json'
+          test "$(jq -r '.target_base_commit' "${issue}")" = "$(git -C target rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_loop_commit' "${issue}")" = "$(git -C toolchain/agent-loop rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' "${issue}")" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
+          test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
+
+      - name: Install exact agent toolchain
+        run: |
+          set -euo pipefail
+          php -r '
+          $path = "harness/tools/agent-loop/composer.json";
+          $data = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+          $data["repositories"] = [
+              [
+                  "type" => "path",
+                  "url" => "../../../toolchain/agent-loop",
+                  "options" => ["symlink" => false, "versions" => ["voku/agent-loop" => "dev-main"]],
+              ],
+              [
+                  "type" => "path",
+                  "url" => "../../../candidate/agent-recall-compiler",
+                  "options" => ["symlink" => false, "versions" => ["voku/agent-recall-compiler" => "0.11.99"]],
+              ],
+          ];
+          $data["require-dev"]["voku/agent-recall-compiler"] = "0.11.99";
+          file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+          '
+          composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
+          composer update --working-dir=target --no-interaction --prefer-dist --no-progress
+
+      - name: Freeze agent-map context from issue text before any fix
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-101'
+          mkdir -p "${out}" 'target/.agent-loop/map'
+          harness/tools/agent-loop/vendor/bin/agent-map build \
+            --root=target \
+            --paths=src,tests \
+            --out=target/.agent-loop/map/php-symbols.json
+          harness/tools/agent-loop/vendor/bin/agent-map search-index build \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=target/.agent-loop/map/search.sqlite
+          query="$(jq -r '.issue | .title + "\n\n" + .body' harness/tools/agent-loop/dogfood/issue-101.json)"
+          harness/tools/agent-loop/vendor/bin/agent-map search "${query}" \
+            --root=target \
+            --index=target/.agent-loop/map/php-symbols.json \
+            --database=target/.agent-loop/map/search.sqlite \
+            --limit=15 \
+            --format=json > "${out}/map-search.json"
+
+      - name: Run governed PLAN APPROVE CONTEXT with reproduce-before-fix L2
+        working-directory: target
+        run: |
+          set -euo pipefail
+          loop='../harness/tools/agent-loop/vendor/bin/agent-loop'
+          skills='../skills/skills/operational-prompting/operating-prompts.json'
+          issue='../harness/tools/agent-loop/dogfood/issue-101.json'
+          query="$(jq -r '.issue | .title + "\n\n" + .body' "${issue}")"
+
+          "${loop}" init scaffold
+          mkdir -p .agent-loop/tasks
+          printf '# GH-101\n\n%s\n' "${query}" > .agent-loop/tasks/GH-101.md
+          "${loop}" board card create GH-101 \
+            --title='PHP 8.5 reflection and null-array-key regression' \
+            --lane=READY \
+            --status=Selected
+          "${loop}" workflow plan GH-101 \
+            --by issue-101-dogfood \
+            --file tests/ReflectionTypeFormattingRegressionTest.php \
+            --file src/voku/SimplePhpParser/Parsers/PhpCodeParser.php \
+            --goal='Reproduce and minimally fix the two PHP 8.5 regressions without changing established type semantics.' \
+            --non-goal='Do not redesign the parser or change unrelated PHP-version behavior.' \
+            --validation='vendor/bin/phpunit tests/ReflectionTypeFormattingRegressionTest.php' \
+            --tag reflection \
+            --tag php85 \
+            --operating-prompt-manifest "${skills}" \
+            --operating-prompt '{"id":"reproduce-before-fix","arguments":{}}'
+          "${loop}" workflow approve GH-101 --by issue-101-dogfood
+          "${loop}" workflow context GH-101 > .agent-loop/dogfood/issue-101/workflow-context.txt
+
+      - name: Probe PHP 8.5 reflection representation directly
+        working-directory: target
+        run: |
+          set -euo pipefail
+          out='.agent-loop/dogfood/issue-101/reflection-probe.json'
+          php -r '
+          require "vendor/autoload.php";
+          $class = new ReflectionClass(voku\tests\ReflectionTypeFixture::class);
+          $result = [];
+          foreach (["classType", "selfType"] as $propertyName) {
+              $type = $class->getProperty($propertyName)->getType();
+              if (!$type instanceof ReflectionNamedType) {
+                  throw new RuntimeException("Expected named property type: " . $propertyName);
+              }
+              $result["property"]["$propertyName"] = [
+                  "getName" => $type->getName(),
+                  "toString" => (string) $type,
+              ];
+          }
+          $method = $class->getMethod("method");
+          foreach ($method->getParameters() as $parameter) {
+              if (!in_array($parameter->getName(), ["classType", "selfType"], true)) {
+                  continue;
+              }
+              $type = $parameter->getType();
+              if (!$type instanceof ReflectionNamedType) {
+                  throw new RuntimeException("Expected named parameter type: " . $parameter->getName());
+              }
+              $result["parameter"][$parameter->getName()] = [
+                  "getName" => $type->getName(),
+                  "toString" => (string) $type,
+              ];
+          }
+          file_put_contents($argv[1], json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL);
+          ' "${out}"
+          cat "${out}"
+
+      - name: Prove the frozen PHP 8.5 regression before mutation
+        working-directory: target
+        run: |
+          set -euo pipefail
+          out='.agent-loop/dogfood/issue-101/focused-test.log'
+          set +e
+          vendor/bin/phpunit tests/ReflectionTypeFormattingRegressionTest.php --colors=never > "${out}" 2>&1
+          status="$?"
+          set -e
+          cat "${out}"
+          test "${status}" -ne 0
+          grep -F 'selfType' "${out}" >/dev/null
+          printf '%s\n' "${status}" > .agent-loop/dogfood/issue-101/focused-test.exit
+
+      - name: Capture L2 and provenance evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          out='target/.agent-loop/dogfood/issue-101'
+          cp harness/tools/agent-loop/composer.lock "${out}/tool-composer.lock" 2>/dev/null || true
+          composer show --working-dir=harness/tools/agent-loop --format=json > "${out}/tool-packages.json" 2>/dev/null || true
+          find target/.agent-loop/recall -type f -path '*/GH-101/system.md' -exec cp '{}' "${out}/system.md" \; -quit 2>/dev/null || true
+          find target/.agent-loop/recall -type f -path '*/GH-101/facts.json' -exec cp '{}' "${out}/facts.json" \; -quit 2>/dev/null || true
+          sha256sum skills/skills/operational-prompting/operating-prompts.json > "${out}/operating-prompts.sha256" 2>/dev/null || true
+          git -C target rev-parse HEAD > "${out}/target-commit.txt"
+          git -C toolchain/agent-loop rev-parse HEAD > "${out}/agent-loop-commit.txt"
+          git -C candidate/agent-recall-compiler rev-parse HEAD > "${out}/recall-candidate-commit.txt"
+          git -C skills rev-parse HEAD > "${out}/skills-commit.txt"
+
+      - name: Upload immutable pre-fix evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-101-pre-fix-${{ github.sha }}
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            target/.agent-loop/dogfood/issue-101
+            target/.agent-loop/map/php-symbols.json
+            target/.agent-loop/contracts/GH-101
+            target/.agent-loop/runs/GH-101
