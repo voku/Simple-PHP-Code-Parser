@@ -1,0 +1,22 @@
+{
+  "name": "voku/simple-php-code-parser-agent-loop-tools",
+  "description": "Repository-local agent-loop tooling for real-issue dogfood replays.",
+  "type": "project",
+  "license": "Apache-2.0",
+  "require-dev": {
+    "voku/agent-kanban": "0.2.1",
+    "voku/agent-learning": "0.10.0",
+    "voku/agent-loop": "dev-main",
+    "voku/agent-map": "0.7.0",
+    "voku/agent-session": "0.5.0",
+    "voku/simple-cache": "6.1.0",
+    "voku/simple-php-code-parser": "0.22.2",
+    "voku/stop-words": "2.0.1"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}
