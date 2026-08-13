@@ -47,11 +47,11 @@ jobs:
           path: candidate/agent-recall-compiler
           persist-credentials: false
 
-      - name: Checkout agent-map issue 8 candidate
+      - name: Checkout merged agent-map issue 8 fix
         uses: actions/checkout@v7
         with:
           repository: voku/agent-map
-          ref: 62c90034775f7dbc14696caccc156b0c51bb8ea3
+          ref: 71b0a1f9eecdc2819a089e579c2b67e3791cb536
           path: candidate/agent-map
           persist-credentials: false
 
@@ -71,7 +71,7 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Validate frozen problem and one-variable candidate provenance
+      - name: Validate frozen problem and exact tool provenance
         run: |
           set -euo pipefail
           issue='harness/tools/agent-loop/dogfood/issue-101.json'
@@ -79,9 +79,9 @@ jobs:
           test "$(git -C toolchain/agent-loop rev-parse HEAD)" = '9249b32f1aa5da90b77bafad427a67eeb3e4a3b9'
           test "$(jq -r '.toolchain.agent_recall_compiler_candidate_commit' "${issue}")" = "$(git -C candidate/agent-recall-compiler rev-parse HEAD)"
           test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
-          test "$(git -C candidate/agent-map rev-parse HEAD)" = '62c90034775f7dbc14696caccc156b0c51bb8ea3'
+          test "$(git -C candidate/agent-map rev-parse HEAD)" = '71b0a1f9eecdc2819a089e579c2b67e3791cb536'
 
-      - name: Install exact toolchain with only agent-map varied
+      - name: Install exact toolchain with merged agent-map fix
         run: |
           set -euo pipefail
           php -r '
@@ -187,7 +187,7 @@ jobs:
           git -C target rev-parse HEAD > "${out}/target-commit.txt"
           git -C toolchain/agent-loop rev-parse HEAD > "${out}/agent-loop-commit.txt"
           git -C candidate/agent-recall-compiler rev-parse HEAD > "${out}/recall-commit.txt"
-          git -C candidate/agent-map rev-parse HEAD > "${out}/agent-map-candidate-commit.txt"
+          git -C candidate/agent-map rev-parse HEAD > "${out}/agent-map-merge-commit.txt"
           git -C skills rev-parse HEAD > "${out}/skills-commit.txt"
           cp harness/tools/agent-loop/composer.lock "${out}/tool-composer.lock" 2>/dev/null || true
           composer show --working-dir=harness/tools/agent-loop --format=json > "${out}/tool-packages.json" 2>/dev/null || true
