@@ -7,7 +7,7 @@
     "voku/agent-kanban": "0.2.1",
     "voku/agent-learning": "0.10.0",
     "voku/agent-loop": "dev-main",
-    "voku/agent-map": "0.7.0",
+    "voku/agent-map": "0.8.1",
     "voku/agent-session": "0.5.0",
     "voku/simple-cache": "6.1.0",
     "voku/simple-php-code-parser": "0.22.2",
