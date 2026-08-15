@@ -4,7 +4,7 @@
   "type": "project",
   "license": "Apache-2.0",
   "require-dev": {
-    "voku/agent-kanban": "0.2.1",
+    "voku/agent-kanban": "0.3.0",
     "voku/agent-learning": "0.10.0",
     "voku/agent-loop": "dev-main",
     "voku/agent-map": "0.8.1",
