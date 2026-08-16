@@ -1,0 +1,38 @@
+name: Release 0.22.3
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/release-0.22.3.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Tag exact release commit
+        env:
+          RELEASE_SHA: e664ea91639392bba76157b71530d6c7f5529af8
+          RELEASE_TAG: 0.22.3
+        run: |
+          set -euo pipefail
+          git cat-file -e "${RELEASE_SHA}^{commit}"
+          git merge-base --is-ancestor "${RELEASE_SHA}" origin/master
+
+          if git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            test "$(git rev-list -n1 "${RELEASE_TAG}")" = "${RELEASE_SHA}"
+            exit 0
+          fi
+
+          git tag "${RELEASE_TAG}" "${RELEASE_SHA}"
+          git push origin "refs/tags/${RELEASE_TAG}"
