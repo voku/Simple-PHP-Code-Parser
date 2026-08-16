@@ -10,8 +10,12 @@
   },
   "target_base_commit": "5156d5d74ca1bce275219f4571efd54ec44be911",
   "toolchain": {
-    "agent_loop_commit": "206cfdb3199740d85f342699e34a19744c554ef5",
-    "agent_recall_compiler_candidate_commit": "5a2710970e68e41c96a7c5d015f573fd4ec1d289",
+    "agent_loop_release": "0.16.5",
+    "agent_kanban_release": "0.3.1",
+    "agent_learning_release": "0.13.0",
+    "agent_map_release": "0.8.1",
+    "agent_recall_compiler_release": "0.13.2",
+    "agent_session_release": "0.6.0",
     "agent_skills_commit": "c7e9d8bdda59d957600bca8dc9f787f03286b277",
     "operating_prompt": "reproduce-before-fix"
   }
