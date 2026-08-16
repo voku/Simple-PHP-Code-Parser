@@ -11,15 +11,7 @@ use PhpParser\Node;
  */
 final class AstNodeInspector
 {
-    public function __construct(
-        private readonly string $sourceCode
-    ) {
-    }
-
-    /**
-     * Return the exact source slice covered by a node.
-     */
-    public function sourceText(Node $node): ?string
+    public static function sourceText(Node $node, string $sourceCode): ?string
     {
         $start = $node->getStartFilePos();
         $end = $node->getEndFilePos();
@@ -27,21 +19,17 @@ final class AstNodeInspector
             return null;
         }
 
-        return \substr($this->sourceCode, $start, $end - $start + 1);
+        return \substr($sourceCode, $start, $end - $start + 1);
     }
 
-    /**
-     * Return the node's one-based start column.
-     */
-    public function startColumn(Node $node): int
+    public static function startColumn(Node $node, string $sourceCode): int
     {
         $start = $node->getStartFilePos();
         if ($start < 0) {
             return 1;
         }
 
-        $prefix = \substr($this->sourceCode, 0, $start);
-        $lineStart = \strrpos($prefix, "\n");
+        $lineStart = \strrpos(\substr($sourceCode, 0, $start), "\n");
 
         return $lineStart === false ? $start + 1 : $start - $lineStart;
     }
@@ -49,11 +37,9 @@ final class AstNodeInspector
     /**
      * Build a shallow structural fingerprint from node kinds only.
      *
-     * Identifiers and literal values deliberately do not participate, which
-     * makes this useful for comparing repeated code shapes without pretending
-     * to perform semantic equivalence analysis.
+     * Identifiers and literal values deliberately do not participate.
      */
-    public function shapeFingerprint(Node $node, int $maxDepth = 4): string
+    public static function shapeFingerprint(Node $node, int $maxDepth = 4): string
     {
         return self::fingerprint($node, \max(0, $maxDepth), 0);
     }
