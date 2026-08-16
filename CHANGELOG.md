@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+### 0.22.3 (2026-08-16)
 
 - add `AstNodeInspector` helpers for exact node source slices, one-based start columns, and shallow value-independent AST shape fingerprints so downstream analyzers can reuse parser mechanics without reimplementing traversal plumbing
+- fix PHP 8.5 relative `self` / `parent` / `static` type preservation so lexical AST types win only when AST evidence exists, while pure Reflection stays honest
+- fix inheritdoc merging when no parent class exists by avoiding null parent lookups
 
 ### 0.22.2 (2026-08-05)
 
@@ -145,7 +147,7 @@
 - update vendor libs
 - PHP 7.2 as minimal requirement
 - remove custom PseudoTypes for phpDocumentor (PseudoTypes are now build in into phpDocumentor itself)
-- add more tests for "PhpCodeParser->getFunctionsInfo()"
+- add more tests
 
 ### 0.15.2 (2020-09-04)
 
