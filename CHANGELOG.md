@@ -1,5 +1,9 @@
 # Changelog
 
+### Unreleased
+
+- add `AstNodeInspector` helpers for exact node source slices, one-based start columns, and shallow value-independent AST shape fingerprints so downstream analyzers can reuse parser mechanics without reimplementing traversal plumbing
+
 ### 0.22.2 (2026-08-05)
 
 - BREAKING (output only): `PHPProperty::$type` / `PHPParameter::$type` read via reflection are now consistently fully qualified, e.g. `Psr\Container\ContainerInterface` is now reported as `\Psr\Container\ContainerInterface`. Previously the leading `\` was only added when `class_exists()` happened to be true, so interfaces, enums-in-unloadable-files and any not-yet-autoloadable class silently lost it, while the AST path always emitted it. Both paths now agree. Consumers that compare these strings verbatim have to expect the leading `\` (built-in types, `self`, `parent`, `static` and intersection types are unchanged)
@@ -60,7 +64,7 @@
 
 ### 0.19.5 (2022-08-30)
 
-- support "::class" from PHP 8
+- support for "::class" from PHP 8
 
 
 ### 0.19.4 (2022-08-30)
@@ -100,19 +104,19 @@
 
 - update dependencies
 
-### 0.18.0  (2021-10-03)
+### 0.18.0 (2021-10-03)
 
 - update dependencies
 
-### 0.17.0  (2021-07-27)
+### 0.17.0 (2021-07-27)
 
 - update dependencies
 
-### 0.16.6  (2020-12-26)
+### 0.16.6 (2020-12-26)
 
 - "PhpCodeParser" -> optimize exception handling of "amphp/parallel" for async code analyse per file
 
-### 0.16.5  (2020-12-26)
+### 0.16.5 (2020-12-26)
 
 - "PhpCodeParser" -> ignore exceptions from auto loaded external classes
 
@@ -213,11 +217,10 @@
 
 - "ParserErrorHandler" -> show more parsing errors in the results
 - "PHPInterface" -> fix PhpReflection usage
-- "PHPDefineConstant" -> fix php warning
 
 ### 0.4.2 (2020-05-23)
 
-- "PhpCodeChecker" -> fix "$skipMixedTypesAsError" usage 
+- "PhpCodeCheckerCommand" -> fix "$skipMixedTypesAsError" usage 
 
 ### 0.4.1 (2020-05-23)
 
