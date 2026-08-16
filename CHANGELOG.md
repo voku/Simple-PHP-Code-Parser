@@ -1,6 +1,6 @@
 # Changelog
 
-### Unreleased
+## Unreleased
 
 - add `AstNodeInspector` helpers for exact node source slices, one-based start columns, and shallow value-independent AST shape fingerprints so downstream analyzers can reuse parser mechanics without reimplementing traversal plumbing
 
@@ -114,7 +114,7 @@
 
 ### 0.16.6 (2020-12-26)
 
-- "PhpCodeParser" -> optimize exception handling of "amphp/parallel" for async code analyse per file
+- "PhpCodeParser" -> optimize exception handling of "amphp/parallel" for async code analysis per file
 
 ### 0.16.5 (2020-12-26)
 
