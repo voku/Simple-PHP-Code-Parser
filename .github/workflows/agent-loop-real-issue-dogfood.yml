@@ -63,8 +63,15 @@ jobs:
           test "$(jq -r '.toolchain.agent_recall_compiler_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-recall-compiler"]' "${composer}")"
           test "$(jq -r '.toolchain.agent_session_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-session"]' "${composer}")"
 
-      - name: Install exact released agent toolchain
-        run: composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
+      - name: Resolve and verify exact released agent toolchain
+        run: |
+          set -euo pipefail
+          issue='harness/tools/agent-loop/dogfood/issue-60.json'
+          lock='harness/tools/agent-loop/composer.lock'
+          composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
+          expected="$(jq -r '.toolchain.resolved_lock_sha256' "${issue}")"
+          actual="sha256:$(sha256sum "${lock}" | cut -d ' ' -f 1)"
+          test "${actual}" = "${expected}"
 
       - name: Install historical target dependencies
         run: composer install --working-dir=target --no-interaction --prefer-dist --no-progress
