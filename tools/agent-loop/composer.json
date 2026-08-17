@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "require-dev": {
     "voku/agent-loop": "0.16.5",
-    "voku/simple-php-code-parser": "0.22.2"
+    "voku/simple-php-code-parser": "0.22.3"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
