@@ -10,7 +10,7 @@
   },
   "target_base_commit": "53f1b5085ee883560afa9326ee914f6b23acd6ae",
   "toolchain": {
-    "agent_loop_release": "0.16.5",
+    "agent_loop_release": "0.16.6",
     "agent_skills_commit": "c7e9d8bdda59d957600bca8dc9f787f03286b277",
     "operating_prompt": "reproduce-before-fix"
   }

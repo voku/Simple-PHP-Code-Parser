@@ -3,9 +3,36 @@
         "config:recommended",
         ":preserveSemverRanges"
     ],
-    "packageRules": [{
+    "customManagers": [
+        {
+            "customType": "regex",
+            "managerFilePatterns": [
+                "/^tools\\/agent-loop\\/dogfood\\/issue-\\d+\\.json$/"
+            ],
+            "matchStrings": [
+                "\\\"agent_loop_release\\\"\\s*:\\s*\\\"(?<currentValue>[^\\\"]+)\\\""
+            ],
+            "depNameTemplate": "voku/agent-loop",
+            "datasourceTemplate": "packagist",
+            "versioningTemplate": "composer"
+        }
+    ],
+    "packageRules": [
+        {
+            "description": "Keep agent-loop tool and replay provenance updates together",
+            "matchPackageNames": [
+                "voku/agent-loop"
+            ],
+            "matchManagers": [
+                "composer",
+                "custom.regex"
+            ],
+            "groupName": "agent-loop toolchain"
+        },
+        {
             "matchPackageNames": [
                 "!phpunit/phpunit"
             ]
-    }]
+        }
+    ]
 }
