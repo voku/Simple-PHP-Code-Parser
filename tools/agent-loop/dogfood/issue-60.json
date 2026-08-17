@@ -17,7 +17,6 @@
     "agent_recall_compiler_release": "0.13.2",
     "agent_session_release": "0.6.0",
     "agent_skills_commit": "c7e9d8bdda59d957600bca8dc9f787f03286b277",
-    "resolved_lock_sha256": "sha256:6079c76aec73038e61875292c242477f74ed8913920c3ecfc496bd0ea3157b82",
     "operating_prompt": "reproduce-before-fix"
   }
 }
