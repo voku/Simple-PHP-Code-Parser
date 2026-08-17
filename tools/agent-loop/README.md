@@ -13,8 +13,10 @@ The first replay uses historical issue #60, `Update for use with PHP 8.4`.
 The workflow freezes three things before context discovery:
 
 - issue title/body and the pre-fix base commit `5156d5d74ca1bce275219f4571efd54ec44be911`;
-- `agent-loop 0.16.5` as the direct first-party release-set authority;
+- the `agent-loop` release recorded in the replay input as the direct first-party release-set authority;
 - agent-skills commit `c7e9d8bdda59d957600bca8dc9f787f03286b277` and the `reproduce-before-fix` L2 recipe.
+
+The replay `agent_loop_release` value and `tools/agent-loop/composer.json` intentionally describe the same direct dependency. Renovate owns updating those direct-version references together. Do not copy sibling `agent-*` versions into Composer or replay metadata; they are resolved evidence owned transitively by `agent-loop`.
 
 Before resolution, `verify-release-set.php` fails if the tool project or replay input reintroduces sibling `agent-*` version authority. After resolution, the same verifier requires the complete first-party release set to be present in `composer.lock` and reports the versions Composer actually selected.
 
