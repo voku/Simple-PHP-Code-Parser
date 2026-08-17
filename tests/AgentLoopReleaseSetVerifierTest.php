@@ -21,19 +21,19 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
         $composerPath = $directory . '/composer.json';
 
         try {
-            file_put_contents($issuePath, json_encode([
+            self::writeJson($issuePath, [
                 'toolchain' => [
                     'agent_loop_release' => '0.16.5',
                 ],
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
-            file_put_contents($composerPath, json_encode([
+            ]);
+            self::writeJson($composerPath, [
                 'require' => [
                     'voku/agent-loop' => '0.16.5',
                 ],
                 'require-dev' => [
                     'voku/agent-loop' => '0.16.4',
                 ],
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            ]);
 
             [$exitCode, $stdout, $stderr] = $this->execute([
                 PHP_BINARY,
@@ -49,9 +49,25 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
                 $stderr,
             );
         } finally {
-            @unlink($issuePath);
-            @unlink($composerPath);
-            @rmdir($directory);
+            foreach ([$issuePath, $composerPath] as $path) {
+                if (is_file($path) && !unlink($path)) {
+                    throw new RuntimeException('Unable to remove test file: ' . $path);
+                }
+            }
+            if (is_dir($directory) && !rmdir($directory)) {
+                throw new RuntimeException('Unable to remove test directory: ' . $directory);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function writeJson(string $path, array $data): void
+    {
+        $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        if (file_put_contents($path, $json . "\n") === false) {
+            throw new RuntimeException('Unable to write test file: ' . $path);
         }
     }
 
