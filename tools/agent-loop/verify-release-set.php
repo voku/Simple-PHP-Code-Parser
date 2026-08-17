@@ -29,6 +29,17 @@ try {
     $toolchain = requireArray($issue, 'toolchain', $argv[1]);
     $require = stringRequirements($composer['require'] ?? [], 'require', $argv[2]);
     $requireDev = stringRequirements($composer['require-dev'] ?? [], 'require-dev', $argv[2]);
+
+    $duplicatePackages = array_keys(array_intersect_key($require, $requireDev));
+    if ($duplicatePackages !== []) {
+        sort($duplicatePackages, SORT_STRING);
+        throw new \RuntimeException(sprintf(
+            '%s must not declare the same package in both require and require-dev: %s.',
+            $argv[2],
+            implode(', ', $duplicatePackages),
+        ));
+    }
+
     $rootRequirements = $require + $requireDev;
 
     $expectedAgentLoop = requireString($toolchain, 'agent_loop_release', $argv[1]);
