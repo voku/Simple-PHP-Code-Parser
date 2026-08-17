@@ -49,29 +49,23 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Validate frozen input and released toolchain
+      - name: Validate frozen input and release-set authority
         run: |
           set -euo pipefail
           issue='harness/tools/agent-loop/dogfood/issue-60.json'
           composer='harness/tools/agent-loop/composer.json'
           test "$(jq -r '.target_base_commit' "${issue}")" = "$(git -C target rev-parse HEAD)"
           test "$(jq -r '.toolchain.agent_skills_commit' "${issue}")" = "$(git -C skills rev-parse HEAD)"
-          test "$(jq -r '.toolchain.agent_loop_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-loop"]' "${composer}")"
-          test "$(jq -r '.toolchain.agent_kanban_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-kanban"]' "${composer}")"
-          test "$(jq -r '.toolchain.agent_learning_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-learning"]' "${composer}")"
-          test "$(jq -r '.toolchain.agent_map_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-map"]' "${composer}")"
-          test "$(jq -r '.toolchain.agent_recall_compiler_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-recall-compiler"]' "${composer}")"
-          test "$(jq -r '.toolchain.agent_session_release' "${issue}")" = "$(jq -r '.["require-dev"]["voku/agent-session"]' "${composer}")"
+          php harness/tools/agent-loop/verify-release-set.php "${issue}" "${composer}"
 
-      - name: Resolve and verify exact released agent toolchain
+      - name: Resolve and verify released agent toolchain
         run: |
           set -euo pipefail
           issue='harness/tools/agent-loop/dogfood/issue-60.json'
+          composer='harness/tools/agent-loop/composer.json'
           lock='harness/tools/agent-loop/composer.lock'
           composer update --working-dir=harness/tools/agent-loop --no-interaction --prefer-dist --no-progress
-          expected="$(jq -r '.toolchain.resolved_lock_sha256' "${issue}")"
-          actual="sha256:$(sha256sum "${lock}" | cut -d ' ' -f 1)"
-          test "${actual}" = "${expected}"
+          php harness/tools/agent-loop/verify-release-set.php "${issue}" "${composer}" "${lock}"
 
       - name: Install historical target dependencies
         run: composer install --working-dir=target --no-interaction --prefer-dist --no-progress
