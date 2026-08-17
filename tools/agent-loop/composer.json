@@ -4,15 +4,8 @@
   "type": "project",
   "license": "Apache-2.0",
   "require-dev": {
-    "voku/agent-kanban": "0.3.1",
-    "voku/agent-learning": "0.13.0",
     "voku/agent-loop": "0.16.5",
-    "voku/agent-map": "0.8.1",
-    "voku/agent-recall-compiler": "0.13.2",
-    "voku/agent-session": "0.6.0",
-    "voku/simple-cache": "6.1.0",
-    "voku/simple-php-code-parser": "0.22.2",
-    "voku/stop-words": "2.0.1"
+    "voku/simple-php-code-parser": "0.22.2"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
