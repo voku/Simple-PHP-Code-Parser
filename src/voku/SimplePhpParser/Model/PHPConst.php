@@ -87,7 +87,7 @@ class PHPConst extends BasePHPElement
 
             // Extract PHP 8.0+ attributes (only if not already populated by reflection)
             if (empty($this->attributes) && !empty($parentNode->attrGroups)) {
-                $this->attributes = Utils::extractAttributesFromAstNode($parentNode->attrGroups);
+                $this->attributes = Utils::extractAttributesFromAstNode($parentNode->attrGroups, $this->parserContainer);
             }
         }
 

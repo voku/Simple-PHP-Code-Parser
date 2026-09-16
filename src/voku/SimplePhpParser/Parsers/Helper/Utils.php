@@ -134,7 +134,7 @@ final class Utils
                     continue;
                 }
 
-                $defaultValue[] = self::getPhpParserValueFromNode($item->value);
+                $defaultValue[] = self::getPhpParserValueFromNode($item->value, $classStr, $parserContainer);
             }
 
             return $defaultValue;
@@ -160,7 +160,14 @@ final class Utils
                 return $className;
             }
 
-            if (\class_exists($className, true)) {
+            // Reading the constant's value means compiling the declaring class into
+            // this process. A parse run that opted out of reflection enrichment gets
+            // the unresolved placeholder instead of an autoload.
+            if (
+                ($parserContainer === null || $parserContainer->options()->reflectionEnrichment)
+                &&
+                \class_exists($className, true)
+            ) {
                 try {
                     return \constant($className . '::' . $node->name->name);
                 } catch (\Error $e) {
@@ -596,11 +603,12 @@ final class Utils
     /**
      * Extract PHPAttribute instances from AST node attribute groups.
      *
-     * @param \PhpParser\Node\AttributeGroup[] $attrGroups
+     * @param \PhpParser\Node\AttributeGroup[]                          $attrGroups
+     * @param \voku\SimplePhpParser\Parsers\Helper\ParserContainer|null $parserContainer
      *
      * @return PHPAttribute[]
      */
-    public static function extractAttributesFromAstNode(array $attrGroups): array
+    public static function extractAttributesFromAstNode(array $attrGroups, ?ParserContainer $parserContainer = null): array
     {
         $result = [];
         foreach ($attrGroups as $group) {
@@ -620,7 +628,7 @@ final class Utils
 
                 $arguments = [];
                 foreach ($attr->args as $arg) {
-                    $argValue = self::getPhpParserValueFromNode($arg);
+                    $argValue = self::getPhpParserValueFromNode($arg, null, $parserContainer);
                     if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
                         $argValue = null;
                     }

@@ -55,12 +55,12 @@ class PHPClass extends BasePHPClass
 
         // Extract PHP 8.0+ attributes
         if (!empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         // Skip autoloading when the current runtime cannot safely compile newer syntax;
         // AST data is still read from the node below.
-        $canAutoload = self::canAutoloadFromPhpNode($node);
+        $canAutoload = $this->reflectionEnrichmentEnabled() && self::canAutoloadFromPhpNode($node);
         $classExists = false;
         if ($canAutoload) {
             try {

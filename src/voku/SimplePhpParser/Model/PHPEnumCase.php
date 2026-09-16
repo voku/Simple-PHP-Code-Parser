@@ -41,7 +41,7 @@ final class PHPEnumCase extends BasePHPElement
         }
 
         if (!empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         return $this;

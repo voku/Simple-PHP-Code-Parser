@@ -116,7 +116,7 @@ class PHPProperty extends BasePHPElement
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
         if (empty($this->attributes) && !empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         $this->prepareNode($node);
@@ -221,7 +221,7 @@ class PHPProperty extends BasePHPElement
         }
 
         if (!empty($parameter->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups, $this->parserContainer);
         }
 
         return $this;

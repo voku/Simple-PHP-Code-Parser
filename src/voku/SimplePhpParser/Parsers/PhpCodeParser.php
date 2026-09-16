@@ -16,6 +16,7 @@ use voku\SimplePhpParser\Model\PHPFileInfo;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
+use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
@@ -29,18 +30,23 @@ final class PhpCodeParser
     private const CACHE_KEY_HELPER = 'simple-php-code-parser-v8-';
 
     /**
-     * @param string   $code
-     * @param string[] $autoloaderProjectPaths
+     * @param string              $code
+     * @param string[]            $autoloaderProjectPaths
+     * @param ParserOptions|null  $options
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
     public static function getFromString(
         string $code,
-        array $autoloaderProjectPaths = []
+        array $autoloaderProjectPaths = [],
+        ?ParserOptions $options = null
     ): ParserContainer {
         return self::getPhpFiles(
             $code,
-            $autoloaderProjectPaths
+            $autoloaderProjectPaths,
+            [],
+            [],
+            $options
         );
     }
 
@@ -142,10 +148,13 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string   $pathOrCode
-     * @param string[] $autoloaderProjectPaths
-     * @param string[] $pathExcludeRegex
-     * @param string[] $fileExtensions
+     * @param string             $pathOrCode
+     * @param string[]           $autoloaderProjectPaths
+     * @param string[]           $pathExcludeRegex
+     * @param string[]           $fileExtensions
+     * @param ParserOptions|null $options                how much of the model is filled in from
+     *                                                   the running runtime; reflection-enriched
+     *                                                   by default
      *
      * @return \voku\SimplePhpParser\Parsers\Helper\ParserContainer
      */
@@ -153,7 +162,8 @@ final class PhpCodeParser
         string $pathOrCode,
         array $autoloaderProjectPaths = [],
         array $pathExcludeRegex = [],
-        array $fileExtensions = []
+        array $fileExtensions = [],
+        ?ParserOptions $options = null
     ): ParserContainer {
         // Push a disposable handler so restore_error_handler() below will only
         // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
@@ -179,7 +189,7 @@ final class PhpCodeParser
             $fileExtensions
         );
 
-        $parserContainer = new ParserContainer();
+        $parserContainer = new ParserContainer($options);
         $visitor = new ASTVisitor($parserContainer);
 
         $processResults = [];
@@ -472,6 +482,8 @@ final class PhpCodeParser
             if (
                 !isset($classes[$class->parentClass])
                 &&
+                $parserContainer->options()->reflectionEnrichment
+                &&
                 \class_exists($class->parentClass, true)
             ) {
                 $reflectionClassTmp = Utils::createClassReflectionInstance($class->parentClass);
@@ -502,6 +514,8 @@ final class PhpCodeParser
             foreach ($class->interfaces as $interfaceStr) {
                 if (
                     !isset($interfaces[$interfaceStr])
+                    &&
+                    $parserContainer->options()->reflectionEnrichment
                     &&
                     \interface_exists($interfaceStr, true)
                 ) {

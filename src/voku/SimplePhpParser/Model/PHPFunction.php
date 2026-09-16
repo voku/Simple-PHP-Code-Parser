@@ -78,11 +78,11 @@ class PHPFunction extends BasePHPElement
 
         // Extract PHP 8.0+ attributes
         if (!empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         /** @noinspection NotOptimalIfConditionsInspection */
-        if (\function_exists($this->name)) {
+        if ($this->reflectionEnrichmentEnabled() && \function_exists($this->name)) {
             $reflectionFunction = Utils::createFunctionReflectionInstance($this->name);
             $this->readObjectFromReflection($reflectionFunction);
         }

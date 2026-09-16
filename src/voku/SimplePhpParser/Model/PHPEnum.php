@@ -67,13 +67,13 @@ class PHPEnum extends BasePHPClass
 
         // Extract PHP 8.0+ attributes
         if (!empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         // Keep enum autoloading aligned with class parsing: newer syntax may be
         // parseable by php-parser while the current runtime cannot compile it.
         $enumExists = false;
-        if (self::canAutoloadFromPhpNode($node)) {
+        if ($this->reflectionEnrichmentEnabled() && self::canAutoloadFromPhpNode($node)) {
             try {
                 if (\enum_exists($this->name, true)) {
                     $enumExists = true;

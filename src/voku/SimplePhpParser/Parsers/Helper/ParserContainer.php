@@ -60,6 +60,24 @@ class ParserContainer
      */
     private array $parse_errors = [];
 
+    private ParserOptions $options;
+
+    public function __construct(?ParserOptions $options = null)
+    {
+        $this->options = $options ?? ParserOptions::default();
+    }
+
+    /**
+     * How much of the model this parse run fills in from the running runtime.
+     *
+     * Every model object already carries the container, so this is where the
+     * per-run choice reaches the code that would otherwise autoload and reflect.
+     */
+    public function options(): ParserOptions
+    {
+        return $this->options;
+    }
+
     /**
      * @return \voku\SimplePhpParser\Model\PHPConst[]
      */

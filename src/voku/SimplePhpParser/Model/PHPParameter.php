@@ -121,7 +121,7 @@ class PHPParameter extends BasePHPElement
 
         // Extract PHP 8.0+ attributes (only if not already populated by reflection)
         if (empty($this->attributes) && !empty($parameter->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($parameter->attrGroups, $this->parserContainer);
         }
 
         return $this;

@@ -36,11 +36,11 @@ class PHPInterface extends BasePHPClass
 
         // Extract PHP 8.0+ attributes
         if (!empty($node->attrGroups)) {
-            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups);
+            $this->attributes = Utils::extractAttributesFromAstNode($node->attrGroups, $this->parserContainer);
         }
 
         $interfaceExists = false;
-        if (self::canAutoloadFromPhpNode($node)) {
+        if ($this->reflectionEnrichmentEnabled() && self::canAutoloadFromPhpNode($node)) {
             try {
                 if (\interface_exists($this->name, true)) {
                     $interfaceExists = true;

@@ -59,6 +59,20 @@ abstract class BasePHPElement
     }
 
     /**
+     * Whether this parse run may autoload the analysed code and read it back
+     * through reflection.
+     *
+     * Reflection is what makes inherited members and resolved values visible,
+     * but it also compiles the analysed project into this process and pulls in
+     * whole parent hierarchies. `ParserOptions::astOnly()` turns it off for
+     * consumers that only want the declarations the source states.
+     */
+    protected function reflectionEnrichmentEnabled(): bool
+    {
+        return $this->parserContainer->options()->reflectionEnrichment;
+    }
+
+    /**
      * @param \Reflector $object
      *
      * @return $this

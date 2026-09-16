@@ -1,5 +1,11 @@
 # Changelog
 
+### unreleased
+
+- add `ParserOptions` and an optional `$options` argument on `PhpCodeParser::getPhpFiles()` / `getFromString()`. `ParserOptions::astOnly()` parses strictly what the source declares: the analysed code is never autoloaded, no class-like is reflected, no parent hierarchy is pulled into the container, and an unresolvable class-constant default stays unresolved instead of compiling its declaring class into the parsing process
+- the default stays `ParserOptions::default()`, i.e. today's reflection-enriched behaviour, so existing callers are unaffected
+- for a per-file symbol index the difference is large: parsing a PHPUnit test class with `astOnly()` yields only that class instead of the class plus `PHPUnit\Framework\TestCase` and `PHPUnit\Framework\Assert`, which in one measured repository cut structural extraction of 339 files from 275s to 15s and the cached payload from 47.5 MB to 1.1 MB
+
 ### 0.22.3 (2026-08-16)
 
 - add `AstNodeInspector` helpers for exact node source slices, one-based start columns, and shallow value-independent AST shape fingerprints so downstream analyzers can reuse parser mechanics without reimplementing traversal plumbing
