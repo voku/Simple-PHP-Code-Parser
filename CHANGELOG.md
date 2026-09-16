@@ -1,6 +1,6 @@
 # Changelog
 
-### unreleased
+### 0.22.4 (2026-09-16)
 
 - add `ParserOptions` and an optional `$options` argument on `PhpCodeParser::getPhpFiles()` / `getFromString()`. `ParserOptions::astOnly()` parses strictly what the source declares: the analysed code is never autoloaded, no class-like is reflected, no parent hierarchy is pulled into the container, and an unresolvable class-constant default stays unresolved instead of compiling its declaring class into the parsing process
 - the default stays `ParserOptions::default()`, i.e. today's reflection-enriched behaviour, so existing callers are unaffected
