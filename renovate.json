@@ -3,9 +3,23 @@
         "config:recommended",
         ":preserveSemverRanges"
     ],
-    "packageRules": [{
+    "packageRules": [
+        {
             "matchPackageNames": [
                 "!phpunit/phpunit"
             ]
-    }]
+        },
+        {
+            "matchManagers": [
+                "composer"
+            ],
+            "matchFileNames": [
+                "tools/agent-loop/composer.json"
+            ],
+            "matchPackageNames": [
+                "voku/agent-loop"
+            ],
+            "enabled": false
+        }
+    ]
 }
