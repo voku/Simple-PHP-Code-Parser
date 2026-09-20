@@ -106,7 +106,8 @@ jobs:
           "${loop}" board card create GH-101 \
             --title='PHP 8.5 reflection and null-array-key regression' \
             --lane=READY \
-            --status=Selected
+            --status=Selected \
+            --brief='Reproduce the PHP 8.5 reflection and null-array-key regressions before applying the minimal scoped fix.'
           "${loop}" workflow plan GH-101 \
             --by issue-101-dogfood \
             --file tests/ReflectionTypeFormattingRegressionTest.php \

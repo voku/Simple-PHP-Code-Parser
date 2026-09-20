@@ -23,15 +23,15 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
         try {
             self::writeJson($issuePath, [
                 'toolchain' => [
-                    'agent_loop_release' => '0.16.5',
+                    'agent_loop_release' => '1.2.3',
                 ],
             ]);
             self::writeJson($composerPath, [
                 'require' => [
-                    'voku/agent-loop' => '0.16.5',
+                    'voku/agent-loop' => '1.2.3',
                 ],
                 'require-dev' => [
-                    'voku/agent-loop' => '0.16.4',
+                    'voku/agent-loop' => '1.2.2',
                 ],
             ]);
 
