@@ -13,7 +13,7 @@ The first replay uses historical issue #60, `Update for use with PHP 8.4`.
 The replay keeps the historical task evidence stable while making the consumer toolchain explicit:
 
 - issue title/body and the pre-fix base commit `5156d5d74ca1bce275219f4571efd54ec44be911` remain frozen;
-- `agent-loop 0.20.31` is the current direct first-party release-set authority and may be deliberately advanced when revalidating the consumer workflow; the replay metadata and tool Composer constraint must move together;
+- `agent-loop 0.20.32` is the current direct first-party release-set authority and may be deliberately advanced when revalidating the consumer workflow; the replay metadata and tool Composer constraint must move together;
 - agent-skills commit `c7e9d8bdda59d957600bca8dc9f787f03286b277` and the `reproduce-before-fix` L2 recipe remain frozen unless that evidence boundary is intentionally revised.
 
 Before resolution, `verify-release-set.php` fails if the tool project and replay metadata disagree or reintroduce sibling `agent-*` version authority. After resolution, the same verifier requires the complete first-party release set to be present in `composer.lock` and reports the versions Composer actually selected.
