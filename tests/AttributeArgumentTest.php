@@ -114,6 +114,29 @@ PHP;
         );
     }
 
+    public function testDynamicClassConstantExpressionIsPreservedWithoutAssertion(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule($className::Foo)]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $argument = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $argument);
+        static::assertSame('$className::Foo', $argument->expression);
+    }
+
     public function testLiteralStringAndClassConstantRemainDistinct(): void
     {
         $container = PhpCodeParser::getFromString(
