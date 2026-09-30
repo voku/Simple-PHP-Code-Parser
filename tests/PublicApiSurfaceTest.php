@@ -83,6 +83,14 @@ final class PublicApiSurfaceTest extends TestCase
                 '__construct' => ['static' => false, 'required' => 1, 'total' => 2],
             ],
         ],
+        'voku\\SimplePhpParser\\Model\\PHPAttributeExpression' => [
+            'properties' => [
+                'expression' => 'string',
+            ],
+            'methods' => [
+                '__construct' => ['static' => false, 'required' => 1, 'total' => 1],
+            ],
+        ],
         'voku\\SimplePhpParser\\Model\\PHPClass' => [
             'properties' => [
                 'interfaces' => 'array',
