@@ -660,7 +660,7 @@ final class Utils
      *
      * @return mixed
      */
-    private static function getPhpAttributeArgumentValue(Expr $expression)
+    private static function getPhpAttributeArgumentValue(Expr $expression): mixed
     {
         $evaluator = new ConstExprEvaluator(
             static function (Expr $unresolved): mixed {
@@ -685,7 +685,7 @@ final class Utils
 
         try {
             return $evaluator->evaluateSilently($expression);
-        } catch (ConstExprEvaluationException $e) {
+        } catch (ConstExprEvaluationException) {
             return self::attributeExpressionFromNode($expression);
         }
     }
