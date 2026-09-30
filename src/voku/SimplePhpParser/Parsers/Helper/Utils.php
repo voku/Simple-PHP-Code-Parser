@@ -666,29 +666,28 @@ final class Utils
     ): mixed {
         $evaluator = new ConstExprEvaluator(
             static function (Expr $unresolved) use ($parserContainer): mixed {
-                if ($unresolved instanceof ClassConstFetch) {
-                    if (
-                        !$unresolved->class instanceof Name
-                        ||
-                        !$unresolved->name instanceof \PhpParser\Node\Identifier
-                    ) {
-                        return self::attributeExpressionFromNode($unresolved);
-                    }
-
-                    if (\strtolower($unresolved->name->name) === 'class') {
-                        $className = $unresolved->class->toString();
-                        if (!\in_array(\strtolower($className), ['self', 'static', 'parent'], true)) {
-                            return '\\' . \ltrim($className, '\\');
-                        }
-                    }
+                if (!$unresolved instanceof ClassConstFetch) {
+                    return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
                 }
 
-                $resolved = self::getPhpParserValueFromNode($unresolved, null, $parserContainer);
-                if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-                    return $resolved;
+                if (
+                    !$unresolved->class instanceof Name
+                    ||
+                    !$unresolved->name instanceof \PhpParser\Node\Identifier
+                ) {
+                    return self::attributeExpressionFromNode($unresolved);
                 }
 
-                return self::attributeExpressionFromNode($unresolved);
+                $className = $unresolved->class->toString();
+                if (
+                    \strtolower($unresolved->name->name) === 'class'
+                    &&
+                    !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
+                ) {
+                    return '\\' . \ltrim($className, '\\');
+                }
+
+                return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
             }
         );
 
@@ -697,6 +696,18 @@ final class Utils
         } catch (ConstExprEvaluationException) {
             return self::attributeExpressionFromNode($expression);
         }
+    }
+
+    private static function resolvePhpAttributeValueOrExpression(
+        Expr $expression,
+        ?ParserContainer $parserContainer
+    ): mixed {
+        $resolved = self::getPhpParserValueFromNode($expression, null, $parserContainer);
+        if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+            return $resolved;
+        }
+
+        return self::attributeExpressionFromNode($expression);
     }
 
     private static function attributeExpressionFromNode(Expr $expression): PHPAttributeExpression
