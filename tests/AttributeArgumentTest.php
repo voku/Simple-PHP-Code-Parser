@@ -60,13 +60,15 @@ PHP,
         static::assertInstanceOf(PHPAttributeExpression::class, $rule);
         static::assertSame('\\AttributeEvidence\\ArchitectureRules::Foo', $rule->expression);
 
-        static::assertIsArray($attribute->arguments['options']);
-        static::assertSame('Foo', $attribute->arguments['options']['literal']);
+        $options = $attribute->arguments['options'];
+        static::assertIsArray($options);
+        /** @var array<string, mixed> $options */
+        static::assertSame('Foo', $options['literal']);
 
-        $arrayRule = $attribute->arguments['options']['rule'];
+        $arrayRule = $options['rule'];
         static::assertInstanceOf(PHPAttributeExpression::class, $arrayRule);
         static::assertSame('\\AttributeEvidence\\ArchitectureRules::Bar', $arrayRule->expression);
-        static::assertSame(['enabled' => true], $attribute->arguments['options']['nested']);
+        static::assertSame(['enabled' => true], $options['nested']);
 
         static::assertNotContains('AttributeEvidence\\Rule', $autoloaded);
         static::assertNotContains('AttributeEvidence\\Target', $autoloaded);
@@ -94,7 +96,8 @@ PHP,
         $arguments = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
 
         static::assertSame('Foo', $arguments[0]);
-        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[1]);
-        static::assertSame('\\AttributeEvidence\\ArchitectureRules::Foo', $arguments[1]->expression);
+        $classConstant = $arguments[1];
+        static::assertInstanceOf(PHPAttributeExpression::class, $classConstant);
+        static::assertSame('\\AttributeEvidence\\ArchitectureRules::Foo', $classConstant->expression);
     }
 }
