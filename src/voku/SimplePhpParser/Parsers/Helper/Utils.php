@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
 
+use PhpParser\ConstExprEvaluationException;
+use PhpParser\ConstExprEvaluator;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\PrettyPrinter\Standard;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
 use voku\SimplePhpParser\Model\PHPAttribute;
+use voku\SimplePhpParser\Model\PHPAttributeExpression;
 
 final class Utils
 {
@@ -628,10 +633,7 @@ final class Utils
 
                 $arguments = [];
                 foreach ($attr->args as $arg) {
-                    $argValue = self::getPhpParserValueFromNode($arg, null, $parserContainer);
-                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-                        $argValue = null;
-                    }
+                    $argValue = self::getPhpAttributeArgumentValue($arg->value, $parserContainer);
 
                     if ($arg->name !== null) {
                         $arguments[$arg->name->name] = $argValue;
@@ -645,6 +647,50 @@ final class Utils
         }
 
         return $result;
+    }
+
+    /**
+     * Resolve one attribute argument without losing source identity.
+     *
+     * php-parser's ConstExprEvaluator already implements PHP constant-expression
+     * semantics, including nested arrays and array keys. Expressions that need
+     * non-local runtime state stay explicit instead of being collapsed to null
+     * or to a misleading scalar value.
+     *
+     * @return mixed
+     */
+    private static function getPhpAttributeArgumentValue(
+        Expr $expression,
+        ?ParserContainer $parserContainer = null
+    ) {
+        $prettyPrinter = new Standard();
+
+        $fallback = static function (Expr $unresolved) use ($parserContainer, $prettyPrinter) {
+            if (
+                $parserContainer === null
+                ||
+                $parserContainer->options()->reflectionEnrichment
+            ) {
+                $legacyValue = self::getPhpParserValueFromNode($unresolved, null, $parserContainer);
+                if (
+                    $legacyValue !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER
+                    &&
+                    !$legacyValue instanceof \PhpParser\Node
+                ) {
+                    return $legacyValue;
+                }
+            }
+
+            return new PHPAttributeExpression($prettyPrinter->prettyPrintExpr($unresolved));
+        };
+
+        $evaluator = new ConstExprEvaluator($fallback);
+
+        try {
+            return $evaluator->evaluateSilently($expression);
+        } catch (ConstExprEvaluationException $e) {
+            return new PHPAttributeExpression($prettyPrinter->prettyPrintExpr($expression));
+        }
     }
 
     /**
