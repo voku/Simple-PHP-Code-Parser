@@ -137,6 +137,67 @@ PHP,
         static::assertSame('$className::Foo', $argument->expression);
     }
 
+    public function testAstOnlyEvaluatesContextFreeNestedExpressions(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule([
+    'enabled' => true,
+    'nested' => ['count' => 1 + 1],
+])]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        static::assertSame(
+            [
+                'enabled' => true,
+                'nested' => ['count' => 2],
+            ],
+            $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0]
+        );
+    }
+
+    public function testAstOnlyPreservesEnclosingExpressionsWithUnresolvedOperands(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(
+    !ArchitectureRules::Foo,
+    ArchitectureRules::Foo ? 'yes' : 'no',
+)]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $arguments = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[0]);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Foo', $arguments[0]->expression);
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[1]);
+        static::assertSame(
+            "\\AttributeEvidence\\ArchitectureRules::Foo ? 'yes' : 'no'",
+            $arguments[1]->expression
+        );
+    }
+
     public function testLiteralStringAndClassConstantRemainDistinct(): void
     {
         $container = PhpCodeParser::getFromString(
