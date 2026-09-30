@@ -679,15 +679,11 @@ final class Utils
                 }
 
                 $className = $unresolved->class->toString();
-                if (
-                    \strtolower($unresolved->name->name) === 'class'
-                    &&
-                    !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
-                ) {
-                    return '\\' . \ltrim($className, '\\');
-                }
 
-                return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
+                return \strtolower($unresolved->name->name) === 'class'
+                    && !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
+                    ? '\\' . \ltrim($className, '\\')
+                    : self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
             }
         );
 
