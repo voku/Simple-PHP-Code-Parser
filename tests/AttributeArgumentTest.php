@@ -114,6 +114,85 @@ PHP;
         );
     }
 
+    public function testAstOnlyPreservesCompositeExpressionsWithUnresolvedOperands(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(
+    negated: !ArchitectureRules::Foo,
+    ternary: ArchitectureRules::Foo ? 'yes' : 'no',
+    arithmetic: 1 + 1,
+    nested: ['negated' => !ArchitectureRules::Bar],
+)]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $arguments = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
+
+        $negated = $arguments['negated'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $negated);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Foo', $negated->expression);
+
+        $ternary = $arguments['ternary'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $ternary);
+        static::assertSame(
+            "\\AttributeEvidence\\ArchitectureRules::Foo ? 'yes' : 'no'",
+            $ternary->expression
+        );
+
+        static::assertSame(2, $arguments['arithmetic']);
+
+        $nested = $arguments['nested'];
+        static::assertIsArray($nested);
+        $nestedNegated = $nested['negated'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $nestedNegated);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Bar', $nestedNegated->expression);
+    }
+
+    public function testAstOnlyDoesNotResolveRuntimeGlobalConstants(): void
+    {
+        if (!\defined('ATTRIBUTE_EVIDENCE_RUNTIME_VALUE')) {
+            \define('ATTRIBUTE_EVIDENCE_RUNTIME_VALUE', 'runtime-value');
+        }
+
+        $source = <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(\ATTRIBUTE_EVIDENCE_RUNTIME_VALUE)]
+final class Example
+{
+}
+PHP;
+
+        $defaultValue = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::default()
+        )->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertSame('runtime-value', $defaultValue);
+
+        $astOnlyValue = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::astOnly()
+        )->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyValue);
+        static::assertSame('\\ATTRIBUTE_EVIDENCE_RUNTIME_VALUE', $astOnlyValue->expression);
+    }
+
     public function testDynamicClassConstantExpressionIsPreservedWithoutAssertion(): void
     {
         $container = PhpCodeParser::getFromString(
