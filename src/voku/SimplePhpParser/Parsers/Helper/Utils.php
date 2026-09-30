@@ -674,13 +674,27 @@ final class Utils
 
                 $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
                 if ($item->key === null) {
+                    if (\array_key_exists(PHP_INT_MAX, $result)) {
+                        return self::attributeExpressionFromNode($expression);
+                    }
+
                     $result[] = $value;
 
                     continue;
                 }
 
                 $key = self::getPhpAttributeArgumentValue($item->key, $parserContainer);
-                if (!\is_int($key) && !\is_string($key)) {
+                if ($key instanceof PHPAttributeExpression || \is_array($key) || \is_object($key)) {
+                    return self::attributeExpressionFromNode($expression);
+                }
+
+                if (\is_bool($key)) {
+                    $key = (int) $key;
+                } elseif (\is_float($key)) {
+                    $key = (int) $key;
+                } elseif ($key === null) {
+                    $key = '';
+                } elseif (!\is_int($key) && !\is_string($key)) {
                     return self::attributeExpressionFromNode($expression);
                 }
 
@@ -729,6 +743,10 @@ final class Utils
         Expr $expression,
         ?ParserContainer $parserContainer
     ): mixed {
+        if ($parserContainer !== null && !$parserContainer->options()->reflectionEnrichment) {
+            return self::attributeExpressionFromNode($expression);
+        }
+
         $resolved = self::getPhpParserValueFromNode($expression, null, $parserContainer);
         if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
             return $resolved;

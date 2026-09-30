@@ -17,6 +17,9 @@ class PHPAttribute
     /**
      * Attribute constructor arguments.
      *
+     * Context-free constant expressions are exposed as normal PHP values. Expressions that require
+     * runtime context are represented by PHPAttributeExpression so their source identity is retained.
+     *
      * @var array<int|string, mixed>
      */
     public array $arguments = [];

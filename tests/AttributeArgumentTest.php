@@ -177,6 +177,9 @@ namespace AttributeEvidence;
 #[Rule(
     !ArchitectureRules::Foo,
     ArchitectureRules::Foo ? 'yes' : 'no',
+    ArchitectureRules::Foo ?? 'fallback',
+    ArchitectureRules::Foo === 'Foo',
+    ['guard' => !ArchitectureRules::Bar],
 )]
 final class Example
 {
@@ -196,6 +199,121 @@ PHP,
             "\\AttributeEvidence\\ArchitectureRules::Foo ? 'yes' : 'no'",
             $arguments[1]->expression
         );
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[2]);
+        static::assertSame(
+            "\\AttributeEvidence\\ArchitectureRules::Foo ?? 'fallback'",
+            $arguments[2]->expression
+        );
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[3]);
+        static::assertSame(
+            "\\AttributeEvidence\\ArchitectureRules::Foo === 'Foo'",
+            $arguments[3]->expression
+        );
+
+        static::assertIsArray($arguments[4]);
+        static::assertInstanceOf(PHPAttributeExpression::class, $arguments[4]['guard']);
+        static::assertSame(
+            '!\\AttributeEvidence\\ArchitectureRules::Bar',
+            $arguments[4]['guard']->expression
+        );
+    }
+
+    public function testAstOnlyDoesNotResolveProcessGlobalConstants(): void
+    {
+        if (!\defined('ATTRIBUTE_EVIDENCE_RUNTIME_VALUE')) {
+            \define('ATTRIBUTE_EVIDENCE_RUNTIME_VALUE', 'runtime-value');
+        }
+
+        $source = <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(\ATTRIBUTE_EVIDENCE_RUNTIME_VALUE)]
+final class Example
+{
+}
+PHP;
+
+        $defaultValue = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::default()
+        )->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertSame('runtime-value', $defaultValue);
+
+        $astOnlyValue = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::astOnly()
+        )->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyValue);
+        static::assertSame('\\ATTRIBUTE_EVIDENCE_RUNTIME_VALUE', $astOnlyValue->expression);
+    }
+
+    public function testAstOnlyPreservesNativeScalarArrayKeySemantics(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule([
+    true => 'bool',
+    null => 'null',
+    2.9 => 'float',
+])]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        static::assertSame(
+            [
+                1 => 'bool',
+                '' => 'null',
+                2 => 'float',
+            ],
+            $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0]
+        );
+    }
+
+    public function testAstOnlyPreservesArrayExpressionWhenAppendWouldOverflow(): void
+    {
+        if (\PHP_INT_SIZE < 8) {
+            static::markTestSkipped('Requires 64-bit integers.');
+        }
+
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule([
+    9223372036854775807 => 1,
+    2,
+])]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $argument = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $argument);
+        static::assertSame('[9223372036854775807 => 1, 2]', $argument->expression);
     }
 
     public function testLiteralStringAndClassConstantRemainDistinct(): void
