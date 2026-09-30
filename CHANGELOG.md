@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.22.5 (2026-09-30)
+
+- fix: preserve unresolved PHP attribute expressions as `PHPAttributeExpression` so consumers can distinguish expressions from real string literals
+- preserve structured attribute argument arrays and statically known `::class` references
+- keep `ParserOptions::astOnly()` free of application-class autoloading while retaining reflection-enriched backwards compatibility
+- add regression coverage for class constants, dynamic class-constant expressions and structured attribute arguments
+
 ### 0.22.4 (2026-09-16)
 
 - add `ParserOptions` and an optional `$options` argument on `PhpCodeParser::getPhpFiles()` / `getFromString()`. `ParserOptions::astOnly()` parses strictly what the source declares: the analysed code is never autoloaded, no class-like is reflected, no parent hierarchy is pulled into the container, and an unresolvable class-constant default stays unresolved instead of compiling its declaring class into the parsing process
