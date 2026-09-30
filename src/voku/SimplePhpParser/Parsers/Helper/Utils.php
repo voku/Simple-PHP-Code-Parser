@@ -674,11 +674,11 @@ final class Utils
 
                 $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
                 if ($item->key === null) {
-                    try {
-                        $result[] = $value;
-                    } catch (\Error) {
+                    if (\array_key_exists(PHP_INT_MAX, $result)) {
                         return self::attributeExpressionFromNode($expression);
                     }
+
+                    $result[] = $value;
 
                     continue;
                 }
