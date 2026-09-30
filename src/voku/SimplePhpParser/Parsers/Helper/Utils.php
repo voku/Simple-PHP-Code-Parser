@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Helper;
 
+use PhpParser\ConstExprEvaluationException;
+use PhpParser\ConstExprEvaluator;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\UnaryMinus;
+use PhpParser\Node\Name;
+use PhpParser\PrettyPrinter\Standard;
 use RecursiveArrayIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionFunction;
 use voku\SimplePhpParser\Model\PHPAttribute;
+use voku\SimplePhpParser\Model\PHPAttributeExpression;
 
 final class Utils
 {
@@ -628,10 +635,7 @@ final class Utils
 
                 $arguments = [];
                 foreach ($attr->args as $arg) {
-                    $argValue = self::getPhpParserValueFromNode($arg, null, $parserContainer);
-                    if ($argValue === self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-                        $argValue = null;
-                    }
+                    $argValue = self::getPhpAttributeArgumentValue($arg->value);
 
                     if ($arg->name !== null) {
                         $arguments[$arg->name->name] = $argValue;
@@ -645,6 +649,55 @@ final class Utils
         }
 
         return $result;
+    }
+
+    /**
+     * Evaluate an attribute argument without loading application code.
+     *
+     * PHP-Parser's ConstExprEvaluator handles context-free constant expressions, including nested
+     * arrays with their original keys. Expressions that require external context are retained as
+     * PHPAttributeExpression values rather than collapsed to a misleading scalar or null.
+     *
+     * @return mixed
+     */
+    private static function getPhpAttributeArgumentValue(Expr $expression)
+    {
+        $evaluator = new ConstExprEvaluator(
+            static function (Expr $unresolved): mixed {
+                if (
+                    $unresolved instanceof ClassConstFetch
+                    &&
+                    $unresolved->class instanceof Name
+                    &&
+                    $unresolved->name instanceof \PhpParser\Node\Identifier
+                    &&
+                    \strtolower($unresolved->name->name) === 'class'
+                ) {
+                    $className = $unresolved->class->toString();
+                    if (!\in_array(\strtolower($className), ['self', 'static', 'parent'], true)) {
+                        return '\\' . \ltrim($className, '\\');
+                    }
+                }
+
+                return self::attributeExpressionFromNode($unresolved);
+            }
+        );
+
+        try {
+            return $evaluator->evaluateSilently($expression);
+        } catch (ConstExprEvaluationException $e) {
+            return self::attributeExpressionFromNode($expression);
+        }
+    }
+
+    private static function attributeExpressionFromNode(Expr $expression): PHPAttributeExpression
+    {
+        static $prettyPrinter;
+        if (!$prettyPrinter instanceof Standard) {
+            $prettyPrinter = new Standard();
+        }
+
+        return new PHPAttributeExpression($prettyPrinter->prettyPrintExpr($expression));
     }
 
     /**
