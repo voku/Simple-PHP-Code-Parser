@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.6 (2026-09-30)
+
+- fix: preserve the full enclosing PHP attribute expression when an unresolved operand appears inside boolean negation, ternary and other constant-expression operators instead of coercing the unresolved value through PHP object truthiness
+- keep structured attribute arrays usable by evaluating their values recursively while retaining unresolved nested expressions as `PHPAttributeExpression`
+- add regression coverage for unresolved composite operands and context-free nested constant expressions
+
 ### 0.22.5 (2026-09-30)
 
 - fix: preserve unresolved PHP attribute expressions as `PHPAttributeExpression` so consumers can distinguish expressions from real string literals
