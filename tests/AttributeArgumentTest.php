@@ -83,7 +83,7 @@ PHP,
         $autoload = static function (string $className) use (&$autoloaded): void {
             $autoloaded[] = $className;
         };
-        \\spl_autoload_register($autoload);
+        \spl_autoload_register($autoload);
 
         try {
             $container = PhpCodeParser::getFromString(
@@ -110,28 +110,28 @@ PHP,
                 ParserOptions::astOnly()
             );
         } finally {
-            \\spl_autoload_unregister($autoload);
+            \spl_autoload_unregister($autoload);
         }
 
-        $arguments = $container->getClasses()['AttributeEvidence\\\\Example']->attributes[0]->arguments;
+        $arguments = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
 
         foreach (['negated', 'conditional', 'coalesced', 'identical'] as $name) {
             static::assertInstanceOf(PHPAttributeExpression::class, $arguments[$name]);
         }
 
-        static::assertSame('!\\\\AttributeEvidence\\\\ArchitectureRules::Foo', $arguments['negated']->expression);
-        static::assertSame("\\\\AttributeEvidence\\\\ArchitectureRules::Foo ? 'yes' : 'no'", $arguments['conditional']->expression);
-        static::assertSame("\\\\AttributeEvidence\\\\ArchitectureRules::Foo ?? 'fallback'", $arguments['coalesced']->expression);
-        static::assertSame("\\\\AttributeEvidence\\\\ArchitectureRules::Foo === 'Foo'", $arguments['identical']->expression);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Foo', $arguments['negated']->expression);
+        static::assertSame("\\AttributeEvidence\\ArchitectureRules::Foo ? 'yes' : 'no'", $arguments['conditional']->expression);
+        static::assertSame("\\AttributeEvidence\\ArchitectureRules::Foo ?? 'fallback'", $arguments['coalesced']->expression);
+        static::assertSame("\\AttributeEvidence\\ArchitectureRules::Foo === 'Foo'", $arguments['identical']->expression);
 
         $options = $arguments['options'];
         static::assertIsArray($options);
         /** @var array<string, mixed> $options */
         static::assertSame(2, $options['count']);
         static::assertInstanceOf(PHPAttributeExpression::class, $options['guard']);
-        static::assertSame('!\\\\AttributeEvidence\\\\ArchitectureRules::Bar', $options['guard']->expression);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Bar', $options['guard']->expression);
 
-        static::assertNotContains('AttributeEvidence\\\\ArchitectureRules', $autoloaded);
+        static::assertNotContains('AttributeEvidence\\ArchitectureRules', $autoloaded);
     }
 
     public function testParserModesKeepTheirClassConstantBoundary(): void
