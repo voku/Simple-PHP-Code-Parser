@@ -1,5 +1,12 @@
 # Changelog
 
+### 0.22.7 (2026-09-30)
+
+- fix: keep `ParserOptions::astOnly()` source-bound by preserving process-global constants as `PHPAttributeExpression` instead of resolving them from the running PHP process
+- preserve native PHP array-key coercion for boolean, float and null attribute array keys, while falling back to the full expression for unresolved keys
+- fail closed to the full attribute array expression when an implicit append would overflow `PHP_INT_MAX`
+- clarify the public attribute-argument contract and add regression coverage for unresolved operators, nested expressions, scalar array keys, overflow and unresolved array keys
+
 ### 0.22.6 (2026-09-30)
 
 - fix: preserve the full enclosing PHP attribute expression when an unresolved operand appears inside boolean negation, ternary and other constant-expression operators instead of coercing the unresolved value through PHP object truthiness
