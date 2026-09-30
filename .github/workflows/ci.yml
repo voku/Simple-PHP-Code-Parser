@@ -61,7 +61,7 @@ jobs:
             # Use --with (temporary constraint) instead of listing packages positionally: the latter is a
             # partial-update and requires a lock file, which libraries do not commit. --with does a full
             # resolve with the extra constraint, so it works fine without a lock file.
-            composer update --prefer-dist --no-interaction --with nikic/php-parser:'^4.18' --with phpunit/phpunit:'^9.6'
+            composer update --prefer-dist --no-interaction --with nikic/php-parser:'4.18.0' --with phpunit/phpunit:'^9.6'
           elif [[ "${{ matrix.composer }}" == "lowest" ]]; then
             composer update --prefer-dist --no-interaction --prefer-lowest --prefer-stable
           else
