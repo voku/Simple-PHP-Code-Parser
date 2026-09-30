@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Parsers\Helper;
 use PhpParser\ConstExprEvaluationException;
 use PhpParser\ConstExprEvaluator;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Array_;
 use PhpParser\Node\Expr\ClassConstFetch;
 use PhpParser\Node\Expr\UnaryMinus;
 use PhpParser\Node\Name;
@@ -664,26 +665,56 @@ final class Utils
         Expr $expression,
         ?ParserContainer $parserContainer = null
     ): mixed {
+        if ($expression instanceof Array_) {
+            $result = [];
+            foreach ($expression->items as $item) {
+                if ($item === null || $item->unpack) {
+                    return self::attributeExpressionFromNode($expression);
+                }
+
+                $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
+                if ($item->key === null) {
+                    $result[] = $value;
+
+                    continue;
+                }
+
+                $key = self::getPhpAttributeArgumentValue($item->key, $parserContainer);
+                if (!\is_int($key) && !\is_string($key)) {
+                    return self::attributeExpressionFromNode($expression);
+                }
+
+                $result[$key] = $value;
+            }
+
+            return $result;
+        }
+
         $evaluator = new ConstExprEvaluator(
             static function (Expr $unresolved) use ($parserContainer): mixed {
-                if (!$unresolved instanceof ClassConstFetch) {
-                    return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
-                }
-
                 if (
-                    !$unresolved->class instanceof Name
-                    ||
-                    !$unresolved->name instanceof \PhpParser\Node\Identifier
+                    $unresolved instanceof ClassConstFetch
+                    &&
+                    $unresolved->class instanceof Name
+                    &&
+                    $unresolved->name instanceof \PhpParser\Node\Identifier
                 ) {
-                    return self::attributeExpressionFromNode($unresolved);
+                    $className = $unresolved->class->toString();
+                    if (
+                        \strtolower($unresolved->name->name) === 'class'
+                        &&
+                        !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
+                    ) {
+                        return '\\' . \ltrim($className, '\\');
+                    }
                 }
 
-                $className = $unresolved->class->toString();
+                $resolved = self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
+                if ($resolved instanceof PHPAttributeExpression) {
+                    throw new ConstExprEvaluationException('Unresolved attribute expression');
+                }
 
-                return \strtolower($unresolved->name->name) === 'class'
-                    && !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
-                    ? '\\' . \ltrim($className, '\\')
-                    : self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
+                return $resolved;
             }
         );
 
