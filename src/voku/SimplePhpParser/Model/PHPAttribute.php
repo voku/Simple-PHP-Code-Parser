@@ -17,6 +17,10 @@ class PHPAttribute
     /**
      * Attribute constructor arguments.
      *
+     * Values that can be evaluated without external runtime context are exposed as normal PHP
+     * values. Unresolved expressions are represented by PHPAttributeExpression so their semantic
+     * source identity is not lost.
+     *
      * @var array<int|string, mixed>
      */
     public array $arguments = [];
