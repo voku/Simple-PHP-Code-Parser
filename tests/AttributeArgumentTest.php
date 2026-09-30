@@ -77,6 +77,43 @@ PHP,
         static::assertNotContains('AttributeEvidence\\Example', $autoloaded);
     }
 
+    public function testParserModesKeepTheirClassConstantBoundary(): void
+    {
+        $source = <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(\voku\tests\AttributeArgumentKnownConstants::VALUE)]
+final class Example
+{
+}
+PHP;
+
+        $defaultContainer = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::default()
+        );
+        static::assertSame(
+            'resolved-value',
+            $defaultContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0]
+        );
+
+        $astOnlyContainer = PhpCodeParser::getFromString(
+            $source,
+            [],
+            ParserOptions::astOnly()
+        );
+        $astOnlyValue = $astOnlyContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyValue);
+        static::assertSame(
+            '\\voku\\tests\\AttributeArgumentKnownConstants::VALUE',
+            $astOnlyValue->expression
+        );
+    }
+
     public function testLiteralStringAndClassConstantRemainDistinct(): void
     {
         $container = PhpCodeParser::getFromString(
@@ -101,4 +138,10 @@ PHP,
         static::assertInstanceOf(PHPAttributeExpression::class, $classConstant);
         static::assertSame('\\AttributeEvidence\\ArchitectureRules::Foo', $classConstant->expression);
     }
+}
+
+
+final class AttributeArgumentKnownConstants
+{
+    public const VALUE = 'resolved-value';
 }
