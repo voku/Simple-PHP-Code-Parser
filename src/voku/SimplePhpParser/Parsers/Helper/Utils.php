@@ -664,26 +664,47 @@ final class Utils
         Expr $expression,
         ?ParserContainer $parserContainer = null
     ): mixed {
+        if ($expression instanceof \PhpParser\Node\Expr\Array_) {
+            return self::getPhpAttributeArrayValue($expression, $parserContainer);
+        }
+
         $evaluator = new ConstExprEvaluator(
             static function (Expr $unresolved) use ($parserContainer): mixed {
-                if (!$unresolved instanceof ClassConstFetch) {
-                    return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
+                if (
+                    $unresolved instanceof ClassConstFetch
+                    &&
+                    $unresolved->class instanceof Name
+                    &&
+                    $unresolved->name instanceof \PhpParser\Node\Identifier
+                ) {
+                    $className = $unresolved->class->toString();
+                    if (
+                        \strtolower($unresolved->name->name) === 'class'
+                        &&
+                        !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
+                    ) {
+                        return '\\' . \ltrim($className, '\\');
+                    }
                 }
 
                 if (
-                    !$unresolved->class instanceof Name
+                    $parserContainer === null
                     ||
-                    !$unresolved->name instanceof \PhpParser\Node\Identifier
+                    $parserContainer->options()->reflectionEnrichment
                 ) {
-                    return self::attributeExpressionFromNode($unresolved);
+                    $resolved = self::getPhpParserValueFromNode($unresolved, null, $parserContainer);
+                    if (
+                        $resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER
+                        &&
+                        !$resolved instanceof \PhpParser\Node
+                    ) {
+                        return $resolved;
+                    }
                 }
 
-                $className = $unresolved->class->toString();
-
-                return \strtolower($unresolved->name->name) === 'class'
-                    && !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
-                    ? '\\' . \ltrim($className, '\\')
-                    : self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
+                throw new ConstExprEvaluationException(
+                    'Attribute expression requires external context'
+                );
             }
         );
 
@@ -694,16 +715,78 @@ final class Utils
         }
     }
 
-    private static function resolvePhpAttributeValueOrExpression(
-        Expr $expression,
+    /**
+     * Preserve array structure while evaluating each value as its own attribute expression.
+     *
+     * A failed non-array subexpression must not be returned to ConstExprEvaluator as a PHP object,
+     * because operators such as !, ?:, ?? and === can otherwise coerce that object into a concrete
+     * but incorrect value. Arrays are handled recursively so one unresolved value can remain typed
+     * without discarding the other context-free values and keys.
+     *
+     * @return array<int|string, mixed>|PHPAttributeExpression
+     */
+    private static function getPhpAttributeArrayValue(
+        \PhpParser\Node\Expr\Array_ $expression,
         ?ParserContainer $parserContainer
-    ): mixed {
-        $resolved = self::getPhpParserValueFromNode($expression, null, $parserContainer);
-        if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-            return $resolved;
+    ): array|PHPAttributeExpression {
+        $result = [];
+
+        foreach ($expression->items as $item) {
+            if ($item === null) {
+                continue;
+            }
+
+            if ($item->unpack) {
+                $unpacked = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
+                if (!\is_array($unpacked)) {
+                    return self::attributeExpressionFromNode($expression);
+                }
+
+                $result = \array_merge($result, $unpacked);
+
+                continue;
+            }
+
+            $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
+            if ($item->key === null) {
+                $result[] = $value;
+
+                continue;
+            }
+
+            $key = self::getPhpAttributeArgumentValue($item->key, $parserContainer);
+            if ($key instanceof PHPAttributeExpression || \is_array($key) || \is_object($key)) {
+                return self::attributeExpressionFromNode($expression);
+            }
+
+            if (\is_int($key) || \is_string($key)) {
+                $result[$key] = $value;
+
+                continue;
+            }
+
+            if (\is_float($key)) {
+                $result[(int) $key] = $value;
+
+                continue;
+            }
+
+            if (\is_bool($key)) {
+                $result[(int) $key] = $value;
+
+                continue;
+            }
+
+            if ($key === null) {
+                $result[''] = $value;
+
+                continue;
+            }
+
+            return self::attributeExpressionFromNode($expression);
         }
 
-        return self::attributeExpressionFromNode($expression);
+        return $result;
     }
 
     private static function attributeExpressionFromNode(Expr $expression): PHPAttributeExpression
