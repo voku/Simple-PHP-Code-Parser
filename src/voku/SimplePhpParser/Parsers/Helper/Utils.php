@@ -667,7 +667,7 @@ final class Utils
         try {
             return self::phpAttributeConstExprEvaluator($parserContainer)->evaluateSilently($expression);
         } catch (ConstExprEvaluationException) {
-            if ($expression instanceof \\PhpParser\\Node\\Expr\\Array_) {
+            if ($expression instanceof \PhpParser\Node\Expr\Array_) {
                 return self::getPhpAttributeArrayValue($expression, $parserContainer);
             }
 
@@ -681,7 +681,7 @@ final class Utils
      * @return array<int|string, mixed>|PHPAttributeExpression
      */
     private static function getPhpAttributeArrayValue(
-        \\PhpParser\\Node\\Expr\\Array_ $expression,
+        \PhpParser\Node\Expr\Array_ $expression,
         ?ParserContainer $parserContainer
     ): array|PHPAttributeExpression {
         $result = [];
@@ -695,11 +695,11 @@ final class Utils
             $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
 
             if ($item->unpack) {
-                if (!\\is_array($value)) {
+                if (!\is_array($value)) {
                     return self::attributeExpressionFromNode($expression);
                 }
 
-                $result = \\array_merge($result, $value);
+                $result = \array_merge($result, $value);
 
                 continue;
             }
@@ -716,13 +716,13 @@ final class Utils
                 return self::attributeExpressionFromNode($expression);
             }
 
-            if (\\is_bool($key)) {
+            if (\is_bool($key)) {
                 $key = (int) $key;
             } elseif ($key === null) {
                 $key = '';
-            } elseif (\\is_float($key)) {
+            } elseif (\is_float($key)) {
                 $key = (int) $key;
-            } elseif (!\\is_int($key) && !\\is_string($key)) {
+            } elseif (!\is_int($key) && !\is_string($key)) {
                 return self::attributeExpressionFromNode($expression);
             }
 
@@ -741,18 +741,18 @@ final class Utils
                     if (
                         !$unresolved->class instanceof Name
                         ||
-                        !$unresolved->name instanceof \\PhpParser\\Node\\Identifier
+                        !$unresolved->name instanceof \PhpParser\Node\Identifier
                     ) {
                         throw new ConstExprEvaluationException('Unable to evaluate dynamic class constant expression.');
                     }
 
                     $className = $unresolved->class->toString();
                     if (
-                        \\strtolower($unresolved->name->name) === 'class'
+                        \strtolower($unresolved->name->name) === 'class'
                         &&
-                        !\\in_array(\\strtolower($className), ['self', 'static', 'parent'], true)
+                        !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
                     ) {
-                        return '\\\\' . \\ltrim($className, '\\\\');
+                        return '\\' . \ltrim($className, '\\');
                     }
                 }
 
