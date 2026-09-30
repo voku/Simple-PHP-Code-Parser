@@ -635,7 +635,7 @@ final class Utils
 
                 $arguments = [];
                 foreach ($attr->args as $arg) {
-                    $argValue = self::getPhpAttributeArgumentValue($arg->value);
+                    $argValue = self::getPhpAttributeArgumentValue($arg->value, $parserContainer);
 
                     if ($arg->name !== null) {
                         $arguments[$arg->name->name] = $argValue;
@@ -660,10 +660,12 @@ final class Utils
      *
      * @return mixed
      */
-    private static function getPhpAttributeArgumentValue(Expr $expression): mixed
-    {
+    private static function getPhpAttributeArgumentValue(
+        Expr $expression,
+        ?ParserContainer $parserContainer = null
+    ): mixed {
         $evaluator = new ConstExprEvaluator(
-            static function (Expr $unresolved): mixed {
+            static function (Expr $unresolved) use ($parserContainer): mixed {
                 if (
                     $unresolved instanceof ClassConstFetch
                     &&
@@ -677,6 +679,11 @@ final class Utils
                     if (!\in_array(\strtolower($className), ['self', 'static', 'parent'], true)) {
                         return '\\' . \ltrim($className, '\\');
                     }
+                }
+
+                $resolved = self::getPhpParserValueFromNode($unresolved, null, $parserContainer);
+                if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                    return $resolved;
                 }
 
                 return self::attributeExpressionFromNode($unresolved);
