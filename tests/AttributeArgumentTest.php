@@ -22,6 +22,7 @@ final class AttributeArgumentTest extends \PHPUnit\Framework\TestCase
         \spl_autoload_register($autoload);
 
         try {
+            // Referenced classes intentionally do not exist: AST-only extraction must not autoload them.
             $container = PhpCodeParser::getFromString(
                 <<<'PHP'
 <?php
