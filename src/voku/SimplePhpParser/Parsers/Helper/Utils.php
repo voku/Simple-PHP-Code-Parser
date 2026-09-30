@@ -664,46 +664,106 @@ final class Utils
         Expr $expression,
         ?ParserContainer $parserContainer = null
     ): mixed {
-        $evaluator = new ConstExprEvaluator(
-            static function (Expr $unresolved) use ($parserContainer): mixed {
-                if (!$unresolved instanceof ClassConstFetch) {
-                    return self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
-                }
-
-                if (
-                    !$unresolved->class instanceof Name
-                    ||
-                    !$unresolved->name instanceof \PhpParser\Node\Identifier
-                ) {
-                    return self::attributeExpressionFromNode($unresolved);
-                }
-
-                $className = $unresolved->class->toString();
-
-                return \strtolower($unresolved->name->name) === 'class'
-                    && !\in_array(\strtolower($className), ['self', 'static', 'parent'], true)
-                    ? '\\' . \ltrim($className, '\\')
-                    : self::resolvePhpAttributeValueOrExpression($unresolved, $parserContainer);
-            }
-        );
-
         try {
-            return $evaluator->evaluateSilently($expression);
+            return self::phpAttributeConstExprEvaluator($parserContainer)->evaluateSilently($expression);
         } catch (ConstExprEvaluationException) {
+            if ($expression instanceof \\PhpParser\\Node\\Expr\\Array_) {
+                return self::getPhpAttributeArrayValue($expression, $parserContainer);
+            }
+
             return self::attributeExpressionFromNode($expression);
         }
     }
 
-    private static function resolvePhpAttributeValueOrExpression(
-        Expr $expression,
+    /**
+     * Preserve unresolved array values individually while keeping array keys deterministic.
+     *
+     * @return array<int|string, mixed>|PHPAttributeExpression
+     */
+    private static function getPhpAttributeArrayValue(
+        \\PhpParser\\Node\\Expr\\Array_ $expression,
         ?ParserContainer $parserContainer
-    ): mixed {
-        $resolved = self::getPhpParserValueFromNode($expression, null, $parserContainer);
-        if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
-            return $resolved;
+    ): array|PHPAttributeExpression {
+        $result = [];
+        $evaluator = self::phpAttributeConstExprEvaluator($parserContainer);
+
+        foreach ($expression->items as $item) {
+            if ($item === null) {
+                continue;
+            }
+
+            $value = self::getPhpAttributeArgumentValue($item->value, $parserContainer);
+
+            if ($item->unpack) {
+                if (!\\is_array($value)) {
+                    return self::attributeExpressionFromNode($expression);
+                }
+
+                $result = \\array_merge($result, $value);
+
+                continue;
+            }
+
+            if ($item->key === null) {
+                $result[] = $value;
+
+                continue;
+            }
+
+            try {
+                $key = $evaluator->evaluateSilently($item->key);
+            } catch (ConstExprEvaluationException) {
+                return self::attributeExpressionFromNode($expression);
+            }
+
+            if (\\is_bool($key)) {
+                $key = (int) $key;
+            } elseif ($key === null) {
+                $key = '';
+            } elseif (\\is_float($key)) {
+                $key = (int) $key;
+            } elseif (!\\is_int($key) && !\\is_string($key)) {
+                return self::attributeExpressionFromNode($expression);
+            }
+
+            $result[$key] = $value;
         }
 
-        return self::attributeExpressionFromNode($expression);
+        return $result;
+    }
+
+    private static function phpAttributeConstExprEvaluator(
+        ?ParserContainer $parserContainer
+    ): ConstExprEvaluator {
+        return new ConstExprEvaluator(
+            static function (Expr $unresolved) use ($parserContainer): mixed {
+                if ($unresolved instanceof ClassConstFetch) {
+                    if (
+                        !$unresolved->class instanceof Name
+                        ||
+                        !$unresolved->name instanceof \\PhpParser\\Node\\Identifier
+                    ) {
+                        throw new ConstExprEvaluationException('Unable to evaluate dynamic class constant expression.');
+                    }
+
+                    $className = $unresolved->class->toString();
+                    if (
+                        \\strtolower($unresolved->name->name) === 'class'
+                        &&
+                        !\\in_array(\\strtolower($className), ['self', 'static', 'parent'], true)
+                    ) {
+                        return '\\\\' . \\ltrim($className, '\\\\');
+                    }
+                }
+
+                $resolved = self::getPhpParserValueFromNode($unresolved, null, $parserContainer);
+                if ($resolved !== self::GET_PHP_PARSER_VALUE_FROM_NODE_HELPER) {
+                    return $resolved;
+                }
+
+                throw new ConstExprEvaluationException('Unable to evaluate attribute expression.');
+            }
+        );
     }
 
     private static function attributeExpressionFromNode(Expr $expression): PHPAttributeExpression
