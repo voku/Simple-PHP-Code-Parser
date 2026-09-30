@@ -286,6 +286,31 @@ PHP,
         );
     }
 
+    public function testAstOnlyPreservesArrayExpressionWithUnresolvedKey(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule([
+    ArchitectureRules::Foo => 'value',
+])]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $argument = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+
+        static::assertInstanceOf(PHPAttributeExpression::class, $argument);
+        static::assertSame("[\\AttributeEvidence\\ArchitectureRules::Foo => 'value']", $argument->expression);
+    }
+
     public function testAstOnlyPreservesArrayExpressionWhenAppendWouldOverflow(): void
     {
         if (\PHP_INT_SIZE < 8) {
