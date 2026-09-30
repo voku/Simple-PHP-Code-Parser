@@ -77,6 +77,50 @@ PHP,
         static::assertNotContains('AttributeEvidence\\Example', $autoloaded);
     }
 
+    public function testAstOnlyPreservesCompositeExpressionsWithUnresolvedOperands(): void
+    {
+        $container = PhpCodeParser::getFromString(
+            <<<'PHP'
+<?php
+
+namespace AttributeEvidence;
+
+#[Rule(
+    arithmetic: 1 + 1,
+    negated: !ArchitectureRules::Foo,
+    conditional: ArchitectureRules::Foo ? 'yes' : 'no',
+    nested: ['value' => !ArchitectureRules::Bar],
+)]
+final class Example
+{
+}
+PHP,
+            [],
+            ParserOptions::astOnly()
+        );
+
+        $arguments = $container->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
+
+        static::assertSame(2, $arguments['arithmetic']);
+
+        $negated = $arguments['negated'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $negated);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Foo', $negated->expression);
+
+        $conditional = $arguments['conditional'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $conditional);
+        static::assertSame(
+            "\\AttributeEvidence\\ArchitectureRules::Foo ? 'yes' : 'no'",
+            $conditional->expression
+        );
+
+        $nested = $arguments['nested'];
+        static::assertIsArray($nested);
+        $nestedValue = $nested['value'];
+        static::assertInstanceOf(PHPAttributeExpression::class, $nestedValue);
+        static::assertSame('!\\AttributeEvidence\\ArchitectureRules::Bar', $nestedValue->expression);
+    }
+
     public function testParserModesKeepTheirClassConstantBoundary(): void
     {
         $source = <<<'PHP'
