@@ -666,18 +666,20 @@ final class Utils
     ): mixed {
         $evaluator = new ConstExprEvaluator(
             static function (Expr $unresolved) use ($parserContainer): mixed {
-                if (
-                    $unresolved instanceof ClassConstFetch
-                    &&
-                    $unresolved->class instanceof Name
-                    &&
-                    $unresolved->name instanceof \PhpParser\Node\Identifier
-                    &&
-                    \strtolower($unresolved->name->name) === 'class'
-                ) {
-                    $className = $unresolved->class->toString();
-                    if (!\in_array(\strtolower($className), ['self', 'static', 'parent'], true)) {
-                        return '\\' . \ltrim($className, '\\');
+                if ($unresolved instanceof ClassConstFetch) {
+                    if (
+                        !$unresolved->class instanceof Name
+                        ||
+                        !$unresolved->name instanceof \PhpParser\Node\Identifier
+                    ) {
+                        return self::attributeExpressionFromNode($unresolved);
+                    }
+
+                    if (\strtolower($unresolved->name->name) === 'class') {
+                        $className = $unresolved->class->toString();
+                        if (!\in_array(\strtolower($className), ['self', 'static', 'parent'], true)) {
+                            return '\\' . \ltrim($className, '\\');
+                        }
                     }
                 }
 
