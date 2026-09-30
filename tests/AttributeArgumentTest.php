@@ -288,6 +288,10 @@ PHP,
 
     public function testAstOnlyPreservesArrayExpressionWhenAppendWouldOverflow(): void
     {
+        if (\PHP_INT_SIZE < 8) {
+            static::markTestSkipped('Requires 64-bit integers.');
+        }
+
         $container = PhpCodeParser::getFromString(
             <<<'PHP'
 <?php
