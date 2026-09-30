@@ -141,7 +141,10 @@ PHP,
 
 namespace AttributeEvidence;
 
-#[Rule(\voku\tests\AttributeArgumentKnownConstants::VALUE)]
+#[Rule(
+    \voku\tests\AttributeArgumentKnownConstants::VALUE,
+    !\voku\tests\AttributeArgumentKnownConstants::ENABLED,
+)]
 final class Example
 {
 }
@@ -152,22 +155,26 @@ PHP;
             [],
             ParserOptions::default()
         );
-        static::assertSame(
-            'resolved-value',
-            $defaultContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0]
-        );
+        $defaultArguments = $defaultContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
+        static::assertSame('resolved-value', $defaultArguments[0]);
+        static::assertFalse($defaultArguments[1]);
 
         $astOnlyContainer = PhpCodeParser::getFromString(
             $source,
             [],
             ParserOptions::astOnly()
         );
-        $astOnlyValue = $astOnlyContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments[0];
+        $astOnlyArguments = $astOnlyContainer->getClasses()['AttributeEvidence\\Example']->attributes[0]->arguments;
 
-        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyValue);
+        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyArguments[0]);
         static::assertSame(
             '\\voku\\tests\\AttributeArgumentKnownConstants::VALUE',
-            $astOnlyValue->expression
+            $astOnlyArguments[0]->expression
+        );
+        static::assertInstanceOf(PHPAttributeExpression::class, $astOnlyArguments[1]);
+        static::assertSame(
+            '!\\voku\\tests\\AttributeArgumentKnownConstants::ENABLED',
+            $astOnlyArguments[1]->expression
         );
     }
 
@@ -224,4 +231,5 @@ PHP,
 final class AttributeArgumentKnownConstants
 {
     public const VALUE = 'resolved-value';
+    public const ENABLED = true;
 }
