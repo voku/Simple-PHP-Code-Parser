@@ -508,9 +508,13 @@ final class PhpCodeParser
     }
 
     /**
-     * Split work as evenly as possible while preserving the original keys and
-     * input order. The worker-count bound guarantees every partition contains
-     * at least PARALLEL_PARSE_MIN_FILES_PER_WORKER entries.
+     * Distribute larger source strings across workers instead of balancing only
+     * by file count. The source is already in memory, so strlen() is a cheap
+     * proxy for parser work and avoids an additional filesystem stat.
+     *
+     * Files are sorted by size and striped across partitions so every worker
+     * receives a mix of larger and smaller inputs. The original input order is
+     * restored inside each partition before parsing.
      *
      * @param array<string, array{content: string, fileName: null|string}> $phpCodes
      * @param int<1, max>                                                  $workerCount
@@ -519,18 +523,27 @@ final class PhpCodeParser
      */
     private static function partitionPhpCodes(array $phpCodes, int $workerCount): array
     {
-        $fileCount = \count($phpCodes);
-        $baseSize = \intdiv($fileCount, $workerCount);
-        $largerPartitions = $fileCount % $workerCount;
-        $offset = 0;
-        $partitions = [];
+        $originalOrder = \array_flip(\array_keys($phpCodes));
 
-        for ($index = 0; $index < $workerCount; ++$index) {
-            /** @var int<1, max> $partitionSize */
-            $partitionSize = $baseSize + ($index < $largerPartitions ? 1 : 0);
-            $partitions[] = \array_slice($phpCodes, $offset, $partitionSize, true);
-            $offset += $partitionSize;
+        \uasort(
+            $phpCodes,
+            static fn (array $left, array $right): int => \strlen($right['content']) <=> \strlen($left['content'])
+        );
+
+        $partitions = \array_fill(0, $workerCount, []);
+        $index = 0;
+        foreach ($phpCodes as $key => $codeAndFileName) {
+            $partitions[$index % $workerCount][$key] = $codeAndFileName;
+            ++$index;
         }
+
+        foreach ($partitions as &$partition) {
+            \uksort(
+                $partition,
+                static fn (string $left, string $right): int => $originalOrder[$left] <=> $originalOrder[$right]
+            );
+        }
+        unset($partition);
 
         return $partitions;
     }
