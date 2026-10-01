@@ -33,7 +33,11 @@ final class CacheWriteRegressionTest extends TestCase
         $cache = new CacheWriteProbe(true, true);
 
         \set_error_handler(
-            static function (int $severity, string $message, string $file, int $line): never {
+            static function (int $severity, string $message, string $file, int $line): bool {
+                if ((\error_reporting() & $severity) === 0) {
+                    return false;
+                }
+
                 throw new \ErrorException($message, 0, $severity, $file, $line);
             }
         );
