@@ -319,7 +319,8 @@ final class PhpCodeParser
             Utils::getCpuCores(),
             \count($phpCodes)
         );
-        $partitionSize = (int) \ceil(\count($phpCodes) / $workerCount);
+        /** @var int<1, max> $partitionSize */
+        $partitionSize = \max(1, (int) \ceil(\count($phpCodes) / $workerCount));
         $partitions = \array_chunk($phpCodes, $partitionSize, true);
 
         try {
@@ -483,6 +484,7 @@ final class PhpCodeParser
      */
     private static function rebindParserContainerModels(ParserContainer $parserContainer): void
     {
+        /** @var \SplObjectStorage<BasePHPElement, null> $seen */
         $seen = new \SplObjectStorage();
 
         foreach ([
