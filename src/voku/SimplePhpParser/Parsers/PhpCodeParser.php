@@ -306,30 +306,33 @@ final class PhpCodeParser
         ParserContainer $parserContainer,
         ParserOptions $options
     ): bool {
+        if (!$options->parallelParsing || $options->reflectionEnrichment) {
+            return false;
+        }
+
+        $fileCount = \count($phpCodes);
         if (
-            !$options->parallelParsing
-            || $options->reflectionEnrichment
-            || \PHP_SAPI !== 'cli'
-            || \count($phpCodes) < self::PARALLEL_PARSE_MIN_FILES
-            || Utils::getCpuCores() < 2
-            || !\function_exists('pcntl_fork')
-            || !\function_exists('pcntl_waitpid')
-            || !\function_exists('pcntl_wifexited')
-            || !\function_exists('pcntl_wexitstatus')
+            $fileCount < self::PARALLEL_PARSE_MIN_FILES
+            || !self::supportsParallelRuntime()
         ) {
+            return false;
+        }
+
+        $cpuCores = Utils::getCpuCores();
+        if ($cpuCores < 2) {
             return false;
         }
 
         $workerCount = \min(
             self::PARALLEL_PARSE_MAX_WORKERS,
-            Utils::getCpuCores(),
+            $cpuCores,
             \max(
                 1,
-                \intdiv(\count($phpCodes), self::PARALLEL_PARSE_MIN_FILES_PER_WORKER)
+                \intdiv($fileCount, self::PARALLEL_PARSE_MIN_FILES_PER_WORKER)
             )
         );
         /** @var int<1, max> $partitionSize */
-        $partitionSize = \max(1, (int) \ceil(\count($phpCodes) / $workerCount));
+        $partitionSize = \max(1, (int) \ceil($fileCount / $workerCount));
         $partitions = \array_chunk($phpCodes, $partitionSize, true);
 
         try {
@@ -484,6 +487,20 @@ final class PhpCodeParser
                 \rmdir($temporaryDirectory);
             }
         }
+    }
+
+    /**
+     * The worker implementation is CLI-only and requires the complete pcntl
+     * process lifecycle API. function_exists() also respects disabled functions,
+     * unlike extension_loaded('pcntl').
+     */
+    private static function supportsParallelRuntime(): bool
+    {
+        return \PHP_SAPI === 'cli'
+            && \function_exists('pcntl_fork')
+            && \function_exists('pcntl_waitpid')
+            && \function_exists('pcntl_wifexited')
+            && \function_exists('pcntl_wexitstatus');
     }
 
     /**
