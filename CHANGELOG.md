@@ -1,6 +1,6 @@
 # Changelog
 
-### Unreleased
+### 0.22.8 (2026-10-01)
 
 - fix: stop parsing from recursing without bound when a class or interface extends itself, directly or through a partner (`class Foo extends Foo`, `interface I1 extends I2` / `interface I2 extends I1`); `combineImplementedInterfaces()` and `combineParentInterfaces()` now track the types they already expanded and finish with what the source declares
 - fix: `Utils::findParentClassDeclaringConstant()` never advanced up the `extends` chain, so resolving `self::CONSTANT` for a class that does not declare the constant itself looped forever; it now walks to the declaring parent, stops at an unknown parent or a cycle, and falls back to the requested class as before
