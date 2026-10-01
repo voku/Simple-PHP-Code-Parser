@@ -45,6 +45,8 @@ final class ParallelParsingTest extends TestCase
                 options: ParserOptions::astOnlyParallel()
             );
 
+            $this->assertParallelPathSucceeds($directory);
+
             static::assertSame([], $sequential->getParseErrors());
             static::assertSame($sequential->getParseErrors(), $parallel->getParseErrors());
             static::assertSame(
@@ -267,6 +269,25 @@ PHP;
         }
     }
 
+    private function assertParallelPathSucceeds(string $directory): void
+    {
+        $getCode = new \ReflectionMethod(PhpCodeParser::class, 'getCode');
+        $phpCodes = $getCode->invoke(null, $directory, [], []);
+
+        static::assertIsArray($phpCodes);
+
+        $options = ParserOptions::astOnlyParallel();
+        $container = new ParserContainer($options);
+        $processInParallel = new \ReflectionMethod(
+            PhpCodeParser::class,
+            'processPhpCodesInParallel'
+        );
+
+        static::assertTrue(
+            $processInParallel->invoke(null, $phpCodes, $container, $options)
+        );
+    }
+
     private function assertContainerOwnership(ParserContainer $container): void
     {
         $seen = new SplObjectStorage();
@@ -300,11 +321,11 @@ PHP;
             return;
         }
 
-        if (!$value instanceof BasePHPElement || $seen->contains($value)) {
+        if (!$value instanceof BasePHPElement || $seen->offsetExists($value)) {
             return;
         }
 
-        $seen->attach($value);
+        $seen->offsetSet($value);
         static::assertSame($container, $value->parserContainer, $value::class);
 
         foreach (\get_object_vars($value) as $property => $propertyValue) {
