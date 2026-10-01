@@ -32,6 +32,9 @@ final class CacheWriteRegressionTest extends TestCase
     {
         $cache = new CacheWriteProbe(true, true);
 
+        $previousErrorReporting = \error_reporting();
+        \error_reporting($previousErrorReporting | \E_USER_WARNING);
+
         \set_error_handler(
             static function (int $severity, string $message, string $file, int $line): bool {
                 if ((\error_reporting() & $severity) === 0) {
@@ -49,6 +52,7 @@ final class CacheWriteRegressionTest extends TestCase
             self::writeCache($cache);
         } finally {
             \restore_error_handler();
+            \error_reporting($previousErrorReporting);
         }
     }
 
