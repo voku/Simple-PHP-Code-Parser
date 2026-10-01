@@ -580,6 +580,71 @@ try {
         true
     );
 
+    $report['threshold_sweep'] = [];
+    $sourceFiles = stage3PhpFiles($sourceRoot);
+    foreach ([4, 8, 12, 16, 20, 24, count($sourceFiles)] as $requestedSize) {
+        $size = min($requestedSize, count($sourceFiles));
+        if ($size < 2 || isset($report['threshold_sweep'][(string) $size])) {
+            continue;
+        }
+
+        $files = array_slice($sourceFiles, 0, $size);
+        $sequentialTimes = [];
+        $parallelTimes = [];
+        $sweepEqual = true;
+        $sweepDiff = null;
+        $workers = 1;
+
+        for ($round = 0; $round < STAGE3_ROUNDS; ++$round) {
+            $sequentialRound = stage3Timed(
+                static function () use ($files, $options): ParserContainer {
+                    $container = stage3ExtractPartition($files, $options);
+                    stage3Finalize($container);
+
+                    return $container;
+                }
+            );
+            $parallelRound = stage3Timed(
+                static fn (): array => stage3ParallelExtract($files, $options)
+            );
+
+            /** @var ParserContainer $sequentialContainer */
+            $sequentialContainer = $sequentialRound['value'];
+            /** @var array{container: ParserContainer, workers: int} $parallelValue */
+            $parallelValue = $parallelRound['value'];
+            $workers = $parallelValue['workers'];
+
+            $diff = stage3FirstDiff(
+                stage3NormalizeContainer($sequentialContainer),
+                stage3NormalizeContainer($parallelValue['container'])
+            );
+            if ($diff !== null) {
+                $sweepEqual = false;
+                $sweepDiff ??= $diff;
+            }
+
+            $sequentialTimes[] = $sequentialRound['ms'];
+            $parallelTimes[] = $parallelRound['ms'];
+        }
+
+        $sequentialMedian = stage3Median($sequentialTimes);
+        $parallelMedian = stage3Median($parallelTimes);
+
+        $report['threshold_sweep'][(string) $size] = [
+            'files' => $size,
+            'workers' => $workers,
+            'equal' => $sweepEqual,
+            'first_diff' => $sweepDiff,
+            'sequential_median_ms' => round($sequentialMedian, 3),
+            'parallel_median_ms' => round($parallelMedian, 3),
+            'speedup' => $parallelMedian > 0.0 ? round($sequentialMedian / $parallelMedian, 3) : null,
+        ];
+
+        if (!$sweepEqual) {
+            $report['all_equal'] = false;
+        }
+    }
+
     $outputDir = __DIR__ . '/../build';
     if (!is_dir($outputDir) && !mkdir($outputDir, 0777, true) && !is_dir($outputDir)) {
         throw new RuntimeException('Could not create build directory');
