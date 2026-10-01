@@ -323,6 +323,7 @@ final class PhpCodeParser
             return false;
         }
 
+        /** @var int<1, max> $workerCount */
         $workerCount = \min(
             self::PARALLEL_PARSE_MAX_WORKERS,
             $cpuCores,
@@ -331,9 +332,7 @@ final class PhpCodeParser
                 \intdiv($fileCount, self::PARALLEL_PARSE_MIN_FILES_PER_WORKER)
             )
         );
-        /** @var int<1, max> $partitionSize */
-        $partitionSize = \max(1, (int) \ceil($fileCount / $workerCount));
-        $partitions = \array_chunk($phpCodes, $partitionSize, true);
+        $partitions = self::partitionPhpCodes($phpCodes, $workerCount);
 
         try {
             $suffix = \bin2hex(\random_bytes(8));
@@ -392,12 +391,13 @@ final class PhpCodeParser
                             'container' => $workerContainer,
                             'errors'    => $errors,
                         ]);
-                        $written = \file_put_contents($resultFile, $payload, \LOCK_EX);
-
-                        exit($written === false ? 71 : 0);
+                        \file_put_contents($resultFile, $payload, \LOCK_EX);
                     } catch (\Throwable) {
-                        exit(70);
+                        // The parent validates the result file and falls back to
+                        // the canonical sequential path when it is absent or invalid.
                     }
+
+                    self::terminateWorkerWithoutShutdown();
                 }
 
                 $workers[] = [
@@ -406,21 +406,20 @@ final class PhpCodeParser
                 ];
             }
 
-            $workersSucceeded = !$launchFailed;
+            $workersTerminated = !$launchFailed;
             foreach ($workers as $worker) {
-                $status = 0;
-                $waitedPid = \pcntl_waitpid($worker['pid'], $status);
+                $status = self::waitForWorker($worker['pid']);
 
                 if (
-                    $waitedPid !== $worker['pid']
-                    || !\pcntl_wifexited($status)
-                    || \pcntl_wexitstatus($status) !== 0
+                    $status === null
+                    || !\pcntl_wifsignaled($status)
+                    || \pcntl_wtermsig($status) !== \SIGKILL
                 ) {
-                    $workersSucceeded = false;
+                    $workersTerminated = false;
                 }
             }
 
-            if (!$workersSucceeded || \count($workers) !== \count($partitions)) {
+            if (!$workersTerminated || \count($workers) !== \count($partitions)) {
                 return false;
             }
 
@@ -499,8 +498,76 @@ final class PhpCodeParser
         return \PHP_SAPI === 'cli'
             && \function_exists('pcntl_fork')
             && \function_exists('pcntl_waitpid')
-            && \function_exists('pcntl_wifexited')
-            && \function_exists('pcntl_wexitstatus');
+            && \function_exists('pcntl_get_last_error')
+            && \function_exists('pcntl_wifsignaled')
+            && \function_exists('pcntl_wtermsig')
+            && \function_exists('posix_kill')
+            && \defined('PCNTL_EINTR')
+            && \defined('SIGKILL');
+    }
+
+    /**
+     * Split work as evenly as possible while preserving the original keys and
+     * input order. The worker-count bound guarantees every partition contains
+     * at least PARALLEL_PARSE_MIN_FILES_PER_WORKER entries.
+     *
+     * @param array<string, array{content: string, fileName: null|string}> $phpCodes
+     * @param int<1, max>                                                  $workerCount
+     *
+     * @return list<array<string, array{content: string, fileName: null|string}>>
+     */
+    private static function partitionPhpCodes(array $phpCodes, int $workerCount): array
+    {
+        $fileCount = \count($phpCodes);
+        $baseSize = \intdiv($fileCount, $workerCount);
+        $largerPartitions = $fileCount % $workerCount;
+        $offset = 0;
+        $partitions = [];
+
+        for ($index = 0; $index < $workerCount; ++$index) {
+            /** @var int<1, max> $partitionSize */
+            $partitionSize = $baseSize + ($index < $largerPartitions ? 1 : 0);
+            $partitions[] = \array_slice($phpCodes, $offset, $partitionSize, true);
+            $offset += $partitionSize;
+        }
+
+        return $partitions;
+    }
+
+    /**
+     * Wait until one worker has definitely reached a terminal state.
+     *
+     * Signals handled by the parent may interrupt waitpid(). In that case retry
+     * instead of starting cleanup while the child can still be running.
+     */
+    private static function waitForWorker(int $pid): ?int
+    {
+        do {
+            $status = 0;
+            $waitedPid = \pcntl_waitpid($pid, $status);
+        } while (
+            $waitedPid === -1
+            && \pcntl_get_last_error() === \PCNTL_EINTR
+        );
+
+        return $waitedPid === $pid ? $status : null;
+    }
+
+    /**
+     * End a forked worker without executing shutdown functions or destructors
+     * inherited from the caller.
+     *
+     * @return never
+     */
+    private static function terminateWorkerWithoutShutdown(): never
+    {
+        \posix_kill(\getmypid(), \SIGKILL);
+
+        // SIGKILL cannot be caught or ignored. This is only a type-safety
+        // fallback for runtimes that unexpectedly fail to deliver it.
+        while (true) {
+            \usleep(1_000_000);
+        }
     }
 
     /**
