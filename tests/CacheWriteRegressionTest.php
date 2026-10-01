@@ -12,77 +12,25 @@ final class CacheWriteRegressionTest extends TestCase
 {
     public function testUnavailableCacheDoesNotAttemptWrite(): void
     {
-        $cache = new class extends Cache {
-            public bool $writeAttempted = false;
-
-            public function __construct()
-            {
-            }
-
-            public function getCacheIsReady(): bool
-            {
-                return false;
-            }
-
-            public function setItem(string $key, $value, $ttl = 0): bool
-            {
-                $this->writeAttempted = true;
-
-                return false;
-            }
-        };
+        $cache = new CacheWriteProbe(false);
 
         self::writeCache($cache);
 
-        static::assertFalse($cache->writeAttempted);
+        static::assertSame(0, $cache->writes);
     }
 
     public function testFalseCacheWriteStatusIsNonFatal(): void
     {
-        $cache = new class extends Cache {
-            public bool $writeAttempted = false;
-
-            public function __construct()
-            {
-            }
-
-            public function getCacheIsReady(): bool
-            {
-                return true;
-            }
-
-            public function setItem(string $key, $value, $ttl = 0): bool
-            {
-                $this->writeAttempted = true;
-
-                return false;
-            }
-        };
+        $cache = new CacheWriteProbe(true);
 
         self::writeCache($cache);
 
-        static::assertTrue($cache->writeAttempted);
+        static::assertSame(1, $cache->writes);
     }
 
     public function testCacheWriteWarningIsNotSuppressed(): void
     {
-        $cache = new class extends Cache {
-            public function __construct()
-            {
-            }
-
-            public function getCacheIsReady(): bool
-            {
-                return true;
-            }
-
-            public function setItem(string $key, $value, $ttl = 0): bool
-            {
-                \trigger_error('cache write failed', \E_USER_WARNING);
-
-                return false;
-            }
-        };
+        $cache = new CacheWriteProbe(true, true);
 
         \set_error_handler(
             static function (int $severity, string $message, string $file, int $line): never {
@@ -114,5 +62,32 @@ final class CacheWriteRegressionTest extends TestCase
                 'cacheKey' => 'cache-key',
             ]
         );
+    }
+}
+
+final class CacheWriteProbe extends Cache
+{
+    public int $writes = 0;
+
+    public function __construct(
+        private readonly bool $ready,
+        private readonly bool $warn = false
+    ) {
+    }
+
+    public function getCacheIsReady(): bool
+    {
+        return $this->ready;
+    }
+
+    public function setItem(string $key, $value, $ttl = 0): bool
+    {
+        ++$this->writes;
+
+        if ($this->warn) {
+            \trigger_error('cache write failed', \E_USER_WARNING);
+        }
+
+        return false;
     }
 }
