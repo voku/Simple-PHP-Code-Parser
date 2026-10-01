@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'tools/parallel-parser-experiment.php'
+      - 'tools/parallel-parser-stage2-experiment.php'
       - '.github/workflows/parallel-parser-experiment.yml'
       - 'src/**'
       - 'composer.json'
@@ -36,6 +37,9 @@ jobs:
       - name: Run bounded parallel parser proof
         run: php tools/parallel-parser-experiment.php
 
+      - name: Run parallel raw-AST boundary proof
+        run: php tools/parallel-parser-stage2-experiment.php
+
       - name: Summarize result
         if: always() && hashFiles('build/parallel-parser-experiment.json') != ''
         run: |
@@ -50,9 +54,25 @@ jobs:
             jq -c '.cases | to_entries[] | select(.value.first_diff != null) | {case: .key, first_diff: .value.first_diff}' build/parallel-parser-experiment.json
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Summarize stage2 result
+        if: always() && hashFiles('build/parallel-parser-stage2-experiment.json') != ''
+        run: |
+          {
+            echo '## Parallel parser stage2 experiment'
+            echo
+            echo '| Case | Files | Workers | Equal | Sequential median | Parallel median | Speedup |'
+            echo '|---|---:|---:|:---:|---:|---:|---:|'
+            jq -r '.cases | to_entries[] | "| \(.key) | \(.value.files) | \(.value.workers) | \(.value.equal) | \(.value.sequential_median_ms) ms | \(.value.parallel_median_ms) ms | \(.value.speedup)x |"' build/parallel-parser-stage2-experiment.json
+            echo
+            echo 'First semantic differences:'
+            jq -c '.cases | to_entries[] | select(.value.first_diff != null) | {case: .key, first_diff: .value.first_diff}' build/parallel-parser-stage2-experiment.json
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload experiment report
         if: always() && hashFiles('build/parallel-parser-experiment.json') != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: parallel-parser-experiment
-          path: build/parallel-parser-experiment.json
+          path: |
+            build/parallel-parser-experiment.json
+            build/parallel-parser-stage2-experiment.json
