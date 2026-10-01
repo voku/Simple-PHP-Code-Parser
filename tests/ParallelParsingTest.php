@@ -151,6 +151,7 @@ final class ParallelParsingTest extends TestCase
             || !\function_exists('pcntl_get_last_error')
             || !\function_exists('pcntl_wifsignaled')
             || !\function_exists('pcntl_wtermsig')
+            || !\function_exists('posix_getpid')
             || !\function_exists('posix_kill')
             || !\defined('PCNTL_EINTR')
             || !\defined('SIGKILL')
