@@ -83,6 +83,8 @@ jobs:
       - name: Upload coverage results to Coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_PARALLEL: 'true'
+          COVERALLS_FLAG_NAME: php-${{ matrix.php }}-parser-${{ matrix.parser-version }}
         run: |
           composer global require php-coveralls/php-coveralls
           php-coveralls --coverage_clover=build/logs/clover.xml -v
@@ -99,3 +101,15 @@ jobs:
           name: logs_composer-${{ matrix.composer }}_parser-${{ matrix.parser-version }}_php-${{ matrix.php }}
           path: |
             build/logs
+
+  coveralls-finish:
+    needs: tests
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finish Coveralls parallel build
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
+
