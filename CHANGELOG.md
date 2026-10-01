@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.9 (2026-10-01)
+
+- add explicit `ParserOptions::astOnlyParallel()` for sufficiently large CLI directory parses; it uses bounded `pcntl` workers only for AST-only parsing and falls back to the existing sequential path when parallel execution is unavailable or not worthwhile
+- preserve cross-file interface / inheritance / `{@inheritdoc}` semantics by parallelizing parse + name resolution + file-local model extraction only, then performing cross-file finalisation once in the parent process
+- replace the ineffective CPU-sized sequential chunk with measured parallel work: the GitHub Actions proof found the selected boundary semantically identical and about 1.2x-1.45x faster for 16-27 real parser source files on a 4-core runner
+
 ### 0.22.8 (2026-10-01)
 
 - fix: stop parsing from recursing without bound when a class or interface extends itself, directly or through a partner (`class Foo extends Foo`, `interface I1 extends I2` / `interface I2 extends I1`); `combineImplementedInterfaces()` and `combineParentInterfaces()` now track the types they already expanded and finish with what the source declares
