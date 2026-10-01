@@ -630,11 +630,11 @@ final class PhpCodeParser
             return;
         }
 
-        if (!$value instanceof BasePHPElement || $seen->contains($value)) {
+        if (!$value instanceof BasePHPElement || $seen->offsetExists($value)) {
             return;
         }
 
-        $seen->attach($value);
+        $seen->offsetSet($value);
         $value->parserContainer = $parserContainer;
 
         foreach (\get_object_vars($value) as $property => $propertyValue) {
