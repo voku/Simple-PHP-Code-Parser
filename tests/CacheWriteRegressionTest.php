@@ -51,7 +51,6 @@ final class CacheWriteRegressionTest extends TestCase
     private static function writeCache(Cache $cache): void
     {
         $method = new \ReflectionMethod(PhpCodeParser::class, 'writeCache');
-        $method->setAccessible(true);
         $method->invoke(
             null,
             $cache,
