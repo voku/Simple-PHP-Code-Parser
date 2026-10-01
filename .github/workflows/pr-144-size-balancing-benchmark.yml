@@ -1,0 +1,115 @@
+name: PR 144 size-balancing benchmark
+
+on:
+  push:
+    branches:
+      - experiment/144-size-balancing-benchmark
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout benchmark harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+
+      - name: Checkout count-balanced baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 137d371e6958c722aa2ced717edc6a44fdad29e6
+          path: baseline
+
+      - name: Checkout size-balanced candidate
+        uses: actions/checkout@v4
+        with:
+          ref: f89d5b7b570472af21b9ecc95592a150c0c61c49
+          path: candidate
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer
+
+      - name: Install identical dependency constraints
+        shell: bash
+        run: |
+          composer install --working-dir=baseline --prefer-dist --no-interaction --no-progress
+          composer install --working-dir=candidate --prefer-dist --no-interaction --no-progress
+
+      - name: Prepare fixed corpus
+        shell: bash
+        run: |
+          cp -R candidate/src corpus
+          find corpus -type f -name '*.php' | sort
+          echo "Corpus files: $(find corpus -type f -name '*.php' | wc -l)"
+
+      - name: Warm up both implementations
+        shell: bash
+        run: |
+          for round in 1 2 3; do
+            php harness/tools/benchmark-parallel.php baseline corpus >/dev/null
+            php harness/tools/benchmark-parallel.php candidate corpus >/dev/null
+          done
+
+      - name: Run alternating A/B benchmark
+        shell: bash
+        run: |
+          : > benchmark.csv
+          for round in $(seq 1 15); do
+            if (( round % 2 == 1 )); then
+              order="baseline candidate"
+            else
+              order="candidate baseline"
+            fi
+
+            for variant in $order; do
+              ms=$(php harness/tools/benchmark-parallel.php "$variant" corpus)
+              echo "$variant,$ms" | tee -a benchmark.csv
+            done
+          done
+
+      - name: Summarize medians
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import os
+          import statistics
+
+          values = {"baseline": [], "candidate": []}
+          with open("benchmark.csv", newline="") as handle:
+              for variant, raw in csv.reader(handle):
+                  values[variant].append(float(raw))
+
+          baseline = statistics.median(values["baseline"])
+          candidate = statistics.median(values["candidate"])
+          speedup = baseline / candidate
+          delta = (candidate / baseline - 1.0) * 100.0
+
+          lines = [
+              "## PR #144 size-balancing benchmark",
+              "",
+              "| Variant | Median | Min | Max |",
+              "| --- | ---: | ---: | ---: |",
+              f"| count-balanced baseline | {baseline:.3f} ms | {min(values['baseline']):.3f} ms | {max(values['baseline']):.3f} ms |",
+              f"| size-balanced candidate | {candidate:.3f} ms | {min(values['candidate']):.3f} ms | {max(values['candidate']):.3f} ms |",
+              "",
+              f"Candidate speedup: **{speedup:.3f}x** ({delta:+.2f}% elapsed time).",
+              "",
+              "15 measured rounds, alternating execution order, after 3 warm-up rounds each.",
+              "Both variants parse the exact same copied candidate src/ corpus on the same runner.",
+          ]
+          report = "\n".join(lines)
+          print(report)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(report + "\n")
+          PY
+
+      - name: Upload raw benchmark data
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-144-size-balancing-benchmark
+          path: benchmark.csv
