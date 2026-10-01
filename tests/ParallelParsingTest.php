@@ -236,7 +236,7 @@ PHP;
      * @param SplObjectStorage<BasePHPElement, null> $seen
      */
     private function assertContainerOwnershipForValue(
-        $value,
+        mixed $value,
         ParserContainer $container,
         SplObjectStorage $seen
     ): void {
