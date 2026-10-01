@@ -192,6 +192,19 @@ final class ASTVisitor extends NodeVisitorAbstract
      */
     public function combineParentInterfaces($interface): array
     {
+        return $this->collectParentInterfaces($interface, []);
+    }
+
+    /**
+     * @param \voku\SimplePhpParser\Model\PHPInterface $interface
+     * @param array<string, true>                         $visited  interfaces already expanded on this path
+     *
+     * @return string[]
+     *
+     * @psalm-return class-string[]
+     */
+    private function collectParentInterfaces($interface, array $visited): array
+    {
         // init
         $parents = [];
 
@@ -199,12 +212,15 @@ final class ASTVisitor extends NodeVisitorAbstract
             return $parents;
         }
 
+        // A source that makes an interface extend itself (directly or through a partner) must not recurse forever.
+        $visited[(string) $interface->name] = true;
+
         foreach ($interface->parentInterfaces as $parentInterface) {
             $parents[] = $parentInterface;
 
             $phpCodeParentInterfaces = $this->parserContainer->getInterface($parentInterface);
-            if ($phpCodeParentInterfaces !== null) {
-                foreach ($this->combineParentInterfaces($phpCodeParentInterfaces) as $value) {
+            if ($phpCodeParentInterfaces !== null && !isset($visited[(string) $phpCodeParentInterfaces->name])) {
+                foreach ($this->collectParentInterfaces($phpCodeParentInterfaces, $visited) as $value) {
                     $parents[] = $value;
                 }
             }
@@ -220,8 +236,22 @@ final class ASTVisitor extends NodeVisitorAbstract
      */
     public function combineImplementedInterfaces($class): array
     {
+        return $this->collectImplementedInterfaces($class, []);
+    }
+
+    /**
+     * @param \voku\SimplePhpParser\Model\PHPClass $class
+     * @param array<string, true>                    $visited  classes already expanded on this path
+     *
+     * @return class-string[]
+     */
+    private function collectImplementedInterfaces($class, array $visited): array
+    {
         // init
         $interfaces = [];
+
+        // A source that makes a class extend itself (directly or through a partner) must not recurse forever.
+        $visited[(string) $class->name] = true;
 
         foreach ($class->interfaces as $interface) {
             $interfaces[] = $interface;
@@ -236,8 +266,8 @@ final class ASTVisitor extends NodeVisitorAbstract
 
         if ($class->parentClass !== null) {
             $parentClass = $this->parserContainer->getClass($class->parentClass);
-            if ($parentClass !== null) {
-                $interfaces = \array_merge($interfaces, $this->combineImplementedInterfaces($parentClass));
+            if ($parentClass !== null && !isset($visited[(string) $parentClass->name])) {
+                $interfaces = \array_merge($interfaces, $this->collectImplementedInterfaces($parentClass, $visited));
             }
         }
 

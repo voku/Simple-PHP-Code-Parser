@@ -787,16 +787,24 @@ final class Utils
         string $constantName,
         ParserContainer $parserContainer
     ): string {
-        do {
-            $class = $parserContainer->getClass($classStr);
-            if ($class && $class->name && isset($class->constants[$constantName])) {
+        $visited = [];
+        $current = $classStr;
+
+        // Follow the `extends` chain upwards; the visited set also ends a chain that loops back on itself.
+        while ($current !== null && !isset($visited[$current])) {
+            $visited[$current] = true;
+
+            $class = $parserContainer->getClass($current);
+            if ($class === null) {
+                break;
+            }
+
+            if ($class->name && isset($class->constants[$constantName])) {
                 return $class->name;
             }
 
-            if ($class && $class->parentClass) {
-                $class = $parserContainer->getClass($class->parentClass);
-            }
-        } while ($class);
+            $current = $class->parentClass;
+        }
 
         return $classStr;
     }

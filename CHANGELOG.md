@@ -1,5 +1,11 @@
 # Changelog
 
+### Unreleased
+
+- fix: stop parsing from recursing without bound when a class or interface extends itself, directly or through a partner (`class Foo extends Foo`, `interface I1 extends I2` / `interface I2 extends I1`); `combineImplementedInterfaces()` and `combineParentInterfaces()` now track the types they already expanded and finish with what the source declares
+- fix: `Utils::findParentClassDeclaringConstant()` never advanced up the `extends` chain, so resolving `self::CONSTANT` for a class that does not declare the constant itself looped forever; it now walks to the declaring parent, stops at an unknown parent or a cycle, and falls back to the requested class as before
+- add regression coverage for cyclic and acyclic inheritance in `CyclicInheritanceTest`
+
 ### 0.22.7 (2026-09-30)
 
 - fix: keep `ParserOptions::astOnly()` source-bound by preserving process-global constants as `PHPAttributeExpression` instead of resolving them from the running PHP process
