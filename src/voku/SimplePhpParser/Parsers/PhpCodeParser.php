@@ -43,6 +43,12 @@ final class PhpCodeParser
     private const PARALLEL_PARSE_MAX_WORKERS = 8;
 
     /**
+     * The #128 threshold sweep only became useful once each worker had enough
+     * parse/model work to amortize fork and IPC overhead.
+     */
+    private const PARALLEL_PARSE_MIN_FILES_PER_WORKER = 4;
+
+    /**
      * @param string              $code
      * @param string[]            $autoloaderProjectPaths
      * @param ParserOptions|null  $options
@@ -317,7 +323,10 @@ final class PhpCodeParser
         $workerCount = \min(
             self::PARALLEL_PARSE_MAX_WORKERS,
             Utils::getCpuCores(),
-            \count($phpCodes)
+            \max(
+                1,
+                \intdiv(\count($phpCodes), self::PARALLEL_PARSE_MIN_FILES_PER_WORKER)
+            )
         );
         /** @var int<1, max> $partitionSize */
         $partitionSize = \max(1, (int) \ceil(\count($phpCodes) / $workerCount));
