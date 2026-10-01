@@ -502,7 +502,7 @@ final class PhpCodeParser
      * @param \SplObjectStorage<BasePHPElement, null> $seen
      */
     private static function rebindParserContainerValue(
-        $value,
+        mixed $value,
         ParserContainer $parserContainer,
         \SplObjectStorage $seen
     ): void {
