@@ -324,12 +324,12 @@ final class PhpCodeParser
 
         try {
             $suffix = \bin2hex(\random_bytes(8));
-        } catch (\Throwable $throwable) {
+        } catch (\Throwable) {
             return false;
         }
 
-        $temporaryDirectory = \rtrim(\sys_get_temp_dir(), \\DIRECTORY_SEPARATOR)
-            . \\DIRECTORY_SEPARATOR
+        $temporaryDirectory = \rtrim(\sys_get_temp_dir(), \DIRECTORY_SEPARATOR)
+            . \DIRECTORY_SEPARATOR
             . 'simple-php-code-parser-'
             . \getmypid()
             . '-'
@@ -347,7 +347,7 @@ final class PhpCodeParser
 
         try {
             foreach ($partitions as $index => $partition) {
-                $resultFile = $temporaryDirectory . \\DIRECTORY_SEPARATOR . 'worker-' . $index . '.ser';
+                $resultFile = $temporaryDirectory . \DIRECTORY_SEPARATOR . 'worker-' . $index . '.ser';
                 $pid = \pcntl_fork();
 
                 if ($pid === -1) {
@@ -379,10 +379,10 @@ final class PhpCodeParser
                             'container' => $workerContainer,
                             'errors'    => $errors,
                         ]);
-                        $written = \file_put_contents($resultFile, $payload, \\LOCK_EX);
+                        $written = \file_put_contents($resultFile, $payload, \LOCK_EX);
 
                         exit($written === false ? 71 : 0);
-                    } catch (\Throwable $throwable) {
+                    } catch (\Throwable) {
                         exit(70);
                     }
                 }
