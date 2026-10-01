@@ -20,6 +20,8 @@ namespace voku\SimplePhpParser\Parsers\Helper;
  * declare.
  *
  * `astOnly()` restricts the model to what the source text states.
+ * `astOnlyParallel()` keeps those semantics while allowing a sufficiently
+ * large CLI directory parse to use bounded worker processes when supported.
  */
 final class ParserOptions
 {
@@ -27,19 +29,35 @@ final class ParserOptions
         /**
          * Autoload parsed class-likes and merge runtime reflection into the model.
          */
-        public readonly bool $reflectionEnrichment
+        public readonly bool $reflectionEnrichment,
+        /**
+         * Allow bounded process parallelism for AST-only multi-file parsing.
+         *
+         * This is an optimization hint, not a guarantee. Unsupported runtimes,
+         * small inputs, and worker failures transparently use the sequential path.
+         */
+        public readonly bool $parallelParsing
     ) {
     }
 
     /** Reflection-enriched parsing: inherited and resolved data, at runtime cost. */
     public static function default(): self
     {
-        return new self(true);
+        return new self(true, false);
     }
 
     /** Only what the parsed source declares; nothing is autoloaded or reflected. */
     public static function astOnly(): self
     {
-        return new self(false);
+        return new self(false, false);
+    }
+
+    /**
+     * AST-only parsing with bounded process parallelism for sufficiently large
+     * CLI directory inputs when the runtime supports pcntl.
+     */
+    public static function astOnlyParallel(): self
+    {
+        return new self(false, true);
     }
 }

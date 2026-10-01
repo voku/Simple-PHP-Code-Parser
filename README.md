@@ -142,6 +142,20 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
 ````
 
+For larger AST-only directory scans on CLI, bounded process parallelism is opt-in:
+
+```php
+use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
+use voku\SimplePhpParser\Parsers\PhpCodeParser;
+
+$phpCode = PhpCodeParser::getPhpFiles(
+    __DIR__ . '/src',
+    options: ParserOptions::astOnlyParallel()
+);
+```
+
+The parallel path is only used when at least 16 files are parsed, `pcntl` is available, and more than one CPU core is detected. Otherwise the parser uses the same sequential AST-only path. Reflection-enriched parsing is never forked.
+
 Unified metadata API:
 ```php
 $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');

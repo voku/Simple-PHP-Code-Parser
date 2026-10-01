@@ -12,6 +12,7 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use voku\cache\Cache;
+use voku\SimplePhpParser\Model\BasePHPElement;
 use voku\SimplePhpParser\Model\PHPFileInfo;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
@@ -28,6 +29,24 @@ final class PhpCodeParser
      * @internal
      */
     private const CACHE_KEY_HELPER = 'simple-php-code-parser-v8-';
+
+    /**
+     * Fork/process overhead was still a net loss below this boundary in the
+     * #128 GitHub Actions proof. Sixteen real parser source files were 1.21x
+     * faster while preserving exact normalized output.
+     */
+    private const PARALLEL_PARSE_MIN_FILES = 16;
+
+    /**
+     * Keep worker fan-out bounded even on very large hosts.
+     */
+    private const PARALLEL_PARSE_MAX_WORKERS = 8;
+
+    /**
+     * The #128 threshold sweep only became useful once each worker had enough
+     * parse/model work to amortize fork and IPC overhead.
+     */
+    private const PARALLEL_PARSE_MIN_FILES_PER_WORKER = 4;
 
     /**
      * @param string              $code
@@ -189,33 +208,23 @@ final class PhpCodeParser
             $fileExtensions
         );
 
+        $options ??= ParserOptions::default();
+
         $parserContainer = new ParserContainer($options);
         $visitor = new ASTVisitor($parserContainer);
 
-        $processResults = [];
-        $phpCodesChunks = \array_chunk($phpCodes, Utils::getCpuCores(), true);
-
-        foreach ($phpCodesChunks as $phpCodesChunk) {
-            foreach ($phpCodesChunk as $codeAndFileName) {
-                $processResults[] = self::process(
+        if (!self::processPhpCodesInParallel($phpCodes, $parserContainer, $options)) {
+            foreach ($phpCodes as $codeAndFileName) {
+                $response = self::process(
                     $codeAndFileName['content'],
                     $codeAndFileName['fileName'],
                     $parserContainer,
                     $visitor
                 );
-            }
-        }
 
-        foreach ($processResults as $response) {
-            if ($response instanceof ParserContainer) {
-                $parserContainer->setTraits($response->getTraits());
-                $parserContainer->setClasses($response->getClasses());
-                $parserContainer->setInterfaces($response->getInterfaces());
-                $parserContainer->setEnums($response->getEnums());
-                $parserContainer->setConstants($response->getConstants());
-                $parserContainer->setFunctions($response->getFunctions());
-            } elseif ($response instanceof ParserErrorHandler) {
-                $parserContainer->setParseError($response);
+                if ($response instanceof ParserErrorHandler) {
+                    $parserContainer->setParseError($response);
+                }
             }
         }
 
@@ -277,6 +286,364 @@ final class PhpCodeParser
         }
 
         return $parserContainer;
+    }
+
+    /**
+     * Parse sufficiently large AST-only inputs in bounded worker processes.
+     *
+     * Workers stop after parse/name-resolution/file-local model extraction.
+     * The caller then performs the existing cross-file interface/inheritdoc
+     * finalisation once against the merged canonical ParserContainer.
+     *
+     * Any unavailable runtime capability or worker/IPC failure leaves the target
+     * container untouched and returns false so the canonical sequential path can
+     * retry the complete input.
+     *
+     * @param array<string, array{content: string, fileName: null|string}> $phpCodes
+     */
+    private static function processPhpCodesInParallel(
+        array $phpCodes,
+        ParserContainer $parserContainer,
+        ParserOptions $options
+    ): bool {
+        if (!$options->parallelParsing || $options->reflectionEnrichment) {
+            return false;
+        }
+
+        $fileCount = \count($phpCodes);
+        if (
+            $fileCount < self::PARALLEL_PARSE_MIN_FILES
+            || !self::supportsParallelRuntime()
+        ) {
+            return false;
+        }
+
+        $cpuCores = Utils::getCpuCores();
+        if ($cpuCores < 2) {
+            return false;
+        }
+
+        /** @var int<1, max> $workerCount */
+        $workerCount = \min(
+            self::PARALLEL_PARSE_MAX_WORKERS,
+            $cpuCores,
+            \max(
+                1,
+                \intdiv($fileCount, self::PARALLEL_PARSE_MIN_FILES_PER_WORKER)
+            )
+        );
+        $partitions = self::partitionPhpCodes($phpCodes, $workerCount);
+        $fileOrder = [];
+        foreach ($phpCodes as $position => $codeAndFileName) {
+            if ($codeAndFileName['fileName'] !== null) {
+                $fileOrder[$codeAndFileName['fileName']] = \count($fileOrder);
+            }
+        }
+
+        try {
+            $suffix = \bin2hex(\random_bytes(8));
+        } catch (\Throwable) {
+            return false;
+        }
+
+        $temporaryDirectory = \rtrim(\sys_get_temp_dir(), \DIRECTORY_SEPARATOR)
+            . \DIRECTORY_SEPARATOR
+            . 'simple-php-code-parser-'
+            . \getmypid()
+            . '-'
+            . $suffix;
+
+        if (!\mkdir($temporaryDirectory, 0700) && !\is_dir($temporaryDirectory)) {
+            return false;
+        }
+
+        /**
+         * @var list<array{pid: int, resultFile: string}> $workers
+         */
+        $workers = [];
+        $launchFailed = false;
+
+        try {
+            foreach ($partitions as $index => $partition) {
+                $resultFile = $temporaryDirectory . \DIRECTORY_SEPARATOR . 'worker-' . $index . '.ser';
+                $pid = \pcntl_fork();
+
+                if ($pid === -1) {
+                    $launchFailed = true;
+
+                    break;
+                }
+
+                if ($pid === 0) {
+                    try {
+                        $workerContainer = new ParserContainer($options);
+                        $workerVisitor = new ASTVisitor($workerContainer);
+                        $errors = [];
+
+                        foreach ($partition as $codeAndFileName) {
+                            $response = self::process(
+                                $codeAndFileName['content'],
+                                $codeAndFileName['fileName'],
+                                $workerContainer,
+                                $workerVisitor
+                            );
+
+                            if ($response instanceof ParserErrorHandler) {
+                                $errors[] = $response;
+                            }
+                        }
+
+                        $payload = \serialize([
+                            'container' => $workerContainer,
+                            'errors'    => $errors,
+                        ]);
+                        \file_put_contents($resultFile, $payload, \LOCK_EX);
+                    } catch (\Throwable) {
+                        // The parent validates the result file and falls back to
+                        // the canonical sequential path when it is absent or invalid.
+                    }
+
+                    self::terminateWorkerWithoutShutdown();
+                }
+
+                $workers[] = [
+                    'pid'        => $pid,
+                    'resultFile' => $resultFile,
+                ];
+            }
+
+            $workersTerminated = !$launchFailed;
+            foreach ($workers as $worker) {
+                $status = self::waitForWorker($worker['pid']);
+
+                if (
+                    $status === null
+                    || !\pcntl_wifsignaled($status)
+                    || \pcntl_wtermsig($status) !== \SIGKILL
+                ) {
+                    $workersTerminated = false;
+                }
+            }
+
+            if (!$workersTerminated || \count($workers) !== \count($partitions)) {
+                return false;
+            }
+
+            /**
+             * @var list<array{
+             *     container: ParserContainer,
+             *     errors: list<ParserErrorHandler>
+             * }> $workerResults
+             */
+            $workerResults = [];
+
+            foreach ($workers as $worker) {
+                $payload = \file_get_contents($worker['resultFile']);
+                if (!\is_string($payload) || $payload === '') {
+                    return false;
+                }
+
+                $decoded = \unserialize($payload, ['allowed_classes' => true]);
+                if (
+                    !\is_array($decoded)
+                    || !isset($decoded['container'], $decoded['errors'])
+                    || !$decoded['container'] instanceof ParserContainer
+                    || !\is_array($decoded['errors'])
+                ) {
+                    return false;
+                }
+
+                foreach ($decoded['errors'] as $error) {
+                    if (!$error instanceof ParserErrorHandler) {
+                        return false;
+                    }
+                }
+
+                /** @var array{container: ParserContainer, errors: list<ParserErrorHandler>} $decoded */
+                $workerResults[] = $decoded;
+            }
+
+            foreach ($workerResults as $workerResult) {
+                $source = $workerResult['container'];
+
+                $parserContainer->setTraits($source->getTraits());
+                $parserContainer->setClasses($source->getClasses());
+                $parserContainer->setInterfaces($source->getInterfaces());
+                $parserContainer->setEnums($source->getEnums());
+                $parserContainer->setConstants($source->getConstants());
+                $parserContainer->setFunctions($source->getFunctions());
+
+                foreach ($workerResult['errors'] as $error) {
+                    $parserContainer->setParseError($error);
+                }
+            }
+
+            $parserContainer->restoreFileOrder($fileOrder);
+            self::rebindParserContainerModels($parserContainer);
+
+            return true;
+        } finally {
+            foreach ($workers as $worker) {
+                if (\is_file($worker['resultFile'])) {
+                    \unlink($worker['resultFile']);
+                }
+            }
+
+            if (\is_dir($temporaryDirectory)) {
+                \rmdir($temporaryDirectory);
+            }
+        }
+    }
+
+    /**
+     * The worker implementation is CLI-only and requires the complete pcntl
+     * process lifecycle API. function_exists() also respects disabled functions,
+     * unlike extension_loaded('pcntl').
+     */
+    private static function supportsParallelRuntime(): bool
+    {
+        return \PHP_SAPI === 'cli'
+            && \function_exists('pcntl_fork')
+            && \function_exists('pcntl_waitpid')
+            && \function_exists('pcntl_get_last_error')
+            && \function_exists('pcntl_wifsignaled')
+            && \function_exists('pcntl_wtermsig')
+            && \function_exists('posix_getpid')
+            && \function_exists('posix_kill')
+            && \defined('PCNTL_EINTR')
+            && \defined('SIGKILL');
+    }
+
+    /**
+     * Distribute larger source strings across workers instead of balancing only
+     * by file count. The source is already in memory, so strlen() is a cheap
+     * proxy for parser work and avoids an additional filesystem stat.
+     *
+     * Files are sorted by size and striped across partitions so every worker
+     * receives a mix of larger and smaller inputs. The original input order is
+     * restored inside each partition before parsing.
+     *
+     * @param array<string, array{content: string, fileName: null|string}> $phpCodes
+     * @param int<1, max>                                                  $workerCount
+     *
+     * @return list<array<string, array{content: string, fileName: null|string}>>
+     */
+    private static function partitionPhpCodes(array $phpCodes, int $workerCount): array
+    {
+        $originalOrder = \array_flip(\array_keys($phpCodes));
+
+        \uasort(
+            $phpCodes,
+            static fn (array $left, array $right): int => \strlen($right['content']) <=> \strlen($left['content'])
+        );
+
+        $partitions = \array_fill(0, $workerCount, []);
+        $index = 0;
+        foreach ($phpCodes as $key => $codeAndFileName) {
+            $partitions[$index % $workerCount][$key] = $codeAndFileName;
+            ++$index;
+        }
+
+        foreach ($partitions as &$partition) {
+            \uksort(
+                $partition,
+                static fn (string $left, string $right): int => $originalOrder[$left] <=> $originalOrder[$right]
+            );
+        }
+        unset($partition);
+
+        return $partitions;
+    }
+
+    /**
+     * Wait until one worker has definitely reached a terminal state.
+     *
+     * Signals handled by the parent may interrupt waitpid(). In that case retry
+     * instead of starting cleanup while the child can still be running.
+     */
+    private static function waitForWorker(int $pid): ?int
+    {
+        do {
+            $status = 0;
+            $waitedPid = \pcntl_waitpid($pid, $status);
+        } while (
+            $waitedPid === -1
+            && \pcntl_get_last_error() === \PCNTL_EINTR
+        );
+
+        return $waitedPid === $pid ? $status : null;
+    }
+
+    /**
+     * End a forked worker without executing shutdown functions or destructors
+     * inherited from the caller.
+     *
+     * @return never
+     */
+    private static function terminateWorkerWithoutShutdown(): never
+    {
+        \posix_kill(\posix_getpid(), \SIGKILL);
+
+        // SIGKILL cannot be caught or ignored. This is only a type-safety
+        // fallback for runtimes that unexpectedly fail to deliver it.
+        while (true) {
+            \usleep(1_000_000);
+        }
+    }
+
+    /**
+     * Worker models reference their worker-local ParserContainer after
+     * deserialization. Rebind every nested model to the canonical aggregate
+     * container before cross-file finalisation.
+     */
+    private static function rebindParserContainerModels(ParserContainer $parserContainer): void
+    {
+        /** @var \SplObjectStorage<BasePHPElement, null> $seen */
+        $seen = new \SplObjectStorage();
+
+        foreach ([
+            $parserContainer->getTraits(),
+            $parserContainer->getClasses(),
+            $parserContainer->getInterfaces(),
+            $parserContainer->getEnums(),
+            $parserContainer->getConstants(),
+            $parserContainer->getFunctions(),
+        ] as $models) {
+            self::rebindParserContainerValue($models, $parserContainer, $seen);
+        }
+    }
+
+    /**
+     * @param mixed $value
+     * @param \SplObjectStorage<BasePHPElement, null> $seen
+     */
+    private static function rebindParserContainerValue(
+        mixed $value,
+        ParserContainer $parserContainer,
+        \SplObjectStorage $seen
+    ): void {
+        if (\is_array($value)) {
+            foreach ($value as $item) {
+                self::rebindParserContainerValue($item, $parserContainer, $seen);
+            }
+
+            return;
+        }
+
+        if (!$value instanceof BasePHPElement || $seen->offsetExists($value)) {
+            return;
+        }
+
+        $seen->offsetSet($value);
+        $value->parserContainer = $parserContainer;
+
+        foreach (\get_object_vars($value) as $property => $propertyValue) {
+            if ($property === 'parserContainer') {
+                continue;
+            }
+
+            self::rebindParserContainerValue($propertyValue, $parserContainer, $seen);
+        }
     }
 
     /**

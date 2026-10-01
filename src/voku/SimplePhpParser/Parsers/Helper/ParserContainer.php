@@ -285,6 +285,35 @@ class ParserContainer
         }
     }
 
+    /**
+     * Restore source-file insertion order after parallel worker aggregation.
+     *
+     * @param array<string, int> $fileOrder
+     *
+     * @internal
+     */
+    public function restoreFileOrder(array $fileOrder): void
+    {
+        $sort = static function (array &$elements) use ($fileOrder): void {
+            \uasort(
+                $elements,
+                static function ($left, $right) use ($fileOrder): int {
+                    $leftPosition = $left->file !== null ? ($fileOrder[$left->file] ?? \PHP_INT_MAX) : \PHP_INT_MAX;
+                    $rightPosition = $right->file !== null ? ($fileOrder[$right->file] ?? \PHP_INT_MAX) : \PHP_INT_MAX;
+
+                    return $leftPosition <=> $rightPosition;
+                }
+            );
+        };
+
+        $sort($this->traits);
+        $sort($this->classes);
+        $sort($this->interfaces);
+        $sort($this->enums);
+        $sort($this->constants);
+        $sort($this->functions);
+    }
+
     public function addException(\Exception $exception): void
     {
         $this->parse_errors[] = $exception->getFile() . ':' . $exception->getLine() . ' | ' . $exception->getMessage();
