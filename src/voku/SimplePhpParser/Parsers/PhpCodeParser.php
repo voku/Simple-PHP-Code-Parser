@@ -816,13 +816,27 @@ final class PhpCodeParser
                 'cacheKey' => $cacheKey,
             ];
 
-            @$cache->setItem($cacheKey, $response);
+            self::writeCache($cache, $cacheKey, $response);
 
             $phpCodes[$cacheKey]['content'] = $content;
             $phpCodes[$cacheKey]['fileName'] = $path;
         }
 
         return $phpCodes;
+    }
+
+    /**
+     * @param array{content: string, fileName: string, cacheKey: string} $response
+     */
+    private static function writeCache(Cache $cache, string $cacheKey, array $response): void
+    {
+        if (!$cache->getCacheIsReady()) {
+            return;
+        }
+
+        // Cache persistence is only an optimization. A false status is non-fatal,
+        // while warnings and exceptions from the serializer/adapter stay visible.
+        $cache->setItem($cacheKey, $response);
     }
 
     /**
