@@ -9,6 +9,7 @@ use SplObjectStorage;
 use voku\SimplePhpParser\Model\BasePHPElement;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
+use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\PhpCodeParser;
 
 /**
@@ -30,9 +31,7 @@ final class ParallelParsingTest extends TestCase
 
     public function testParallelAstOnlyParsingPreservesCrossFileSemantics(): void
     {
-        if (!\function_exists('pcntl_fork')) {
-            static::markTestSkipped('pcntl is required to exercise the parallel parser path.');
-        }
+        $this->requireParallelRuntime();
 
         $directory = $this->createFixtureDirectory(false);
 
@@ -85,9 +84,7 @@ final class ParallelParsingTest extends TestCase
 
     public function testParallelAstOnlyParsingPreservesParseErrors(): void
     {
-        if (!\function_exists('pcntl_fork')) {
-            static::markTestSkipped('pcntl is required to exercise the parallel parser path.');
-        }
+        $this->requireParallelRuntime();
 
         $directory = $this->createFixtureDirectory(true);
 
@@ -108,6 +105,60 @@ final class ParallelParsingTest extends TestCase
             );
         } finally {
             $this->removeFixtureDirectory($directory);
+        }
+    }
+
+    public function testParallelWorkersDoNotRunInheritedShutdownCallbacks(): void
+    {
+        $this->requireParallelRuntime();
+
+        $directory = $this->createFixtureDirectory(false);
+        $marker = \sys_get_temp_dir()
+            . \DIRECTORY_SEPARATOR
+            . 'simple-php-parser-worker-shutdown-'
+            . \bin2hex(\random_bytes(8));
+        $parentPid = \getmypid();
+
+        \register_shutdown_function(
+            static function () use ($marker, $parentPid): void {
+                if (\getmypid() !== $parentPid) {
+                    \file_put_contents($marker, (string) \getmypid(), \FILE_APPEND);
+                }
+            }
+        );
+
+        try {
+            PhpCodeParser::getPhpFiles(
+                $directory,
+                options: ParserOptions::astOnlyParallel()
+            );
+
+            static::assertFileDoesNotExist($marker);
+        } finally {
+            if (\is_file($marker)) {
+                \unlink($marker);
+            }
+
+            $this->removeFixtureDirectory($directory);
+        }
+    }
+
+    private function requireParallelRuntime(): void
+    {
+        if (
+            !\function_exists('pcntl_fork')
+            || !\function_exists('pcntl_waitpid')
+            || !\function_exists('pcntl_get_last_error')
+            || !\function_exists('pcntl_wifsignaled')
+            || !\function_exists('pcntl_wtermsig')
+            || !\function_exists('posix_kill')
+            || !\defined('PCNTL_EINTR')
+            || !\defined('SIGKILL')
+            || Utils::getCpuCores() < 2
+        ) {
+            static::markTestSkipped(
+                'pcntl, POSIX signals and at least two CPUs are required to exercise the parallel parser path.'
+            );
         }
     }
 
