@@ -333,6 +333,12 @@ final class PhpCodeParser
             )
         );
         $partitions = self::partitionPhpCodes($phpCodes, $workerCount);
+        $fileOrder = [];
+        foreach ($phpCodes as $position => $codeAndFileName) {
+            if ($codeAndFileName['fileName'] !== null) {
+                $fileOrder[$codeAndFileName['fileName']] = \count($fileOrder);
+            }
+        }
 
         try {
             $suffix = \bin2hex(\random_bytes(8));
@@ -472,6 +478,7 @@ final class PhpCodeParser
                 }
             }
 
+            $parserContainer->restoreFileOrder($fileOrder);
             self::rebindParserContainerModels($parserContainer);
 
             return true;
