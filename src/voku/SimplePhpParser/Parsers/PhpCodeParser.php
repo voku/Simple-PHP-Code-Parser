@@ -501,6 +501,7 @@ final class PhpCodeParser
             && \function_exists('pcntl_get_last_error')
             && \function_exists('pcntl_wifsignaled')
             && \function_exists('pcntl_wtermsig')
+            && \function_exists('posix_getpid')
             && \function_exists('posix_kill')
             && \defined('PCNTL_EINTR')
             && \defined('SIGKILL');
@@ -561,7 +562,7 @@ final class PhpCodeParser
      */
     private static function terminateWorkerWithoutShutdown(): never
     {
-        \posix_kill(\getmypid(), \SIGKILL);
+        \posix_kill(\posix_getpid(), \SIGKILL);
 
         // SIGKILL cannot be caught or ignored. This is only a type-safety
         // fallback for runtimes that unexpectedly fail to deliver it.
