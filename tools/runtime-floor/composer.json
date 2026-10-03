@@ -1,0 +1,19 @@
+{
+    "name": "voku/simple-php-code-parser-runtime-floor",
+    "private": true,
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../..",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "voku/simple-php-code-parser": "*",
+        "nikic/php-parser": "4.18.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

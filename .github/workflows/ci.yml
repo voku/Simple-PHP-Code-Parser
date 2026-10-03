@@ -6,11 +6,73 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 defaults:
   run:
     shell: bash
 
 jobs:
+  runtime-dependency-floor:
+    name: runtime dependency floor (php-parser 4.18.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: 8.3
+          coverage: none
+          tools: composer
+
+      - name: Install locked runtime floor dependencies
+        working-directory: tools/runtime-floor
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+
+      - name: Smoke public parser API
+        working-directory: tools/runtime-floor
+        run: |
+          test "$(composer show nikic/php-parser --format=json | php -r '$d=json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR); echo $d["versions"][0];')" = "v4.18.0"
+          php <<'PHP'
+          <?php
+
+          declare(strict_types=1);
+
+          require __DIR__ . '/vendor/autoload.php';
+
+          use PhpParser\Node\Stmt\Class_;
+          use PhpParser\Node\Stmt\Namespace_;
+          use voku\SimplePhpParser\Parsers\PhpCodeParser;
+
+          $ast = PhpCodeParser::getAstFromString(<<<'CODE'
+          <?php
+          namespace FloorProof;
+          class Example {}
+          CODE);
+
+          if (count($ast) !== 1 || !$ast[0] instanceof Namespace_) {
+              throw new RuntimeException('Expected one namespace node.');
+          }
+
+          $namespace = $ast[0];
+          if ((string) $namespace->name !== 'FloorProof') {
+              throw new RuntimeException('Expected resolved FloorProof namespace.');
+          }
+
+          $class = $namespace->stmts[0] ?? null;
+          if (!$class instanceof Class_ || $class->namespacedName === null) {
+              throw new RuntimeException('Expected resolved class name.');
+          }
+
+          if ((string) $class->namespacedName !== 'FloorProof\\Example') {
+              throw new RuntimeException('Unexpected resolved class name: ' . (string) $class->namespacedName);
+          }
+          PHP
+
   tests:
     runs-on: ubuntu-latest
     strategy:
