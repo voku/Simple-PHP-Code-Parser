@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release candidate
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
@@ -80,5 +80,12 @@ jobs:
           VERSION: ${{ inputs.version }}
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
+          git fetch origin master --tags --force
+          CURRENT_MASTER_SHA="$(git rev-parse origin/master)"
+          if [[ "$CURRENT_MASTER_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "master moved before tag creation: expected $EXPECTED_SHA, current $CURRENT_MASTER_SHA" >&2
+            exit 1
+          fi
+
           git tag "$VERSION" "$EXPECTED_SHA"
           git push origin "refs/tags/$VERSION"
