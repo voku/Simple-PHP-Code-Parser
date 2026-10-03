@@ -16,10 +16,10 @@ final class ReleaseWorkflowContractTest extends TestCase
 
         self::assertIsString($workflow);
         self::assertStringContainsString('expected_sha:', $workflow);
-        self::assertStringContainsString("actions: read", $workflow);
-        self::assertStringContainsString("contents: write", $workflow);
+        self::assertStringContainsString('actions: read', $workflow);
+        self::assertStringContainsString('contents: write', $workflow);
         self::assertStringContainsString(
-            "uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+            'uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1',
             $workflow,
         );
         self::assertDoesNotMatchRegularExpression('/uses:\s+actions\/checkout@v\d+/', $workflow);
