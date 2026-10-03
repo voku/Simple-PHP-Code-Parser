@@ -13,6 +13,7 @@ use voku\SimplePhpParser\Model\PHPFunction;
 use voku\SimplePhpParser\Model\PHPInterface;
 use voku\SimplePhpParser\Model\PHPTrait;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
+use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
 use voku\SimplePhpParser\Parsers\PhpCodeParser;
 
 /**
@@ -46,6 +47,88 @@ final class ParserEntryPointsTest extends TestCase
                 $className
             );
         }
+    }
+
+    public function testGetFromFileMatchesLegacyFileEntryPoint(): void
+    {
+        $file = __DIR__ . '/Dummy.php';
+
+        $legacy = PhpCodeParser::getPhpFiles($file)->getClasses();
+        $explicit = PhpCodeParser::getFromFile($file)->getClasses();
+
+        static::assertSame(\array_keys($legacy), \array_keys($explicit));
+    }
+
+    public function testGetFromDirectoryParsesAnExistingDirectory(): void
+    {
+        $directory = \sys_get_temp_dir() . '/simple-php-code-parser-entry-' . \bin2hex(\random_bytes(8));
+        static::assertTrue(\mkdir($directory, 0700));
+
+        $file = $directory . '/Example.php';
+        static::assertNotFalse(\file_put_contents(
+            $file,
+            <<<'PHP'
+<?php
+
+namespace ExplicitDirectory;
+
+final class Example
+{
+}
+PHP
+        ));
+
+        try {
+            $container = PhpCodeParser::getFromDirectory(
+                $directory,
+                options: ParserOptions::astOnly()
+            );
+
+            static::assertArrayHasKey('ExplicitDirectory\\Example', $container->getClasses());
+        } finally {
+            @\unlink($file);
+            @\rmdir($directory);
+        }
+    }
+
+    public function testExplicitFileEntryPointRejectsMissingPath(): void
+    {
+        $missingFile = __DIR__ . '/DefinitelyMissingEntryPoint.php';
+        static::assertFileDoesNotExist($missingFile);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected an existing file: ' . $missingFile);
+
+        PhpCodeParser::getFromFile($missingFile);
+    }
+
+    public function testExplicitDirectoryEntryPointRejectsMissingPath(): void
+    {
+        $missingDirectory = __DIR__ . '/DefinitelyMissingEntryPointDirectory';
+        static::assertDirectoryDoesNotExist($missingDirectory);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected an existing directory: ' . $missingDirectory);
+
+        PhpCodeParser::getFromDirectory($missingDirectory);
+    }
+
+    public function testLegacyGetPhpFilesStillTreatsMissingPathAsSource(): void
+    {
+        $missingPath = __DIR__ . '/DefinitelyMissingLegacyPath.php';
+        static::assertFileDoesNotExist($missingPath);
+
+        $legacy = PhpCodeParser::getPhpFiles(
+            $missingPath,
+            options: ParserOptions::astOnly()
+        );
+        $explicitSource = PhpCodeParser::getFromString(
+            $missingPath,
+            options: ParserOptions::astOnly()
+        );
+
+        static::assertSame(\array_keys($explicitSource->getClasses()), \array_keys($legacy->getClasses()));
+        static::assertSame($explicitSource->getParseErrors(), $legacy->getParseErrors());
     }
 
     public function testGetFromClassNameReturnsTheClass(): void
