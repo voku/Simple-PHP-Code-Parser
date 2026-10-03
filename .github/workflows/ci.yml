@@ -26,12 +26,9 @@ jobs:
           coverage: none
           tools: composer
 
-      - name: Generate runtime floor lock proof
+      - name: Install locked runtime floor dependencies
         working-directory: tools/runtime-floor
-        run: |
-          composer update --prefer-dist --no-interaction
-          base64 -w0 composer.lock
-          echo
+        run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Smoke public parser API
         working-directory: tools/runtime-floor
