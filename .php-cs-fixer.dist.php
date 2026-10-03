@@ -18,8 +18,10 @@ return (new PhpCsFixer\Config())
         'indentation_type' => false,
         'no_unused_imports' => true,
         'ordered_imports' => [
+            'case_sensitive' => true,
             'sort_algorithm' => 'alpha',
         ],
+        'statement_indentation' => false,
         'single_quote' => true,
     ])
     ->setFinder($finder);
