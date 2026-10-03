@@ -13,6 +13,7 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -59,6 +60,18 @@ jobs:
 
           if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
             echo "Tag already exists: $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Verify exact release candidate CI
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SUCCESSFUL_RUNS="$(gh api             "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$EXPECTED_SHA&event=push&status=success&per_page=1"             --jq '.total_count')"
+
+          if [[ "$SUCCESSFUL_RUNS" -lt 1 ]]; then
+            echo "No successful master push CI run found for $EXPECTED_SHA" >&2
             exit 1
           fi
 
