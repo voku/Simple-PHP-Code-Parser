@@ -26,14 +26,17 @@ jobs:
           coverage: none
           tools: composer
 
-      - name: Install production dependencies at php-parser floor
+      - name: Generate runtime floor lock proof
+        working-directory: tools/runtime-floor
         run: |
-          php -r '$d=json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); unset($d["require-dev"], $d["autoload-dev"]); file_put_contents("composer.floor.json", json_encode($d, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);'
-          COMPOSER=composer.floor.json composer update --prefer-dist --no-interaction --with nikic/php-parser:4.18.0
-          test "$(COMPOSER=composer.floor.json composer show nikic/php-parser --format=json | php -r '$d=json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR); echo $d["versions"][0];')" = "v4.18.0"
+          composer update --prefer-dist --no-interaction
+          base64 -w0 composer.lock
+          echo
 
       - name: Smoke public parser API
+        working-directory: tools/runtime-floor
         run: |
+          test "$(composer show nikic/php-parser --format=json | php -r '$d=json_decode(stream_get_contents(STDIN), true, 512, JSON_THROW_ON_ERROR); echo $d["versions"][0];')" = "v4.18.0"
           php <<'PHP'
           <?php
 
