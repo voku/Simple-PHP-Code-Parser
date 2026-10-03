@@ -99,6 +99,13 @@ $phpClasses = $phpCode->getClasses();
 var_dump($phpClasses['voku\tests\SimpleClass']); // "PHPClass"-object
 ```
 
+For new code, prefer the explicit input-mode entry points:
+- `getFromString()` for raw PHP source,
+- `getFromFile()` for one existing file,
+- `getFromDirectory()` for one existing directory.
+
+`getPhpFiles()` remains available for backwards compatibility and keeps its legacy mixed-input behavior: existing files/directories are treated as paths, while every other string is interpreted as raw PHP source. A misspelled or missing path therefore does **not** fail fast when passed to `getPhpFiles()`.
+
 Parse one class:
 ```php
 $phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromClassName(Dummy::class);
@@ -119,7 +126,7 @@ var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['u
 
 Parse one file:
 ```php
-$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/Dummy.php');
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromFile(__DIR__ . '/Dummy.php');
 $phpClasses = $phpCode->getClasses();
 
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
@@ -137,7 +144,7 @@ var_dump($phpClasses[Dummy::class]->methods['withoutPhpDocParam']->parameters['u
 
 Parse many files:
 ```php
-$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromDirectory(__DIR__ . '/src');
 $phpClasses = $phpCode->getClasses();
 
 var_dump($phpClasses[Dummy::class]); // "PHPClass"-object
@@ -159,7 +166,7 @@ The parallel path is only used when at least 16 files are parsed, `pcntl` is ava
 
 Unified metadata API:
 ```php
-$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromDirectory(__DIR__ . '/src');
 
 $phpClasses = $phpCode->getClasses();
 $phpInterfaces = $phpCode->getInterfaces();
@@ -235,14 +242,14 @@ The library is meant to be the simple integration layer that other tools can cal
 
 Access enums:
 ```php
-$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromDirectory(__DIR__ . '/src');
 $phpEnums = $phpCode->getEnums();
 // PHPEnum objects with scalarType, cases, methods, constants, attributes
 ````
 
 Access attributes:
 ```php
-$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getPhpFiles(__DIR__ . '/src');
+$phpCode = \voku\SimplePhpParser\Parsers\PhpCodeParser::getFromDirectory(__DIR__ . '/src');
 $phpClasses = $phpCode->getClasses();
 $class = $phpClasses['MyClass'];
 
