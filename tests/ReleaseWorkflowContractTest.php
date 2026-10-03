@@ -15,7 +15,7 @@ final class ReleaseWorkflowContractTest extends TestCase
         $workflow = file_get_contents($workflowPath);
 
         self::assertIsString($workflow);
-        self::assertStringContainsString("expected_sha:", $workflow);
+        self::assertStringContainsString('expected_sha:', $workflow);
         self::assertStringContainsString("actions: read", $workflow);
         self::assertStringContainsString("contents: write", $workflow);
         self::assertStringContainsString(
