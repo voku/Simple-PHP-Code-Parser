@@ -4,7 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'SemVer tag, e.g. 0.22.5'
+        description: 'SemVer tag, e.g. 0.22.9'
+        required: true
+        type: string
+      expected_sha:
+        description: 'Exact master commit SHA that was validated for release'
         required: true
         type: string
 
@@ -15,29 +19,53 @@ jobs:
   tag:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate version
+      - name: Checkout release candidate
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+
+      - name: Validate release authority
         env:
           VERSION: ${{ inputs.version }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
         run: |
           if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Invalid SemVer tag: $VERSION" >&2
             exit 1
           fi
 
-      - name: Checkout master
-        uses: actions/checkout@v7
-        with:
-          ref: master
-          fetch-depth: 0
+          if [[ ! "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected a full 40-character commit SHA: $EXPECTED_SHA" >&2
+            exit 1
+          fi
 
-      - name: Create tag
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          git fetch --tags --force
+          git fetch origin master --tags --force
+          MASTER_SHA="$(git rev-parse origin/master)"
+          if [[ "$MASTER_SHA" != "$EXPECTED_SHA" ]]; then
+            echo "master moved: expected $EXPECTED_SHA, current $MASTER_SHA" >&2
+            exit 1
+          fi
+
+          if [[ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]]; then
+            echo "Checkout mismatch for release candidate $EXPECTED_SHA" >&2
+            exit 1
+          fi
+
+          if ! grep -Eq "^### $VERSION \([0-9]{4}-[0-9]{2}-[0-9]{2}\)$" CHANGELOG.md; then
+            echo "CHANGELOG.md has no release section for $VERSION" >&2
+            exit 1
+          fi
+
           if git rev-parse "refs/tags/$VERSION" >/dev/null 2>&1; then
             echo "Tag already exists: $VERSION" >&2
             exit 1
           fi
-          git tag "$VERSION"
+
+      - name: Create tag
+        env:
+          VERSION: ${{ inputs.version }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          git tag "$VERSION" "$EXPECTED_SHA"
           git push origin "refs/tags/$VERSION"
