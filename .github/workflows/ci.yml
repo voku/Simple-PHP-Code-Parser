@@ -28,7 +28,7 @@ jobs:
 
       - name: Install locked runtime floor dependencies
         working-directory: tools/runtime-floor
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
 
       - name: Smoke public parser API
         working-directory: tools/runtime-floor
