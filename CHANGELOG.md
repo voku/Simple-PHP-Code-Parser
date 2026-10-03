@@ -1,10 +1,14 @@
 # Changelog
 
-### 0.22.9 (2026-10-01)
+### 0.22.9 (2026-10-03)
 
 - add explicit `ParserOptions::astOnlyParallel()` for sufficiently large CLI directory parses; it uses bounded `pcntl` workers only for AST-only parsing and falls back to the existing sequential path when parallel execution is unavailable or not worthwhile
 - preserve cross-file interface / inheritance / `{@inheritdoc}` semantics by parallelizing parse + name resolution + file-local model extraction only, then performing cross-file finalisation once in the parent process
 - replace the ineffective CPU-sized sequential chunk with measured parallel work: the GitHub Actions proof found the selected boundary semantically identical and about 1.2x-1.45x faster for 16-27 real parser source files on a 4-core runner
+- add fail-fast `PhpCodeParser::getFromFile()` and `getFromDirectory()` entry points so new callers can make file/directory intent explicit; keep `getPhpFiles()` unchanged as the backwards-compatible mixed path-or-source entry point
+- stop suppressing cache-write warnings: a cache backend returning `false` remains non-fatal, while real serializer/adapter warnings and exceptions stay visible instead of being hidden by `@`
+- add a locked production-only CI proof for the declared `nikic/php-parser 4.18.0` dependency floor and keep that fixture outside Renovate updates
+- simplify and harden CI coverage reporting: Coveralls now aggregates only the PHP 8.1/8.5 runtime edges across parser v4/v5, preserving the full correctness matrix while cutting the post-merge workflow wall time substantially
 
 ### 0.22.8 (2026-10-01)
 
