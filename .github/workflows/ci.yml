@@ -100,7 +100,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
-          coverage: xdebug
+          coverage: ${{ matrix.php == 8.5 && matrix.parser-version == 'v5' && 'xdebug' || 'none' }}
           extensions: zip
           tools: composer
 
@@ -134,8 +134,12 @@ jobs:
 
       - name: Run tests
         run: |
-          mkdir -p build/logs
-          php vendor/bin/phpunit -c phpunit.xml --coverage-filter=src --coverage-clover=build/logs/clover.xml
+          if [[ "${{ matrix.php }}" == "8.5" && "${{ matrix.parser-version }}" == "v5" ]]; then
+            mkdir -p build/logs
+            php vendor/bin/phpunit -c phpunit.xml --coverage-filter=src --coverage-clover=build/logs/clover.xml
+          else
+            php vendor/bin/phpunit -c phpunit.xml
+          fi
 
       - name: Run phpstan
         if: ${{ matrix.php == '8.3' }}
@@ -143,18 +147,12 @@ jobs:
           php vendor/bin/phpstan analyse
 
       - name: Upload coverage results to Coveralls
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_PARALLEL: 'true'
-          COVERALLS_FLAG_NAME: php-${{ matrix.php }}-parser-${{ matrix.parser-version }}
-        run: |
-          composer global require php-coveralls/php-coveralls
-          php-coveralls --coverage_clover=build/logs/clover.xml -v
-
-      - name: Upload coverage results to Codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        if: ${{ matrix.php == 8.5 && matrix.parser-version == 'v5' }}
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2
         with:
-          files: build/logs/clover.xml
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/logs/clover.xml
+          coverage-reporter-version: v0.6.22
 
       - name: Archive logs artifacts
         if: ${{ failure() }}
@@ -163,15 +161,4 @@ jobs:
           name: logs_composer-${{ matrix.composer }}_parser-${{ matrix.parser-version }}_php-${{ matrix.php }}
           path: |
             build/logs
-
-  coveralls-finish:
-    needs: tests
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Finish Coveralls parallel build
-        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
 
