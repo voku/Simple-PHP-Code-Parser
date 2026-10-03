@@ -3,9 +3,14 @@
         "config:recommended",
         ":preserveSemverRanges"
     ],
-    "packageRules": [{
+    "packageRules": [
+        {
             "matchPackageNames": [
                 "!phpunit/phpunit"
             ]
-    }]
+        }
+    ],
+    "ignorePaths": [
+        "tools/runtime-floor/**"
+    ]
 }
