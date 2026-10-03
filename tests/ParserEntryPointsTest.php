@@ -86,8 +86,12 @@ PHP
 
             static::assertArrayHasKey('ExplicitDirectory\\Example', $container->getClasses());
         } finally {
-            @\unlink($file);
-            @\rmdir($directory);
+            if (\is_file($file)) {
+                static::assertTrue(\unlink($file));
+            }
+            if (\is_dir($directory)) {
+                static::assertTrue(\rmdir($directory));
+            }
         }
     }
 
