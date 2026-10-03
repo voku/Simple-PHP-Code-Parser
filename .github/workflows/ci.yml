@@ -25,7 +25,9 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
-          php-version: 8.3
+          # Style fixtures include modern syntax (for example property hooks),
+          # so the style-only job must parse them with the newest supported runtime.
+          php-version: 8.5
           coverage: none
           tools: php-cs-fixer:3.95.27
 
