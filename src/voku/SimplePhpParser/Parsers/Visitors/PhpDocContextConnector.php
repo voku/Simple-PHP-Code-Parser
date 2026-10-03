@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace voku\SimplePhpParser\Parsers\Visitors;
 
+use phpDocumentor\Reflection\Types\Context;
 use PhpParser\Node;
 use PhpParser\Node\Stmt\GroupUse;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\Node\Stmt\Use_;
 use PhpParser\NodeVisitorAbstract;
-use phpDocumentor\Reflection\Types\Context;
 
 /**
  * Attaches the namespace and class-import context required by phpDocumentor
