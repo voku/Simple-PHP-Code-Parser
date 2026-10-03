@@ -9,6 +9,7 @@
 - stop suppressing cache-write warnings: a cache backend returning `false` remains non-fatal, while real serializer/adapter warnings and exceptions stay visible instead of being hidden by `@`
 - add a locked production-only CI proof for the declared `nikic/php-parser 4.18.0` dependency floor and keep that fixture outside Renovate updates
 - simplify and harden CI coverage reporting: Coveralls now aggregates only the PHP 8.1/8.5 runtime edges across parser v4/v5, preserving the full correctness matrix while cutting the post-merge workflow wall time substantially
+- bind manual release tagging to an exact validated `master` SHA, require a successful push CI run, re-check `master` immediately before tagging, pin the write-authorized checkout action, and guard those fail-closed release invariants with a regression test
 
 ### 0.22.8 (2026-10-01)
 
