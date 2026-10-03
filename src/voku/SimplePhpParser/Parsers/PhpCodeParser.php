@@ -70,6 +70,68 @@ final class PhpCodeParser
     }
 
     /**
+     * Parse one existing file into the public model container.
+     *
+     * Unlike getPhpFiles(), this entry point never interprets a missing path
+     * as raw PHP source.
+     *
+     * @param string[] $autoloaderProjectPaths
+     * @param string[] $fileExtensions
+     *
+     * @throws \InvalidArgumentException when $fileName is not an existing file
+     */
+    public static function getFromFile(
+        string $fileName,
+        array $autoloaderProjectPaths = [],
+        array $fileExtensions = [],
+        ?ParserOptions $options = null
+    ): ParserContainer {
+        if (!\is_file($fileName)) {
+            throw new \InvalidArgumentException('Expected an existing file: ' . $fileName);
+        }
+
+        return self::getPhpFiles(
+            $fileName,
+            $autoloaderProjectPaths,
+            [],
+            $fileExtensions,
+            $options
+        );
+    }
+
+    /**
+     * Parse one existing directory into the public model container.
+     *
+     * Unlike getPhpFiles(), this entry point never interprets a missing path
+     * as raw PHP source.
+     *
+     * @param string[] $autoloaderProjectPaths
+     * @param string[] $pathExcludeRegex
+     * @param string[] $fileExtensions
+     *
+     * @throws \InvalidArgumentException when $directory is not an existing directory
+     */
+    public static function getFromDirectory(
+        string $directory,
+        array $autoloaderProjectPaths = [],
+        array $pathExcludeRegex = [],
+        array $fileExtensions = [],
+        ?ParserOptions $options = null
+    ): ParserContainer {
+        if (!\is_dir($directory)) {
+            throw new \InvalidArgumentException('Expected an existing directory: ' . $directory);
+        }
+
+        return self::getPhpFiles(
+            $directory,
+            $autoloaderProjectPaths,
+            $pathExcludeRegex,
+            $fileExtensions,
+            $options
+        );
+    }
+
+    /**
      * Parse PHP source into the names-resolved AST used internally to build
      * the public model layer.
      *
@@ -167,6 +229,13 @@ final class PhpCodeParser
     }
 
     /**
+     * Legacy mixed-input entry point.
+     *
+     * Existing files and directories are parsed as paths. Any other string is
+     * treated as raw PHP source for backwards compatibility. New callers should
+     * prefer getFromString(), getFromFile(), or getFromDirectory() so that the
+     * intended input mode is explicit.
+     *
      * @param string             $pathOrCode
      * @param string[]           $autoloaderProjectPaths
      * @param string[]           $pathExcludeRegex
