@@ -7,9 +7,6 @@
 /.gitattributes export-ignore
 /.github export-ignore
 /.gitignore export-ignore
-/box.json.dist export-ignore
-/circle.yml export-ignore
 /phpstan.neon export-ignore
 /phpunit.xml export-ignore
-/psalm.xml export-ignore
 /renovate.json export-ignore
