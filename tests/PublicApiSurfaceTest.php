@@ -397,6 +397,8 @@ final class PublicApiSurfaceTest extends TestCase
                 'getFileInfoFromFile' => ['static' => true, 'required' => 1, 'total' => 1],
                 'getFileInfoFromString' => ['static' => true, 'required' => 1, 'total' => 1],
                 'getFromClassName' => ['static' => true, 'required' => 1, 'total' => 2],
+                'getFromDirectory' => ['static' => true, 'required' => 1, 'total' => 5],
+                'getFromFile' => ['static' => true, 'required' => 1, 'total' => 4],
                 'getFromString' => ['static' => true, 'required' => 1, 'total' => 2],
                 'getPhpFiles' => ['static' => true, 'required' => 1, 'total' => 4],
                 'process' => ['static' => true, 'required' => 4, 'total' => 4],
