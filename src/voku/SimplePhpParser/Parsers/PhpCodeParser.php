@@ -62,7 +62,7 @@ final class PhpCodeParser
     ): ParserContainer {
         self::loadAutoloaderProjectPaths($autoloaderProjectPaths);
 
-        $cacheKey = self::CACHE_KEY_HELPER . \md5($code);
+        $cacheKey = self::CACHE_KEY_HELPER . \hash('sha256', $code);
 
         return self::parsePhpCodes(
             [
@@ -270,12 +270,16 @@ final class PhpCodeParser
 
         $pathTmp = null;
         if (\is_file($pathOrCode)) {
-            $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME)) ?: null;
+            $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME));
         } elseif (\is_dir($pathOrCode)) {
-            $pathTmp = \realpath($pathOrCode) ?: null;
+            $pathTmp = \realpath($pathOrCode);
         }
 
-        return self::parsePhpCodes($phpCodes, $options, $pathTmp);
+        return self::parsePhpCodes(
+            $phpCodes,
+            $options,
+            $pathTmp === false ? null : $pathTmp
+        );
     }
 
     /**
