@@ -49,6 +49,50 @@ final class ParserEntryPointsTest extends TestCase
         }
     }
 
+    public function testGetFromStringNeverTreatsSourceAsExistingPath(): void
+    {
+        $directory = \sys_get_temp_dir() . '/simple-php-code-parser-source-' . \bin2hex(\random_bytes(8));
+        static::assertTrue(\mkdir($directory, 0700));
+
+        $previousDirectory = \getcwd();
+        static::assertIsString($previousDirectory);
+
+        $collidingPath = 'ExistingSource.php';
+        $file = $directory . '/' . $collidingPath;
+        static::assertNotFalse(\file_put_contents(
+            $file,
+            <<<'PHP'
+<?php
+
+namespace WrongInput;
+
+final class FromFile
+{
+}
+PHP
+        ));
+
+        try {
+            static::assertTrue(\chdir($directory));
+
+            $container = PhpCodeParser::getFromString(
+                $collidingPath,
+                options: ParserOptions::astOnly()
+            );
+
+            static::assertSame([], $container->getClasses());
+            static::assertNotSame([], $container->getParseErrors());
+        } finally {
+            static::assertTrue(\chdir($previousDirectory));
+            if (\is_file($file)) {
+                static::assertTrue(\unlink($file));
+            }
+            if (\is_dir($directory)) {
+                static::assertTrue(\rmdir($directory));
+            }
+        }
+    }
+
     public function testGetFromFileMatchesLegacyFileEntryPoint(): void
     {
         $file = __DIR__ . '/Dummy.php';
