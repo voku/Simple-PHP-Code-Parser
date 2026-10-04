@@ -270,9 +270,9 @@ final class PhpCodeParser
 
         $pathTmp = null;
         if (\is_file($pathOrCode)) {
-            $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME));
+            $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME)) ?: null;
         } elseif (\is_dir($pathOrCode)) {
-            $pathTmp = \realpath($pathOrCode);
+            $pathTmp = \realpath($pathOrCode) ?: null;
         }
 
         return self::parsePhpCodes($phpCodes, $options, $pathTmp);
