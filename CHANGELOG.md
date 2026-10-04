@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.10 (2026-10-04)
+
+- fix `PhpCodeParser::getFromString()` so it always treats its argument as raw PHP source, even when that string happens to equal an existing file or directory path; keep `getPhpFiles()` unchanged as the backwards-compatible mixed path-or-source entry point
+- share source/file model finalisation internally so the explicit source fix preserves project-autoloader handling, `ParserOptions`, inheritance/interface finalisation and path-scoped filtering without duplicating parser behavior
+- add regression coverage for the existing-path collision that exposed the ambiguity downstream in `voku/agent-map`
+
 ### 0.22.9 (2026-10-03)
 
 - add explicit `ParserOptions::astOnlyParallel()` for sufficiently large CLI directory parses; it uses bounded `pcntl` workers only for AST-only parsing and falls back to the existing sequential path when parallel execution is unavailable or not worthwhile
