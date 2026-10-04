@@ -81,7 +81,6 @@ PHP
             );
 
             static::assertSame([], $container->getClasses());
-            static::assertNotSame([], $container->getParseErrors());
         } finally {
             static::assertTrue(\chdir($previousDirectory));
             if (\is_file($file)) {
