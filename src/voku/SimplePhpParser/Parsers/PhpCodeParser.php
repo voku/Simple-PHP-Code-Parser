@@ -60,12 +60,19 @@ final class PhpCodeParser
         array $autoloaderProjectPaths = [],
         ?ParserOptions $options = null
     ): ParserContainer {
-        return self::getPhpFiles(
-            $code,
-            $autoloaderProjectPaths,
-            [],
-            [],
-            $options
+        self::loadAutoloaderProjectPaths($autoloaderProjectPaths);
+
+        $cacheKey = self::CACHE_KEY_HELPER . \md5($code);
+
+        return self::parsePhpCodes(
+            [
+                $cacheKey => [
+                    'content'  => $code,
+                    'fileName' => null,
+                ],
+            ],
+            $options,
+            null
         );
     }
 
@@ -253,55 +260,13 @@ final class PhpCodeParser
         array $fileExtensions = [],
         ?ParserOptions $options = null
     ): ParserContainer {
-        // Push a disposable handler so restore_error_handler() below will only
-        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
-        // intact on the stack.
-        \set_error_handler(null);
-        try {
-            foreach ($autoloaderProjectPaths as $projectPath) {
-                if (\file_exists($projectPath) && \is_file($projectPath)) {
-                    require_once $projectPath;
-                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
-                    require_once $projectPath . '/vendor/autoload.php';
-                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
-                    require_once $projectPath . '/../vendor/autoload.php';
-                }
-            }
-        } finally {
-            \restore_error_handler();
-        }
+        self::loadAutoloaderProjectPaths($autoloaderProjectPaths);
 
         $phpCodes = self::getCode(
             $pathOrCode,
             $pathExcludeRegex,
             $fileExtensions
         );
-
-        $options ??= ParserOptions::default();
-
-        $parserContainer = new ParserContainer($options);
-        $visitor = new ASTVisitor($parserContainer);
-
-        if (!self::processPhpCodesInParallel($phpCodes, $parserContainer, $options)) {
-            foreach ($phpCodes as $codeAndFileName) {
-                $response = self::process(
-                    $codeAndFileName['content'],
-                    $codeAndFileName['fileName'],
-                    $parserContainer,
-                    $visitor
-                );
-
-                if ($response instanceof ParserErrorHandler) {
-                    $parserContainer->setParseError($response);
-                }
-            }
-        }
-
-        $interfaces = $parserContainer->getInterfaces();
-        foreach ($interfaces as &$interface) {
-            $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
-        }
-        unset($interface);
 
         $pathTmp = null;
         if (\is_file($pathOrCode)) {
@@ -310,51 +275,7 @@ final class PhpCodeParser
             $pathTmp = \realpath($pathOrCode);
         }
 
-        $classesTmp = &$parserContainer->getClassesByReference();
-        foreach ($classesTmp as &$classTmp) {
-            $classTmp->interfaces = Utils::flattenArray(
-                $visitor->combineImplementedInterfaces($classTmp),
-                false
-            );
-
-            self::mergeInheritdocData(
-                $classTmp,
-                $classesTmp,
-                $interfaces,
-                $parserContainer
-            );
-        }
-        unset($classTmp);
-
-        // remove properties / methods / classes from outside of the current file-path-scope
-        if ($pathTmp) {
-            $classesTmp2 = &$parserContainer->getClassesByReference();
-            foreach ($classesTmp2 as $classKey => $classTmp2) {
-                foreach ($classTmp2->constants as $constantKey => $constant) {
-                    if ($constant->file && \strpos($constant->file, $pathTmp) === false) {
-                        unset($classTmp2->constants[$constantKey]);
-                    }
-                }
-
-                foreach ($classTmp2->properties as $propertyKey => $property) {
-                    if ($property->file && \strpos($property->file, $pathTmp) === false) {
-                        unset($classTmp2->properties[$propertyKey]);
-                    }
-                }
-
-                foreach ($classTmp2->methods as $methodKey => $method) {
-                    if ($method->file && \strpos($method->file, $pathTmp) === false) {
-                        unset($classTmp2->methods[$methodKey]);
-                    }
-                }
-
-                if ($classTmp2->file && \strpos($classTmp2->file, $pathTmp) === false) {
-                    unset($classesTmp2[$classKey]);
-                }
-            }
-        }
-
-        return $parserContainer;
+        return self::parsePhpCodes($phpCodes, $options, $pathTmp);
     }
 
     /**
@@ -801,6 +722,110 @@ final class PhpCodeParser
      *
      * @psalm-return array<string, array{content: string, fileName: null|string}>
      */
+    /**
+     * @param string[] $autoloaderProjectPaths
+     */
+    private static function loadAutoloaderProjectPaths(array $autoloaderProjectPaths): void
+    {
+        // Push a disposable handler so restore_error_handler() below will only
+        // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
+        // intact on the stack.
+        \set_error_handler(null);
+        try {
+            foreach ($autoloaderProjectPaths as $projectPath) {
+                if (\file_exists($projectPath) && \is_file($projectPath)) {
+                    require_once $projectPath;
+                } elseif (\file_exists($projectPath . '/vendor/autoload.php')) {
+                    require_once $projectPath . '/vendor/autoload.php';
+                } elseif (\file_exists($projectPath . '/../vendor/autoload.php')) {
+                    require_once $projectPath . '/../vendor/autoload.php';
+                }
+            }
+        } finally {
+            \restore_error_handler();
+        }
+    }
+
+    /**
+     * @param array<string, array{content: string, fileName: null|string}> $phpCodes
+     */
+    private static function parsePhpCodes(
+        array $phpCodes,
+        ?ParserOptions $options,
+        ?string $pathTmp
+    ): ParserContainer {
+        $options ??= ParserOptions::default();
+
+        $parserContainer = new ParserContainer($options);
+        $visitor = new ASTVisitor($parserContainer);
+
+        if (!self::processPhpCodesInParallel($phpCodes, $parserContainer, $options)) {
+            foreach ($phpCodes as $codeAndFileName) {
+                $response = self::process(
+                    $codeAndFileName['content'],
+                    $codeAndFileName['fileName'],
+                    $parserContainer,
+                    $visitor
+                );
+
+                if ($response instanceof ParserErrorHandler) {
+                    $parserContainer->setParseError($response);
+                }
+            }
+        }
+
+        $interfaces = $parserContainer->getInterfaces();
+        foreach ($interfaces as &$interface) {
+            $interface->parentInterfaces = $visitor->combineParentInterfaces($interface);
+        }
+        unset($interface);
+
+        $classesTmp = &$parserContainer->getClassesByReference();
+        foreach ($classesTmp as &$classTmp) {
+            $classTmp->interfaces = Utils::flattenArray(
+                $visitor->combineImplementedInterfaces($classTmp),
+                false
+            );
+
+            self::mergeInheritdocData(
+                $classTmp,
+                $classesTmp,
+                $interfaces,
+                $parserContainer
+            );
+        }
+        unset($classTmp);
+
+        if ($pathTmp) {
+            $classesTmp2 = &$parserContainer->getClassesByReference();
+            foreach ($classesTmp2 as $classKey => $classTmp2) {
+                foreach ($classTmp2->constants as $constantKey => $constant) {
+                    if ($constant->file && \strpos($constant->file, $pathTmp) === false) {
+                        unset($classTmp2->constants[$constantKey]);
+                    }
+                }
+
+                foreach ($classTmp2->properties as $propertyKey => $property) {
+                    if ($property->file && \strpos($property->file, $pathTmp) === false) {
+                        unset($classTmp2->properties[$propertyKey]);
+                    }
+                }
+
+                foreach ($classTmp2->methods as $methodKey => $method) {
+                    if ($method->file && \strpos($method->file, $pathTmp) === false) {
+                        unset($classTmp2->methods[$methodKey]);
+                    }
+                }
+
+                if ($classTmp2->file && \strpos($classTmp2->file, $pathTmp) === false) {
+                    unset($classesTmp2[$classKey]);
+                }
+            }
+        }
+
+        return $parserContainer;
+    }
+
     private static function getCode(
         string $pathOrCode,
         array $pathExcludeRegex = [],
