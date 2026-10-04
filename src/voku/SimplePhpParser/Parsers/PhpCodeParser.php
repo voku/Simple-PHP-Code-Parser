@@ -60,12 +60,13 @@ final class PhpCodeParser
         array $autoloaderProjectPaths = [],
         ?ParserOptions $options = null
     ): ParserContainer {
-        return self::getPhpFiles(
+        return self::parseInput(
             $code,
             $autoloaderProjectPaths,
             [],
             [],
-            $options
+            $options,
+            true
         );
     }
 
@@ -253,6 +254,30 @@ final class PhpCodeParser
         array $fileExtensions = [],
         ?ParserOptions $options = null
     ): ParserContainer {
+        return self::parseInput(
+            $pathOrCode,
+            $autoloaderProjectPaths,
+            $pathExcludeRegex,
+            $fileExtensions,
+            $options,
+            false
+        );
+    }
+
+    /**
+     * @param string   $pathOrCode
+     * @param string[] $autoloaderProjectPaths
+     * @param string[] $pathExcludeRegex
+     * @param string[] $fileExtensions
+     */
+    private static function parseInput(
+        string $pathOrCode,
+        array $autoloaderProjectPaths,
+        array $pathExcludeRegex,
+        array $fileExtensions,
+        ?ParserOptions $options,
+        bool $sourceOnly
+    ): ParserContainer {
         // Push a disposable handler so restore_error_handler() below will only
         // pop this one entry, leaving any pre-existing handlers (e.g. PHPUnit's)
         // intact on the stack.
@@ -274,7 +299,8 @@ final class PhpCodeParser
         $phpCodes = self::getCode(
             $pathOrCode,
             $pathExcludeRegex,
-            $fileExtensions
+            $fileExtensions,
+            $sourceOnly
         );
 
         $options ??= ParserOptions::default();
@@ -304,9 +330,9 @@ final class PhpCodeParser
         unset($interface);
 
         $pathTmp = null;
-        if (\is_file($pathOrCode)) {
+        if (!$sourceOnly && \is_file($pathOrCode)) {
             $pathTmp = \realpath(\pathinfo($pathOrCode, \PATHINFO_DIRNAME));
-        } elseif (\is_dir($pathOrCode)) {
+        } elseif (!$sourceOnly && \is_dir($pathOrCode)) {
             $pathTmp = \realpath($pathOrCode);
         }
 
@@ -804,7 +830,8 @@ final class PhpCodeParser
     private static function getCode(
         string $pathOrCode,
         array $pathExcludeRegex = [],
-        array $fileExtensions = []
+        array $fileExtensions = [],
+        bool $sourceOnly = false
     ): array {
         // init
         $phpCodes = [];
@@ -816,9 +843,9 @@ final class PhpCodeParser
             $fileExtensions = ['.php'];
         }
 
-        if (\is_file($pathOrCode)) {
+        if (!$sourceOnly && \is_file($pathOrCode)) {
             $phpFileIterators = [new SplFileInfo($pathOrCode)];
-        } elseif (\is_dir($pathOrCode)) {
+        } elseif (!$sourceOnly && \is_dir($pathOrCode)) {
             $phpFileIterators = new RecursiveIteratorIterator(
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
