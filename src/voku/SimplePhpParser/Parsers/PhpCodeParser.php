@@ -714,15 +714,6 @@ final class PhpCodeParser
     }
 
     /**
-     * @param string   $pathOrCode
-     * @param string[] $pathExcludeRegex
-     * @param string[] $fileExtensions
-     *
-     * @return array
-     *
-     * @psalm-return array<string, array{content: string, fileName: null|string}>
-     */
-    /**
      * @param string[] $autoloaderProjectPaths
      */
     private static function loadAutoloaderProjectPaths(array $autoloaderProjectPaths): void
@@ -826,6 +817,15 @@ final class PhpCodeParser
         return $parserContainer;
     }
 
+    /**
+     * @param string   $pathOrCode
+     * @param string[] $pathExcludeRegex
+     * @param string[] $fileExtensions
+     *
+     * @return array
+     *
+     * @psalm-return array<string, array{content: string, fileName: null|string}>
+     */
     private static function getCode(
         string $pathOrCode,
         array $pathExcludeRegex = [],
