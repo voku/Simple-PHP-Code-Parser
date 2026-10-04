@@ -14,7 +14,7 @@ class DummyPropertyHooks
 {
     public string $fullName {
         get => $this->first . ' ' . $this->last;
-        set (string $value) {
+        set(string $value) {
             [$this->first, $this->last] = explode(' ', $value, 2);
         }
     }
