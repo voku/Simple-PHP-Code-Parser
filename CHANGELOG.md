@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.22.12 (2026-10-05)
+
+- add `AstNodeInspector::ownedRange()` so consumers that walk the raw php-parser AST get the owned declaration range (the node plus the PHPDoc comment in front of it, including one in front of attributes) without reconstructing it; it returns `null` for nodes without source positions
+- share that implementation with the model fields `sourceStartLine`, `sourceEndLine`, `sourceStartFilePos` and `sourceEndFilePos` added in 0.22.11; model behavior is unchanged
+
 ### 0.22.11 (2026-10-05)
 
 - add the owned source range to every parsed model as nullable `sourceStartLine`, `sourceEndLine`, `sourceStartFilePos` and `sourceEndFilePos`: the declaration plus the PHPDoc comment in front of it (php-parser keeps the PHPDoc outside the node range; PHP attributes are already inside it); `line`, `endLine`, `startFilePos`, `endFilePos` and `pos` keep their node-range meaning
