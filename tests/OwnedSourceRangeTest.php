@@ -73,6 +73,11 @@ final class Subject
 function helper(): void
 {
 }
+
+/** File constant docs. */
+const FILE_SOLO = 1;
+
+const FILE_A = 1, FILE_B = 2;
 PHP;
 
     public function testAMethodWithoutMetadataOwnsExactlyItsNodeRange(): void
@@ -160,6 +165,18 @@ PHP;
             static::assertNull($element->sourceStartLine, $element->name);
             static::assertNull($element->sourceEndLine, $element->name);
         }
+    }
+
+    public function testAFileLevelConstantOwnsItsStatementOnlyWhenItIsTheSingleItem(): void
+    {
+        $constants = PhpCodeParser::getFromString(self::SOURCE)->getConstants();
+        $solo = $constants['\\Demo\\FILE_SOLO'];
+
+        static::assertNotNull($solo->sourceStartFilePos);
+        static::assertSame("/** File constant docs. */\nconst FILE_SOLO = 1;", $this->slice($solo->sourceStartFilePos, $solo->sourceEndFilePos));
+        static::assertStringStartsWith('FILE_SOLO', $this->slice($solo->startFilePos, $solo->endFilePos));
+        static::assertNull($constants['\\Demo\\FILE_A']->sourceStartFilePos);
+        static::assertNull($constants['\\Demo\\FILE_B']->sourceStartFilePos);
     }
 
     private function subject(): \voku\SimplePhpParser\Model\PHPClass

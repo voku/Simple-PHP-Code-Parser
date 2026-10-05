@@ -7,6 +7,7 @@ namespace voku\SimplePhpParser\Model;
 use PhpParser\Node\Const_;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\ClassConst;
+use PhpParser\Node\Stmt\Const_ as ConstStatement;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
 use ReflectionClassConstant;
@@ -62,7 +63,11 @@ class PHPConst extends BasePHPElement
 
         // The PHPDoc comment and attributes belong to the `const` statement, which one
         // constant owns exclusively only when it is the statement's single item.
-        $this->prepareSourceRange($parentNode instanceof ClassConst && \count($parentNode->consts) === 1 ? $parentNode : null);
+        $this->prepareSourceRange(
+            ($parentNode instanceof ClassConst || $parentNode instanceof ConstStatement) && \count($parentNode->consts) === 1
+                ? $parentNode
+                : null
+        );
 
         if ($parentNode instanceof ClassConst) {
             if ($parentNode->type !== null) {
