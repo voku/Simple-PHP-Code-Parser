@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.11 (2026-10-05)
+
+- add the owned source range to every parsed model as nullable `sourceStartLine`, `sourceEndLine`, `sourceStartFilePos` and `sourceEndFilePos`: the declaration plus the PHPDoc comment in front of it (php-parser keeps the PHPDoc outside the node range; PHP attributes are already inside it); `line`, `endLine`, `startFilePos`, `endFilePos` and `pos` keep their node-range meaning
+- keep the owned range `null` where a model does not exclusively own a declaration: reflection-backed models, items of a multi-item `const` or property statement, and `define()` calls; a single-item class constant, file-level `const` or property statement owns its whole statement
+- document the node range versus the owned range in the README and cover both with `OwnedSourceRangeTest`, so consumers that edit or delete declarations no longer have to reconstruct the range from the AST
+
 ### 0.22.10 (2026-10-04)
 
 - fix `PhpCodeParser::getFromString()` so it always treats its argument as raw PHP source, even when that string happens to equal an existing file or directory path; keep `getPhpFiles()` unchanged as the backwards-compatible mixed path-or-source entry point
