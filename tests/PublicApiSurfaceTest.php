@@ -66,6 +66,10 @@ final class PublicApiSurfaceTest extends TestCase
                 'parseError' => 'array',
                 'parserContainer' => 'voku\\SimplePhpParser\\Parsers\\Helper\\ParserContainer',
                 'pos' => '?int',
+                'sourceEndFilePos' => '?int',
+                'sourceEndLine' => '?int',
+                'sourceStartFilePos' => '?int',
+                'sourceStartLine' => '?int',
                 'startFilePos' => '?int',
             ],
             'methods' => [

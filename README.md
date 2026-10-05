@@ -200,6 +200,22 @@ echo $method->startFilePos;
 echo $method->endFilePos;
 ```
 
+`line`, `endLine`, `startFilePos` and `endFilePos` are the range of the php-parser
+node: it includes PHP attributes but not the PHPDoc comment in front of the
+declaration. Consumers that edit or delete a declaration use the owned range instead:
+
+```php
+// The declaration plus its PHPDoc comment (and attributes), e.g. for deleting it.
+echo $method->sourceStartLine;
+echo $method->sourceEndLine;
+echo $method->sourceStartFilePos;
+echo $method->sourceEndFilePos;
+```
+
+The owned range is `null` for reflection-backed models and for items that do not
+exclusively own a declaration: `const A = 1, B = 2;`, `public $a, $b;` and `define()`
+calls. Whether removing a declaration is semantically safe is not decided here.
+
 Class-like models also expose directly composed traits as fully-qualified
 names in `$traitUses`, plus alias and `insteadof` rules in
 `$traitAdaptations`. Interfaces retain every declared parent interface.
