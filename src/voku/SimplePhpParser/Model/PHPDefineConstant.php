@@ -20,6 +20,7 @@ class PHPDefineConstant extends PHPConst
         \assert($node instanceof FuncCall);
 
         $this->prepareNode($node);
+        $this->prepareSourceRange(null);
 
         if (
             isset($node->args[0])

@@ -60,6 +60,10 @@ class PHPConst extends BasePHPElement
 
         $parentNode = $node->getAttribute('parent');
 
+        // The PHPDoc comment and attributes belong to the `const` statement, which one
+        // constant owns exclusively only when it is the statement's single item.
+        $this->prepareSourceRange($parentNode instanceof ClassConst && \count($parentNode->consts) === 1 ? $parentNode : null);
+
         if ($parentNode instanceof ClassConst) {
             if ($parentNode->type !== null) {
                 $this->type = Utils::typeNodeToString($parentNode->type);

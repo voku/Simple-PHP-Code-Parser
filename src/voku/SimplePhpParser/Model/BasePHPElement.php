@@ -47,6 +47,33 @@ abstract class BasePHPElement
      */
     public ?int $endFilePos = null;
 
+    /**
+     * First line of the declaration this element owns, including its PHPDoc
+     * comment and PHP attributes. `line` keeps the bare AST-node meaning.
+     *
+     * Null when the element has no exclusively owned declaration range: it was
+     * created from reflection, or it is one item of a multi-item statement such as
+     * `const A = 1, B = 2;` or `public $a, $b;`.
+     */
+    public ?int $sourceStartLine = null;
+
+    /**
+     * Last line of the owned declaration, inclusive. See `$sourceStartLine`.
+     */
+    public ?int $sourceEndLine = null;
+
+    /**
+     * Zero-based byte offset of the first character of the owned declaration,
+     * including its PHPDoc comment and PHP attributes. See `$sourceStartLine`.
+     */
+    public ?int $sourceStartFilePos = null;
+
+    /**
+     * Zero-based byte offset of the last character of the owned declaration,
+     * inclusive. See `$sourceStartLine`.
+     */
+    public ?int $sourceEndFilePos = null;
+
     public ?string $file = null;
 
     public ?int $pos = null;
@@ -151,9 +178,62 @@ abstract class BasePHPElement
         // populated. Keep it as a backwards-compatible alias for consumers
         // that already use it as a source position.
         $this->pos = $this->startFilePos;
+
+        $this->prepareSourceRange($node);
     }
 
-    private static function nodePosition(Node $node, string $method): ?int
+    /**
+     * Record the range of the declaration owned by this element: the AST node plus
+     * the PHPDoc comment and PHP attributes that php-parser keeps outside the node range.
+     */
+    protected function prepareSourceRange(?Node $declaration): void
+    {
+        $this->sourceStartLine = null;
+        $this->sourceEndLine = null;
+        $this->sourceStartFilePos = null;
+        $this->sourceEndFilePos = null;
+
+        if ($declaration === null) {
+            return;
+        }
+
+        $startLine = self::nodePosition($declaration, 'getStartLine');
+        $endLine = self::nodePosition($declaration, 'getEndLine');
+        $startFilePos = self::nodePosition($declaration, 'getStartFilePos');
+        $endFilePos = self::nodePosition($declaration, 'getEndFilePos');
+
+        $owned = [];
+        $docComment = $declaration->getDocComment();
+        if ($docComment !== null) {
+            $owned[] = $docComment;
+        }
+        foreach ($declaration->attrGroups ?? [] as $attributeGroup) {
+            // The node range already starts at the first attribute, but a PHPDoc comment
+            // in front of `#[...]` is attached to the attribute group, not to the declaration.
+            $owned[] = $attributeGroup;
+            $attributeDocComment = $attributeGroup->getDocComment();
+            if ($attributeDocComment !== null) {
+                $owned[] = $attributeDocComment;
+            }
+        }
+        foreach ($owned as $ownedNode) {
+            $ownedLine = self::nodePosition($ownedNode, 'getStartLine');
+            if ($ownedLine !== null && ($startLine === null || $ownedLine < $startLine)) {
+                $startLine = $ownedLine;
+            }
+            $ownedPos = self::nodePosition($ownedNode, 'getStartFilePos');
+            if ($ownedPos !== null && ($startFilePos === null || $ownedPos < $startFilePos)) {
+                $startFilePos = $ownedPos;
+            }
+        }
+
+        $this->sourceStartLine = $startLine;
+        $this->sourceEndLine = $endLine;
+        $this->sourceStartFilePos = $startFilePos;
+        $this->sourceEndFilePos = $endFilePos;
+    }
+
+    private static function nodePosition(object $node, string $method): ?int
     {
         if (!\method_exists($node, $method)) {
             return null;

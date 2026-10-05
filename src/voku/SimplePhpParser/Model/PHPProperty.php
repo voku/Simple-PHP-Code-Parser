@@ -120,6 +120,10 @@ class PHPProperty extends BasePHPElement
         }
 
         $this->prepareNode($node);
+        if (\count($node->props) !== 1) {
+            // `public $a, $b;` has no declaration that one property owns exclusively.
+            $this->prepareSourceRange(null);
+        }
 
         $docComment = $node->getDocComment();
         if ($docComment) {
