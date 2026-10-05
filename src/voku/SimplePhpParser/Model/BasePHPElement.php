@@ -8,6 +8,7 @@ use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Namespace_;
 use PhpParser\NodeAbstract;
+use voku\SimplePhpParser\Parsers\Helper\AstNodeInspector;
 use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 
@@ -197,43 +198,18 @@ abstract class BasePHPElement
             return;
         }
 
-        $startLine = self::nodePosition($declaration, 'getStartLine');
-        $endLine = self::nodePosition($declaration, 'getEndLine');
-        $startFilePos = self::nodePosition($declaration, 'getStartFilePos');
-        $endFilePos = self::nodePosition($declaration, 'getEndFilePos');
-
-        $owned = [];
-        $docComment = $declaration->getDocComment();
-        if ($docComment !== null) {
-            $owned[] = $docComment;
-        }
-        foreach ($declaration->attrGroups ?? [] as $attributeGroup) {
-            // The node range already starts at the first attribute, but a PHPDoc comment
-            // in front of `#[...]` is attached to the attribute group, not to the declaration.
-            $owned[] = $attributeGroup;
-            $attributeDocComment = $attributeGroup->getDocComment();
-            if ($attributeDocComment !== null) {
-                $owned[] = $attributeDocComment;
-            }
-        }
-        foreach ($owned as $ownedNode) {
-            $ownedLine = self::nodePosition($ownedNode, 'getStartLine');
-            if ($ownedLine !== null && ($startLine === null || $ownedLine < $startLine)) {
-                $startLine = $ownedLine;
-            }
-            $ownedPos = self::nodePosition($ownedNode, 'getStartFilePos');
-            if ($ownedPos !== null && ($startFilePos === null || $ownedPos < $startFilePos)) {
-                $startFilePos = $ownedPos;
-            }
+        $range = AstNodeInspector::ownedRange($declaration);
+        if ($range === null) {
+            return;
         }
 
-        $this->sourceStartLine = $startLine;
-        $this->sourceEndLine = $endLine;
-        $this->sourceStartFilePos = $startFilePos;
-        $this->sourceEndFilePos = $endFilePos;
+        $this->sourceStartLine = $range['startLine'];
+        $this->sourceEndLine = $range['endLine'];
+        $this->sourceStartFilePos = $range['startFilePos'];
+        $this->sourceEndFilePos = $range['endFilePos'];
     }
 
-    private static function nodePosition(object $node, string $method): ?int
+    private static function nodePosition(Node $node, string $method): ?int
     {
         if (!\method_exists($node, $method)) {
             return null;
