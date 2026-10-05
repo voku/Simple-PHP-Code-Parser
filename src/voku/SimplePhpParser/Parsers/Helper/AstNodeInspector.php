@@ -22,6 +22,57 @@ final class AstNodeInspector
         return \substr($sourceCode, $start, $end - $start + 1);
     }
 
+    /**
+     * The range of the declaration a node owns: the node itself plus the PHPDoc comment
+     * (and attributes) in front of it, which php-parser keeps outside the node range.
+     *
+     * php-parser's own range already starts at the first attribute; only the PHPDoc comment,
+     * including one in front of the attributes, lies outside it. Returns null when the node
+     * carries no source positions.
+     *
+     * @return array{startLine: int, endLine: int, startFilePos: int, endFilePos: int}|null
+     */
+    public static function ownedRange(Node $declaration): ?array
+    {
+        $startLine = $declaration->getStartLine();
+        $endLine = $declaration->getEndLine();
+        $startFilePos = $declaration->getStartFilePos();
+        $endFilePos = $declaration->getEndFilePos();
+        if ($startLine < 0 || $endLine < 0 || $startFilePos < 0 || $endFilePos < $startFilePos) {
+            return null;
+        }
+
+        $owned = [];
+        $docComment = $declaration->getDocComment();
+        if ($docComment !== null) {
+            $owned[] = $docComment;
+        }
+        foreach ($declaration->attrGroups ?? [] as $attributeGroup) {
+            $owned[] = $attributeGroup;
+            $attributeDocComment = $attributeGroup->getDocComment();
+            if ($attributeDocComment !== null) {
+                $owned[] = $attributeDocComment;
+            }
+        }
+        foreach ($owned as $ownedNode) {
+            $ownedLine = $ownedNode->getStartLine();
+            if ($ownedLine >= 0 && $ownedLine < $startLine) {
+                $startLine = $ownedLine;
+            }
+            $ownedPos = $ownedNode->getStartFilePos();
+            if ($ownedPos >= 0 && $ownedPos < $startFilePos) {
+                $startFilePos = $ownedPos;
+            }
+        }
+
+        return [
+            'startLine' => $startLine,
+            'endLine' => $endLine,
+            'startFilePos' => $startFilePos,
+            'endFilePos' => $endFilePos,
+        ];
+    }
+
     public static function startColumn(Node $node, string $sourceCode): int
     {
         $start = $node->getStartFilePos();

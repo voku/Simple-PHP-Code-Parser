@@ -212,7 +212,12 @@ echo $method->sourceStartFilePos;
 echo $method->sourceEndFilePos;
 ```
 
-The owned range is `null` for reflection-backed models and for items that do not
+Consumers that work on the raw php-parser AST get the same range from
+`\voku\SimplePhpParser\Parsers\Helper\AstNodeInspector::ownedRange($node)`, which
+returns `startLine`, `endLine`, `startFilePos` and `endFilePos`, or `null` when the node
+carries no source positions.
+
+The owned range of a model is `null` for reflection-backed models and for items that do not
 exclusively own a declaration: `const A = 1, B = 2;`, `public $a, $b;` and `define()`
 calls. Whether removing a declaration is semantically safe is not decided here.
 
