@@ -60,6 +60,112 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
         }
     }
 
+    public function testRejectsAgentEditAsIndependentRootConstraint(): void
+    {
+        $directory = sys_get_temp_dir() . '/simple-php-parser-release-set-' . bin2hex(random_bytes(4));
+        if (!mkdir($directory, 0o775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Unable to create test directory: ' . $directory);
+        }
+
+        $issuePath = $directory . '/issue.json';
+        $composerPath = $directory . '/composer.json';
+
+        try {
+            self::writeJson($issuePath, [
+                'toolchain' => [
+                    'agent_loop_release' => '1.2.3',
+                ],
+            ]);
+            self::writeJson($composerPath, [
+                'require-dev' => [
+                    'voku/agent-loop' => '1.2.3',
+                    'voku/agent-edit' => '^0.2.0',
+                ],
+            ]);
+
+            [$exitCode, $stdout, $stderr] = $this->execute([
+                PHP_BINARY,
+                dirname(__DIR__) . '/tools/agent-loop/verify-release-set.php',
+                $issuePath,
+                $composerPath,
+            ]);
+
+            self::assertSame(1, $exitCode, $stdout . $stderr);
+            self::assertSame('', $stdout);
+            self::assertStringContainsString(
+                'must not constrain voku/agent-edit directly',
+                $stderr,
+            );
+        } finally {
+            foreach ([$issuePath, $composerPath] as $path) {
+                if (is_file($path) && !unlink($path)) {
+                    throw new RuntimeException('Unable to remove test file: ' . $path);
+                }
+            }
+            if (is_dir($directory) && !rmdir($directory)) {
+                throw new RuntimeException('Unable to remove test directory: ' . $directory);
+            }
+        }
+    }
+
+    public function testRequiresAgentEditInResolvedReleaseSet(): void
+    {
+        $directory = sys_get_temp_dir() . '/simple-php-parser-release-set-' . bin2hex(random_bytes(4));
+        if (!mkdir($directory, 0o775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Unable to create test directory: ' . $directory);
+        }
+
+        $issuePath = $directory . '/issue.json';
+        $composerPath = $directory . '/composer.json';
+        $lockPath = $directory . '/composer.lock';
+
+        try {
+            self::writeJson($issuePath, [
+                'toolchain' => [
+                    'agent_loop_release' => '1.2.3',
+                ],
+            ]);
+            self::writeJson($composerPath, [
+                'require-dev' => [
+                    'voku/agent-loop' => '1.2.3',
+                ],
+            ]);
+            self::writeJson($lockPath, [
+                'packages' => [],
+                'packages-dev' => [
+                    [
+                        'name' => 'voku/agent-loop',
+                        'version' => '1.2.3',
+                    ],
+                ],
+            ]);
+
+            [$exitCode, $stdout, $stderr] = $this->execute([
+                PHP_BINARY,
+                dirname(__DIR__) . '/tools/agent-loop/verify-release-set.php',
+                $issuePath,
+                $composerPath,
+                $lockPath,
+            ]);
+
+            self::assertSame(1, $exitCode, $stdout . $stderr);
+            self::assertSame('', $stdout);
+            self::assertStringContainsString(
+                'Resolved release set is missing voku/agent-edit.',
+                $stderr,
+            );
+        } finally {
+            foreach ([$issuePath, $composerPath, $lockPath] as $path) {
+                if (is_file($path) && !unlink($path)) {
+                    throw new RuntimeException('Unable to remove test file: ' . $path);
+                }
+            }
+            if (is_dir($directory) && !rmdir($directory)) {
+                throw new RuntimeException('Unable to remove test directory: ' . $directory);
+            }
+        }
+    }
+
     /**
      * @param array<string, mixed> $data
      */
