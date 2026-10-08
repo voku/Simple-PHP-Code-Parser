@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 const AGENT_LOOP_PACKAGE = 'voku/agent-loop';
 const OWNED_AGENT_PACKAGES = [
+    'voku/agent-edit',
     'voku/agent-kanban',
     'voku/agent-learning',
     'voku/agent-map',
@@ -11,6 +12,7 @@ const OWNED_AGENT_PACKAGES = [
     'voku/agent-session',
 ];
 const STALE_SIBLING_RELEASE_FIELDS = [
+    'agent_edit_release',
     'agent_kanban_release',
     'agent_learning_release',
     'agent_map_release',

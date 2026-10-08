@@ -12,6 +12,95 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
 {
     public function testRejectsPackageDeclaredInRequireAndRequireDev(): void
     {
+        [$exitCode, $stdout, $stderr] = $this->executeVerifier(
+            [
+                'toolchain' => [
+                    'agent_loop_release' => '1.2.3',
+                ],
+            ],
+            [
+                'require' => [
+                    'voku/agent-loop' => '1.2.3',
+                ],
+                'require-dev' => [
+                    'voku/agent-loop' => '1.2.2',
+                ],
+            ],
+        );
+
+        self::assertSame(1, $exitCode, $stdout . $stderr);
+        self::assertSame('', $stdout);
+        self::assertStringContainsString(
+            'must not declare the same package in both require and require-dev: voku/agent-loop',
+            $stderr,
+        );
+    }
+
+    public function testRejectsAgentEditAsIndependentRootConstraint(): void
+    {
+        [$exitCode, $stdout, $stderr] = $this->executeVerifier(
+            [
+                'toolchain' => [
+                    'agent_loop_release' => '1.2.3',
+                ],
+            ],
+            [
+                'require-dev' => [
+                    'voku/agent-loop' => '1.2.3',
+                    'voku/agent-edit' => '^0.2.0',
+                ],
+            ],
+        );
+
+        self::assertSame(1, $exitCode, $stdout . $stderr);
+        self::assertSame('', $stdout);
+        self::assertStringContainsString(
+            'must not constrain voku/agent-edit directly',
+            $stderr,
+        );
+    }
+
+    public function testRequiresAgentEditInResolvedReleaseSet(): void
+    {
+        [$exitCode, $stdout, $stderr] = $this->executeVerifier(
+            [
+                'toolchain' => [
+                    'agent_loop_release' => '1.2.3',
+                ],
+            ],
+            [
+                'require-dev' => [
+                    'voku/agent-loop' => '1.2.3',
+                ],
+            ],
+            [
+                'packages' => [],
+                'packages-dev' => [
+                    [
+                        'name' => 'voku/agent-loop',
+                        'version' => '1.2.3',
+                    ],
+                ],
+            ],
+        );
+
+        self::assertSame(1, $exitCode, $stdout . $stderr);
+        self::assertSame('', $stdout);
+        self::assertStringContainsString(
+            'Resolved release set is missing voku/agent-edit.',
+            $stderr,
+        );
+    }
+
+    /**
+     * @param array<string, mixed>      $issue
+     * @param array<string, mixed>      $composer
+     * @param array<string, mixed>|null $lock
+     *
+     * @return array{0: int, 1: string, 2: string}
+     */
+    private function executeVerifier(array $issue, array $composer, ?array $lock = null): array
+    {
         $directory = sys_get_temp_dir() . '/simple-php-parser-release-set-' . bin2hex(random_bytes(4));
         if (!mkdir($directory, 0o775, true) && !is_dir($directory)) {
             throw new RuntimeException('Unable to create test directory: ' . $directory);
@@ -19,41 +108,32 @@ final class AgentLoopReleaseSetVerifierTest extends TestCase
 
         $issuePath = $directory . '/issue.json';
         $composerPath = $directory . '/composer.json';
+        $lockPath = $lock === null ? null : $directory . '/composer.lock';
 
         try {
-            self::writeJson($issuePath, [
-                'toolchain' => [
-                    'agent_loop_release' => '1.2.3',
-                ],
-            ]);
-            self::writeJson($composerPath, [
-                'require' => [
-                    'voku/agent-loop' => '1.2.3',
-                ],
-                'require-dev' => [
-                    'voku/agent-loop' => '1.2.2',
-                ],
-            ]);
+            self::writeJson($issuePath, $issue);
+            self::writeJson($composerPath, $composer);
 
-            [$exitCode, $stdout, $stderr] = $this->execute([
+            $command = [
                 PHP_BINARY,
                 dirname(__DIR__) . '/tools/agent-loop/verify-release-set.php',
                 $issuePath,
                 $composerPath,
-            ]);
+            ];
 
-            self::assertSame(1, $exitCode, $stdout . $stderr);
-            self::assertSame('', $stdout);
-            self::assertStringContainsString(
-                'must not declare the same package in both require and require-dev: voku/agent-loop',
-                $stderr,
-            );
+            if ($lockPath !== null && $lock !== null) {
+                self::writeJson($lockPath, $lock);
+                $command[] = $lockPath;
+            }
+
+            return $this->execute($command);
         } finally {
-            foreach ([$issuePath, $composerPath] as $path) {
-                if (is_file($path) && !unlink($path)) {
+            foreach ([$issuePath, $composerPath, $lockPath] as $path) {
+                if ($path !== null && is_file($path) && !unlink($path)) {
                     throw new RuntimeException('Unable to remove test file: ' . $path);
                 }
             }
+
             if (is_dir($directory) && !rmdir($directory)) {
                 throw new RuntimeException('Unable to remove test directory: ' . $directory);
             }
