@@ -11,7 +11,6 @@ use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use voku\cache\Cache;
 use voku\SimplePhpParser\Model\BasePHPElement;
 use voku\SimplePhpParser\Model\PHPFileInfo;
 use voku\SimplePhpParser\Model\PHPInterface;
@@ -858,8 +857,6 @@ final class PhpCodeParser
             $phpCodes[$cacheKey]['fileName'] = null;
         }
 
-        $cache = new Cache(null, null, false);
-
         $phpFileArray = [];
         foreach ($phpFileIterators as $fileOrCode) {
             $path = $fileOrCode->getRealPath();
@@ -885,20 +882,7 @@ final class PhpCodeParser
                 }
             }
 
-            $cacheKey = self::CACHE_KEY_HELPER . \md5($path) . '--' . \filemtime($path);
-            if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
-                $response = $cache->getItem($cacheKey);
-                /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
-                /** @phpstan-var array{content: string, fileName: string, cacheKey: string} $response */
-                $response = $response;
-
-                $phpCodes[$response['cacheKey']]['content'] = $response['content'];
-                $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
-
-                continue;
-            }
-
-            $phpFileArray[$cacheKey] = $path;
+            $phpFileArray[self::CACHE_KEY_HELPER . \md5($path)] = $path;
         }
 
         foreach ($phpFileArray as $cacheKey => $path) {
@@ -908,33 +892,11 @@ final class PhpCodeParser
                 throw new \RuntimeException('Could not read file: ' . $path . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
             }
 
-            $response = [
-                'content'  => $content,
-                'fileName' => $path,
-                'cacheKey' => $cacheKey,
-            ];
-
-            self::writeCache($cache, $cacheKey, $response);
-
             $phpCodes[$cacheKey]['content'] = $content;
             $phpCodes[$cacheKey]['fileName'] = $path;
         }
 
         return $phpCodes;
-    }
-
-    /**
-     * @param array{content: string, fileName: string, cacheKey: string} $response
-     */
-    private static function writeCache(Cache $cache, string $cacheKey, array $response): void
-    {
-        if (!$cache->getCacheIsReady()) {
-            return;
-        }
-
-        // Cache persistence is only an optimization. A false status is non-fatal,
-        // while warnings and exceptions from the serializer/adapter stay visible.
-        $cache->setItem($cacheKey, $response);
     }
 
     /**

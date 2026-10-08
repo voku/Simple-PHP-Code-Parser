@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.22.13 (2026-10-08)
+
+- memoize docblock parsing behind `DocFactoryProvider` (new `MemoizingDocBlockFactory`, bounded to 2048 entries): the models asked for the same docblock text many times per file (172 `create()` calls for 18 unique docblocks in a 25 KB file), and that was the largest single cost of model extraction; the cache is keyed on docblock text plus namespace context, so results are unchanged
+- stop caching file contents in `getPhpFiles()` / `getFromFile()` / `getFromDirectory()`: the persistent cache was keyed on `filemtime()` (one-second resolution), so two edits within the same second could return stale source, and a cache hit cost more than re-reading the file; directory parsing now always reads the current file contents
+- `voku/simple-cache` is no longer used by the parser; the requirement is left in `composer.json` for now so installs do not change
+
 ### 0.22.12 (2026-10-05)
 
 - add `AstNodeInspector::ownedRange()` so consumers that walk the raw php-parser AST get the owned declaration range (the node plus the PHPDoc comment in front of it, including one in front of attributes) without reconstructing it; it returns `null` for nodes without source positions
