@@ -70,6 +70,19 @@ final class DocBlockMemoizationTest extends TestCase
         static::assertNull($factory->create($doc)->getLocation());
     }
 
+    public function testDocblocksRemainCorrectAfterCacheTurnover(): void
+    {
+        $factory = MemoizingDocBlockFactory::createInstance();
+        $doc = '/** Original. @return int */';
+        $original = $factory->create($doc);
+
+        for ($i = 0; $i < 2050; ++$i) {
+            $factory->create('/** Summary ' . $i . '. */');
+        }
+
+        static::assertSame($original->getSummary(), $factory->create($doc)->getSummary());
+    }
+
     public function testDirectoryParseSeesEditsMadeWithinTheSameSecond(): void
     {
         $dir = \sys_get_temp_dir() . '/spcp-fresh-' . \bin2hex(\random_bytes(4));

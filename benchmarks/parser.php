@@ -14,10 +14,10 @@ if ($library === false || $corpus === false || !is_dir($corpus) || !in_array($mo
     throw new InvalidArgumentException('Expected library root, corpus directory, and files|directory mode.');
 }
 
-$loader = require dirname(__DIR__) . '/vendor/autoload.php';
+$loader = require_once dirname(__DIR__) . '/vendor/autoload.php';
 $loader->setPsr4('voku\\', $library . '/src/voku');
 if ((new ReflectionClass(PhpCodeParser::class))->getFileName() !== $library . '/src/voku/SimplePhpParser/Parsers/PhpCodeParser.php') {
-    throw new RuntimeException('Autoload class map overrides the requested library revision.');
+    throw new UnexpectedValueException('Autoload class map overrides the requested library revision.');
 }
 
 $files = [];
@@ -72,7 +72,7 @@ if ($mode === 'directory') {
     foreach ($files as $file) {
         $source = file_get_contents($file);
         if ($source === false) {
-            throw new RuntimeException('Cannot read ' . $file);
+            throw new UnexpectedValueException('Cannot read ' . $file);
         }
         $started = hrtime(true);
         $container = PhpCodeParser::getFromString($source, options: $options);

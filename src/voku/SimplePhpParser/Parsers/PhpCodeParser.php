@@ -857,7 +857,7 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = self::CACHE_KEY_HELPER . \md5($pathOrCode);
+            $cacheKey = self::CACHE_KEY_HELPER . \hash('sha256', $pathOrCode);
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
@@ -888,7 +888,7 @@ final class PhpCodeParser
                 }
             }
 
-            $phpFileArray[self::CACHE_KEY_HELPER . \md5($path)] = $path;
+            $phpFileArray[self::CACHE_KEY_HELPER . \hash('sha256', $path)] = $path;
         }
 
         foreach ($phpFileArray as $cacheKey => $path) {
