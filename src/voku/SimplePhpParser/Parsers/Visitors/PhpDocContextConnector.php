@@ -51,17 +51,27 @@ final class PhpDocContextConnector extends NodeVisitorAbstract
      */
     private function context(string $namespace, array $statements): Context
     {
+        return self::createContext($namespace, $statements);
+    }
+
+    /**
+     * @param array<int, Node> $statements
+     *
+     * @internal
+     */
+    public static function createContext(string $namespace, array $statements): Context
+    {
         $aliases = [];
 
         foreach ($statements as $statement) {
             if ($statement instanceof Use_) {
-                $this->addAliases($aliases, $statement->uses, $statement->type);
+                self::addAliases($aliases, $statement->uses, $statement->type);
 
                 continue;
             }
 
             if ($statement instanceof GroupUse) {
-                $this->addAliases($aliases, $statement->uses, $statement->type, $statement->prefix->toString());
+                self::addAliases($aliases, $statement->uses, $statement->type, $statement->prefix->toString());
             }
         }
 
@@ -72,7 +82,7 @@ final class PhpDocContextConnector extends NodeVisitorAbstract
      * @param array<string, string>                 $aliases
      * @param array<int, \PhpParser\Node\UseItem> $uses
      */
-    private function addAliases(array &$aliases, array $uses, int $parentType, string $prefix = ''): void
+    private static function addAliases(array &$aliases, array $uses, int $parentType, string $prefix = ''): void
     {
         foreach ($uses as $use) {
             $type = $use->type === Use_::TYPE_UNKNOWN ? $parentType : $use->type;

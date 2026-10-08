@@ -19,8 +19,7 @@ use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
-use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
-use voku\SimplePhpParser\Parsers\Visitors\PhpDocContextConnector;
+use voku\SimplePhpParser\Parsers\Visitors\AstPreparationVisitor;
 
 final class PhpCodeParser
 {
@@ -661,14 +660,15 @@ final class PhpCodeParser
             return $errorHandler;
         }
 
-        self::resolveAst($parsedCode, $errorHandler);
+        $candidates = self::resolveAst($parsedCode, $errorHandler);
 
         $visitor->fileName = $fileName;
 
-        // Pass 2: extract model objects from the already-resolved AST.
-        $traverser2 = new NodeTraverser();
-        $traverser2->addVisitor($visitor);
-        $traverser2->traverse($parsedCode);
+        // Pass 2: extract model objects from the already-resolved AST. Only the
+        // nodes recorded during pass 1 can matter, so no second tree walk.
+        foreach ($candidates as $candidate) {
+            $visitor->enterNode($candidate);
+        }
 
         return $parserContainer;
     }
@@ -685,8 +685,12 @@ final class PhpCodeParser
 
     /**
      * @param array<int, \PhpParser\Node> $parsedCode
+     *
+     * @return \PhpParser\Node[] the nodes ASTVisitor reacts to, in traversal order
+     *
+     * @phpstan-impure it reports parse errors through $errorHandler
      */
-    private static function resolveAst(array $parsedCode, ParserErrorHandler $errorHandler): void
+    private static function resolveAst(array $parsedCode, ParserErrorHandler $errorHandler): array
     {
         $nameResolver = new NameResolver(
             $errorHandler,
@@ -699,11 +703,13 @@ final class PhpCodeParser
         // extraction. ASTVisitor reads class members eagerly when it enters a
         // class-like node, so a single traversal would resolve their types too
         // late.
+        $preparation = new AstPreparationVisitor();
         $traverser = new NodeTraverser();
-        $traverser->addVisitor(new ParentConnector());
+        $traverser->addVisitor($preparation);
         $traverser->addVisitor($nameResolver);
-        $traverser->addVisitor(new PhpDocContextConnector());
         $traverser->traverse($parsedCode);
+
+        return $preparation->getCandidates();
     }
 
     private static function formatParseErrors(ParserErrorHandler $errorHandler): string
