@@ -11,7 +11,6 @@ use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use voku\cache\Cache;
 use voku\SimplePhpParser\Model\BasePHPElement;
 use voku\SimplePhpParser\Model\PHPFileInfo;
 use voku\SimplePhpParser\Model\PHPInterface;
@@ -19,9 +18,8 @@ use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
+use voku\SimplePhpParser\Parsers\Visitors\AstPreparationVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
-use voku\SimplePhpParser\Parsers\Visitors\ParentConnector;
-use voku\SimplePhpParser\Parsers\Visitors\PhpDocContextConnector;
 
 final class PhpCodeParser
 {
@@ -662,14 +660,15 @@ final class PhpCodeParser
             return $errorHandler;
         }
 
-        self::resolveAst($parsedCode, $errorHandler);
+        $candidates = self::resolveAst($parsedCode, $errorHandler);
 
         $visitor->fileName = $fileName;
 
-        // Pass 2: extract model objects from the already-resolved AST.
-        $traverser2 = new NodeTraverser();
-        $traverser2->addVisitor($visitor);
-        $traverser2->traverse($parsedCode);
+        // Pass 2: extract model objects from the already-resolved AST. Only the
+        // nodes recorded during pass 1 can matter, so no second tree walk.
+        foreach ($candidates as $candidate) {
+            $visitor->enterNode($candidate);
+        }
 
         return $parserContainer;
     }
@@ -686,8 +685,12 @@ final class PhpCodeParser
 
     /**
      * @param array<int, \PhpParser\Node> $parsedCode
+     *
+     * @return \PhpParser\Node[] the nodes ASTVisitor reacts to, in traversal order
+     *
+     * @phpstan-impure it reports parse errors through $errorHandler
      */
-    private static function resolveAst(array $parsedCode, ParserErrorHandler $errorHandler): void
+    private static function resolveAst(array $parsedCode, ParserErrorHandler $errorHandler): array
     {
         $nameResolver = new NameResolver(
             $errorHandler,
@@ -700,11 +703,13 @@ final class PhpCodeParser
         // extraction. ASTVisitor reads class members eagerly when it enters a
         // class-like node, so a single traversal would resolve their types too
         // late.
+        $preparation = new AstPreparationVisitor();
         $traverser = new NodeTraverser();
-        $traverser->addVisitor(new ParentConnector());
+        $traverser->addVisitor($preparation);
         $traverser->addVisitor($nameResolver);
-        $traverser->addVisitor(new PhpDocContextConnector());
         $traverser->traverse($parsedCode);
+
+        return $preparation->getCandidates();
     }
 
     private static function formatParseErrors(ParserErrorHandler $errorHandler): string
@@ -852,13 +857,11 @@ final class PhpCodeParser
                 new RecursiveDirectoryIterator($pathOrCode, FilesystemIterator::SKIP_DOTS)
             );
         } else {
-            $cacheKey = self::CACHE_KEY_HELPER . \md5($pathOrCode);
+            $cacheKey = self::CACHE_KEY_HELPER . \hash('sha256', $pathOrCode);
 
             $phpCodes[$cacheKey]['content'] = $pathOrCode;
             $phpCodes[$cacheKey]['fileName'] = null;
         }
-
-        $cache = new Cache(null, null, false);
 
         $phpFileArray = [];
         foreach ($phpFileIterators as $fileOrCode) {
@@ -885,20 +888,7 @@ final class PhpCodeParser
                 }
             }
 
-            $cacheKey = self::CACHE_KEY_HELPER . \md5($path) . '--' . \filemtime($path);
-            if ($cache->getCacheIsReady() === true && $cache->existsItem($cacheKey)) {
-                $response = $cache->getItem($cacheKey);
-                /** @noinspection PhpSillyAssignmentInspection - helper for phpstan */
-                /** @phpstan-var array{content: string, fileName: string, cacheKey: string} $response */
-                $response = $response;
-
-                $phpCodes[$response['cacheKey']]['content'] = $response['content'];
-                $phpCodes[$response['cacheKey']]['fileName'] = $response['fileName'];
-
-                continue;
-            }
-
-            $phpFileArray[$cacheKey] = $path;
+            $phpFileArray[self::CACHE_KEY_HELPER . \hash('sha256', $path)] = $path;
         }
 
         foreach ($phpFileArray as $cacheKey => $path) {
@@ -908,33 +898,11 @@ final class PhpCodeParser
                 throw new \RuntimeException('Could not read file: ' . $path . ($lastError !== null ? ' (' . $lastError['message'] . ')' : ''));
             }
 
-            $response = [
-                'content'  => $content,
-                'fileName' => $path,
-                'cacheKey' => $cacheKey,
-            ];
-
-            self::writeCache($cache, $cacheKey, $response);
-
             $phpCodes[$cacheKey]['content'] = $content;
             $phpCodes[$cacheKey]['fileName'] = $path;
         }
 
         return $phpCodes;
-    }
-
-    /**
-     * @param array{content: string, fileName: string, cacheKey: string} $response
-     */
-    private static function writeCache(Cache $cache, string $cacheKey, array $response): void
-    {
-        if (!$cache->getCacheIsReady()) {
-            return;
-        }
-
-        // Cache persistence is only an optimization. A false status is non-fatal,
-        // while warnings and exceptions from the serializer/adapter stay visible.
-        $cache->setItem($cacheKey, $response);
     }
 
     /**
