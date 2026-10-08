@@ -15,8 +15,8 @@ use phpDocumentor\Reflection\Types\Context;
  *
  * The models re-create the same docblock many times (once per element and again for every
  * type-resolution pass), so a typical file asks for the same text several times over.
- * Parsing is by far the most expensive step of model extraction, and a DocBlock is an
- * immutable value object, so sharing instances is safe.
+ * Parsing is the expensive step of model extraction. Return a clone of the cached
+ * DocBlock because callers can remove tags from it; the cached template must stay intact.
  *
  * The cache is bounded so a long-running process (a file watcher re-parsing after each
  * edit) cannot grow without limit; it is simply reset when full.
@@ -52,7 +52,7 @@ final class MemoizingDocBlockFactory implements DocBlockFactoryInterface
         }
 
         if (isset($this->cache[$key])) {
-            return $this->cache[$key];
+            return clone $this->cache[$key];
         }
 
         $result = $this->inner->create($docblock, $context);
@@ -61,6 +61,8 @@ final class MemoizingDocBlockFactory implements DocBlockFactoryInterface
             $this->cache = [];
         }
 
-        return $this->cache[$key] = $result;
+        $this->cache[$key] = $result;
+
+        return clone $result;
     }
 }

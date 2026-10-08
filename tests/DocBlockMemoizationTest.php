@@ -11,12 +11,19 @@ use voku\SimplePhpParser\Parsers\PhpCodeParser;
 
 final class DocBlockMemoizationTest extends TestCase
 {
-    public function testSameTextAndContextReturnsSharedInstance(): void
+    public function testRemovingATagDoesNotMutateLaterResults(): void
     {
         $factory = MemoizingDocBlockFactory::createInstance();
         $doc = "/**\n * Summary.\n * @return int\n */";
 
-        static::assertSame($factory->create($doc), $factory->create($doc));
+        $first = $factory->create($doc);
+        $first->removeTag($first->getTagsByName('return')[0]);
+        $second = $factory->create($doc);
+
+        static::assertNotSame($first, $second);
+        static::assertCount(0, $first->getTagsByName('return'));
+        static::assertCount(1, $second->getTagsByName('return'));
+        static::assertSame('int', (string) $second->getTagsByName('return')[0]->getType());
     }
 
     public function testDifferentNamespaceContextIsNotShared(): void
@@ -37,6 +44,30 @@ final class DocBlockMemoizationTest extends TestCase
         $factory = MemoizingDocBlockFactory::createInstance();
 
         static::assertNotSame($factory->create('/** One. */'), $factory->create('/** Two. */'));
+    }
+
+    public function testDifferentImportAliasesResolveIndependently(): void
+    {
+        $factory = MemoizingDocBlockFactory::createInstance();
+        $doc = '/** @return Alias */';
+
+        $a = $factory->create($doc, new \phpDocumentor\Reflection\Types\Context('Same', ['Alias' => 'First\\Type']));
+        $b = $factory->create($doc, new \phpDocumentor\Reflection\Types\Context('Same', ['Alias' => 'Second\\Type']));
+
+        static::assertSame('\\First\\Type', (string) $a->getTagsByName('return')[0]->getType());
+        static::assertSame('\\Second\\Type', (string) $b->getTagsByName('return')[0]->getType());
+    }
+
+    public function testExplicitLocationsArePreserved(): void
+    {
+        $factory = MemoizingDocBlockFactory::createInstance();
+        $doc = '/** Summary. */';
+        $firstLocation = new \phpDocumentor\Reflection\Location(1, 2);
+        $secondLocation = new \phpDocumentor\Reflection\Location(3, 4);
+
+        static::assertSame($firstLocation, $factory->create($doc, null, $firstLocation)->getLocation());
+        static::assertSame($secondLocation, $factory->create($doc, null, $secondLocation)->getLocation());
+        static::assertNull($factory->create($doc)->getLocation());
     }
 
     public function testDirectoryParseSeesEditsMadeWithinTheSameSecond(): void

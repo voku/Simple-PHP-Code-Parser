@@ -18,8 +18,8 @@ use voku\SimplePhpParser\Parsers\Helper\ParserContainer;
 use voku\SimplePhpParser\Parsers\Helper\ParserErrorHandler;
 use voku\SimplePhpParser\Parsers\Helper\ParserOptions;
 use voku\SimplePhpParser\Parsers\Helper\Utils;
-use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 use voku\SimplePhpParser\Parsers\Visitors\AstPreparationVisitor;
+use voku\SimplePhpParser\Parsers\Visitors\ASTVisitor;
 
 final class PhpCodeParser
 {
