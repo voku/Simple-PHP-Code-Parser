@@ -7,6 +7,15 @@
             "matchPackageNames": [
                 "!phpunit/phpunit"
             ]
+    }, {
+            "description": "Preserve the exact agent-loop release required by frozen issue-60 dogfood evidence.",
+            "matchFileNames": [
+                "tools/agent-loop/composer.json"
+            ],
+            "matchPackageNames": [
+                "voku/agent-loop"
+            ],
+            "enabled": false
     }],
     "ignorePaths": [
         "tools/runtime-floor/**"
