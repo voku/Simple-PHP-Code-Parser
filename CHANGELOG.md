@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.22.14 (2026-10-09)
+
+- Add `ImportContext` (`fromSource()` / `fromAst()`): the namespace and class imports of a file, with `resolveClassName()` resolving a written class name like PHP does (absolute, import, alias, group use, namespace). Lets consumers check whether two files resolve the same spelling to the same class.
+- Add `UnusedImports::find()`: class imports that nothing in the file refers to any more (comments and docblocks count as use; grouped, `function` and `const` imports are not judged).
+
 ### 0.22.13 (2026-10-08)
 
 - memoize docblock parsing behind `DocFactoryProvider` (new `MemoizingDocBlockFactory`, bounded to 2048 entries): the models asked for the same docblock text many times per file (172 `create()` calls for 18 unique docblocks in a 25 KB file), and that was the largest single cost of model extraction; the cache is keyed on docblock text plus namespace context, so results are unchanged
