@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.22.15 (2026-10-09)
+
+- Add `AstDeclarationFinder`: `classLikeFqn()`, `classLikes()` (by fully qualified name) and `methods()` (by name and optional exact line span) over the AST from `PhpCodeParser::getAstFromString()`. Consumers that map evidence to exactly one declaration get all candidates and decide what zero or several matches mean.
+
 ### 0.22.14 (2026-10-09)
 
 - Add `ImportContext` (`fromSource()` / `fromAst()`): the namespace and class imports of a file, with `resolveClassName()` resolving a written class name like PHP does (absolute, import, alias, group use, namespace). Lets consumers check whether two files resolve the same spelling to the same class.
